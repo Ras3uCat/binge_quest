@@ -7,13 +7,23 @@ workflows:
       flutter: stable
       xcode: latest
 
+    integrations:
+      app_store_connect: Codemagic API   
+
     working_directory: execution/frontend/flutter
 
     scripts:
+      - name: Debug path
+        script: |
+          echo "PWD:"
+          pwd
+          echo "FILES:"
+          ls -la
+
       - name: Get Flutter packages
         script: flutter pub get
 
-      - name: Build iOS IPA
+      - name: Build IPA
         script: flutter build ipa --release
 
     artifacts:
