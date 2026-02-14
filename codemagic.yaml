@@ -3,12 +3,15 @@ workflows:
     name: iOS TestFlight Build
     max_build_duration: 60
 
+    integrations:
+      app_store_connect: BingeQuest 
+
     environment:
       flutter: stable
       xcode: latest
-
-    integrations:
-      app_store_connect: BingeQuest 
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.ras3ucat.bingeQuest
 
     working_directory: execution/frontend/flutter
 
