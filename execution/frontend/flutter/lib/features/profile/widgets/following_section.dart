@@ -4,8 +4,9 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/constants/e_colors.dart';
 import '../../../core/constants/e_sizes.dart';
 import '../../../core/constants/e_images.dart';
+import '../../search/controllers/search_controller.dart';
 import '../../../shared/models/followed_talent.dart';
-import '../../search/screens/person_detail_screen.dart';
+import '../../search/widgets/person_detail_sheet.dart';
 import '../controllers/followed_talent_controller.dart';
 
 /// Displays the list of followed talent on the profile screen.
@@ -85,11 +86,7 @@ class FollowingSection extends StatelessWidget {
       child: Center(
         child: Column(
           children: [
-            Icon(
-              Icons.person_search,
-              size: 40,
-              color: EColors.textTertiary,
-            ),
+            Icon(Icons.person_search, size: 40, color: EColors.textTertiary),
             SizedBox(height: ESizes.sm),
             Text(
               'Not following anyone yet',
@@ -153,9 +150,7 @@ class _FollowedTalentTile extends StatelessWidget {
       radius: 24,
       backgroundColor: EColors.surfaceLight,
       backgroundImage: talent.profilePath != null
-          ? CachedNetworkImageProvider(
-              EImages.tmdbProfile(talent.profilePath),
-            )
+          ? CachedNetworkImageProvider(EImages.tmdbProfile(talent.profilePath))
           : null,
       child: talent.profilePath == null
           ? const Icon(Icons.person, color: EColors.textTertiary)
@@ -189,10 +184,7 @@ class _FollowedTalentTile extends StatelessWidget {
     final label = isActor ? 'Actor' : 'Director';
 
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: ESizes.sm,
-        vertical: 2,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: ESizes.sm, vertical: 2),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(ESizes.radiusSm),
@@ -211,17 +203,22 @@ class _FollowedTalentTile extends StatelessWidget {
   Widget _buildUnfollowButton() {
     return IconButton(
       onPressed: _handleUnfollow,
-      icon: const Icon(
-        Icons.favorite,
-        color: EColors.secondary,
-        size: 20,
-      ),
+      icon: const Icon(Icons.favorite, color: EColors.secondary, size: 20),
       tooltip: 'Unfollow ${talent.personName}',
     );
   }
 
   void _navigateToPersonDetail() {
-    Get.to(() => PersonDetailScreen(personId: talent.tmdbPersonId));
+    // Ensure ContentSearchController is available for the sheet and subsequent navigation
+    if (!Get.isRegistered<ContentSearchController>()) {
+      Get.put(ContentSearchController());
+    }
+
+    Get.bottomSheet(
+      PersonDetailSheet(personId: talent.tmdbPersonId),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+    );
   }
 
   void _handleUnfollow() {
