@@ -1,0 +1,178 @@
+-- BingeQuest Queue Efficiency Schema Updates
+-- Adds last_activity_at tracking and efficiency helper functions
+
+-- ============================================
+-- ADD LAST ACTIVITY TRACKING
+-- ============================================
+
+-- Add last_activity_at to watchlist_items
+ALTER TABLE public.watchlist_items
+ADD COLUMN IF NOT EXISTS last_activity_at TIMESTAMPTZ;
+
+-- Initialize last_activity_at from existing watch_progress data
+UPDATE public.watchlist_items wi
+SET last_activity_at = (
+    SELECT MAX(watched_at)
+    FROM public.watch_progress wp
+    WHERE wp.watchlist_item_id = wi.id
+    AND wp.watched_at IS NOT NULL
+);
+
+-- For items with no activity, set to added_at
+UPDATE public.watchlist_items
+SET last_activity_at = added_at
+WHERE last_activity_at IS NULL;
+
+-- Create index for stale content queries
+CREATE INDEX IF NOT EXISTS idx_watchlist_items_last_activity
+ON public.watchlist_items(last_activity_at);
+
+-- ============================================
+-- EFFICIENCY HELPER FUNCTIONS
+-- ============================================
+
+-- Function to get item activity status
+-- Returns: 'active' (< 7 days), 'idle' (7-30 days), 'stale' (> 30 days), 'completed'
+CREATE OR REPLACE FUNCTION get_item_status(item_id UUID)
+RETURNS TEXT AS $$
+DECLARE
+    completion NUMERIC;
+    last_activity TIMESTAMPTZ;
+    days_since INTEGER;
+BEGIN
+    -- Get completion percentage
+    SELECT get_completion_percentage(item_id) INTO completion;
+
+    -- If completed, return 'completed'
+    IF completion >= 100 THEN
+        RETURN 'completed';
+    END IF;
+
+    -- Get last activity
+    SELECT last_activity_at INTO last_activity
+    FROM public.watchlist_items
+    WHERE id = item_id;
+
+    -- Calculate days since last activity
+    days_since := EXTRACT(DAY FROM NOW() - COALESCE(last_activity, NOW()));
+
+    IF days_since < 7 THEN
+        RETURN 'active';
+    ELSIF days_since < 30 THEN
+        RETURN 'idle';
+    ELSE
+        RETURN 'stale';
+    END IF;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Function to calculate queue efficiency score for a user
+CREATE OR REPLACE FUNCTION calculate_queue_efficiency(p_user_id UUID)
+RETURNS TABLE (
+    total_items INTEGER,
+    completed_items INTEGER,
+    active_items INTEGER,
+    idle_items INTEGER,
+    stale_items INTEGER,
+    completion_rate NUMERIC,
+    efficiency_score INTEGER,
+    recent_completions INTEGER
+) AS $$
+DECLARE
+    v_total INTEGER := 0;
+    v_completed INTEGER := 0;
+    v_active INTEGER := 0;
+    v_idle INTEGER := 0;
+    v_stale INTEGER := 0;
+    v_recent INTEGER := 0;
+    v_completion_rate NUMERIC := 0;
+    v_score INTEGER := 0;
+BEGIN
+    -- Count items by status
+    SELECT
+        COUNT(*),
+        COUNT(*) FILTER (WHERE get_item_status(wi.id) = 'completed'),
+        COUNT(*) FILTER (WHERE get_item_status(wi.id) = 'active'),
+        COUNT(*) FILTER (WHERE get_item_status(wi.id) = 'idle'),
+        COUNT(*) FILTER (WHERE get_item_status(wi.id) = 'stale')
+    INTO v_total, v_completed, v_active, v_idle, v_stale
+    FROM public.watchlist_items wi
+    JOIN public.watchlists w ON w.id = wi.watchlist_id
+    WHERE w.user_id = p_user_id;
+
+    -- Count recent completions (last 7 days)
+    SELECT COUNT(DISTINCT wi.id) INTO v_recent
+    FROM public.watchlist_items wi
+    JOIN public.watchlists w ON w.id = wi.watchlist_id
+    JOIN public.watch_progress wp ON wp.watchlist_item_id = wi.id
+    WHERE w.user_id = p_user_id
+    AND wp.watched_at >= NOW() - INTERVAL '7 days'
+    AND get_completion_percentage(wi.id) >= 100;
+
+    -- Calculate completion rate
+    IF v_total > 0 THEN
+        v_completion_rate := ROUND((v_completed::NUMERIC / v_total::NUMERIC) * 100, 1);
+    END IF;
+
+    -- Calculate efficiency score (0-100)
+    -- Base: completion rate
+    -- Penalty: -2 points per stale item
+    -- Bonus: +5 points per recent completion (max 25 points)
+    v_score := GREATEST(0, LEAST(100,
+        v_completion_rate
+        - (v_stale * 2)
+        + LEAST(v_recent * 5, 25)
+    ))::INTEGER;
+
+    RETURN QUERY SELECT
+        v_total,
+        v_completed,
+        v_active,
+        v_idle,
+        v_stale,
+        v_completion_rate,
+        v_score,
+        v_recent;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- ============================================
+-- TRIGGER TO UPDATE LAST ACTIVITY
+-- ============================================
+
+-- Function to update last_activity_at when watch_progress changes
+CREATE OR REPLACE FUNCTION update_item_last_activity()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Update last_activity_at on the watchlist item
+    UPDATE public.watchlist_items
+    SET last_activity_at = NOW()
+    WHERE id = NEW.watchlist_item_id;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger on watch_progress updates
+DROP TRIGGER IF EXISTS trigger_update_last_activity ON public.watch_progress;
+CREATE TRIGGER trigger_update_last_activity
+    AFTER UPDATE OF watched ON public.watch_progress
+    FOR EACH ROW
+    WHEN (NEW.watched IS DISTINCT FROM OLD.watched)
+    EXECUTE FUNCTION update_item_last_activity();
+
+-- ============================================
+-- EFFICIENCY BADGES
+-- ============================================
+
+-- Efficiency-related badges
+INSERT INTO public.badges (name, description, icon_path, category, criteria_json)
+VALUES
+    ('Queue Manager', 'Achieve efficiency score of 50+', 'emoji:📊', 'activity', '{"type": "efficiency_score", "value": 50}'),
+    ('Efficiency Expert', 'Achieve efficiency score of 75+', 'emoji:📈', 'activity', '{"type": "efficiency_score", "value": 75}'),
+    ('Queue Master', 'Achieve efficiency score of 90+', 'emoji:🏆', 'activity', '{"type": "efficiency_score", "value": 90}'),
+    ('No Backlog', 'Have zero stale items in your queue', 'emoji:✨', 'activity', '{"type": "stale_items", "value": 0}'),
+    ('Clean Sweep', 'Clear 5 stale items in a week', 'emoji:🧹', 'activity', '{"type": "stale_cleared", "value": 5}'),
+    ('Consistent Viewer', 'Keep all items active for 2 weeks', 'emoji:⚡', 'activity', '{"type": "all_active_days", "value": 14}'),
+    ('Quick Starter', 'Watch 3 items within a day of adding them', 'emoji:🚀', 'activity', '{"type": "same_day_starts", "value": 3}')
+ON CONFLICT (name) DO NOTHING;

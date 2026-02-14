@@ -1,85 +1,25 @@
-# Flutter Development Skill
-Flutter app root is at execution/frontend/flutter.
-All Dart source code lives under lib/.
+# Flutter Development Skill (V2)
+**Scope:** `execution/frontend/flutter/lib/`
 
-## Stack
-- Flutter (stable)
-- GetX
-- Material 3
-- Feature-based structure
+## 🧩 Architectural Blueprint
+- **State:** GetX (Controllers + Bindings).
+- **Organization:** Feature-First (`features/<name>/`).
+- **Layers:** - `screens/`: UI only.
+    - `controllers/`: Reactive logic + State.
+    - `models/`: Data structures.
+    - `widgets/`: Local components.
+- **Shared:** `common/widgets/` for cross-feature components.
 
-## Structure
-execution/frontend/flutter/lib/
-├── main.dart
-├── app/
-│   ├── app.dart
-│   ├── router.dart
-│   └── theme/
-│       ├── themes.dart
-│       └── custom_themes/
-├── bindings/
-│   └── general_bindings.dart
-├── common/
-│   └── widgets/
-│       ├── buttons/
-│       ├── cards/
-│       ├── dialogs/
-│       └── loaders/
-├── data/
-│   ├── repositories/
-│   │   ├── authentication/
-│   │   └── user/
-│   └── services/
-│       ├── cloud_storage/
-│       └── payments/
-├── features/
-│   ├── auth/
-│   │   ├── controllers/
-│   │   ├── models/
-│   │   ├── screens/
-│   │   └── widgets/
-│   └── dashboard/
-│       ├── controllers/
-│       ├── models/
-│       ├── screens/
-│       └── widgets/
-├── routes/
-└── utils/
-    ├── constants/
-    │   ├── colors.dart
-    │   ├── enums.dart
-    │   ├── images.dart
-    │   ├── sizes.dart
-    │   └── text.dart
-    ├── device/
-    │   └── device_utility.dart
-    └── helpers/
+## 🛠️ Implementation Rules
+- **Pure Widgets:** Zero business logic. Use `GetView<TController>`.
+- **E-Constants:** Use `EColors`, `ESizes`, `EImages`, `EText` strictly.
+- **The 300 Rule:** If a file exceeds 300 lines, extract widgets/logic to new files immediately.
+- **Repositories:** All data fetching must go through `data/repositories/`.
 
+## 🔄 Naming & Style
+- Class: `UpperCamelCase`
+- Variables: `lowerCamelCase`
+- Suffixes: `...Controller`, `...Widget` (if reusable), `...Repository`.
 
-## Rules
-- No logic in widgets
-- Controllers manage state
-- Services handle API calls
-- Strong null safety
-- Widgets only handle UI
-- Use lib/features/<feature>/ structure
-
-## When to Use
-Whenever creating or modifying Flutter UI, state, routing, or tests.
-- Creating Flutter screens
-- Adding features
-- Refactoring UI or state
-
-## Naming Conventions
-- Constants: Always start class name with "E", e.g., `EColors.primary`.
-- Controllers: End with "Controller".
-- Widgets: Add "Widget" suffix for reusable components.
-- Keep feature folders and class names aligned.
-
-## Refactoring and File Size Rules
-- Files should be short and focused. If a class or widget is too large, split it.
-- Create a new file for extracted logic or widgets; do not clutter existing files.
-- Use clear folder placement for refactored files: e.g., lib/features/<feature>/widgets/<widget_name>.dart
-- Keep each file understandable on its own.
-- When asked to refactor, always preserve functionality and test coverage.
-
+## 🚀 Usage
+Trigger this skill for any task involving UI, State, or Flutter-specific refactoring.

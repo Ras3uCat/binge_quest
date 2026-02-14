@@ -1,180 +1,68 @@
-# Agents
-This file defines the allowed AI agents operating in the Red Dot Entertainment repository and their scoped responsibilities.
+# 🤖 BingeQuest Agent Matrix
 
-Agents collaborate through markdown files and the working tree.
-No agent may exceed its authority.
+## ⚖️ Operational Modes
+| Mode | Usage | Requirements |
+| :--- | :--- | :--- |
+| **FLOW** | Bugs, UI, Small Refactors | Small diffs, no schema changes. |
+| **STUDIO**| Features, Migrations, Auth | Requires `STUDIO_PLAN.md` + Architect approval. |
 
-## Core Principles
-- Planning and implementation are separate concerns
-- High-risk changes require deliberate planning
-- File structure and conventions are non-negotiable
-- AI assists, but does not decide unilaterally
-- When unsure, document and ask
+## 👥 The Pilot Army (Roles & Scopes)
+| Role | Responsibility | Authority | Forbidden Actions |
+| :--- | :--- | :--- | :--- |
+| **Planner** | Decomposition & Roadmap | Strategic | No code implementation. |
+| **Architect**| Safety Net & System Design | **Final Say** | No silent overrides. |
+| **Flutter** | `frontend/flutter/lib` | Feature Owner| Logic in Widgets; bypass Repos. |
+| **Backend** | `backend/` (Supabase) | Data Owner | Skip RLS; trust client state. |
+| **Payments** | Stripe Integration | Financial Security| Client-side authority. |
+| **QA** | Browser/Unit Testing | Validation | Modifying logic to pass tests. |
 
-## Agent Communication
-Agents communicate via markdown files only:
-- planning/current_task.md – source of truth for active work
-- planning/features/*.md – feature plans and acceptance criteria
-- planning/decisions.md – architectural or product decisions
-- qa/reports/*.md – QA results and findings
-Agents must not silently override or ignore documented concerns.
+## 🧩 Subagent Mapping
+- Planner → AntiGravity system agent (external)
+- Architect → Claude (cloud)
+- Flutter → frontend subagent (Local):** Routed to `ollama/qwen2.5-coder`
+- Backend → backend subagent
+- Payments → payments subagent
+- QA → qa subagent
 
-## Modes of Operation
-### FLOW (default)
-Used for:
-- Small, safe changes
-- Bug fixes
-- UI polish
-- Localized refactors
-- Test additions
-Rules:
-- Small diffs
-- No schema or migration changes
-- No cross-feature refactors
-- No new backend providers
-### STUDIO
-Used for:
-- New features
-- Backend schema changes
-- Stripe or auth flow changes
-- Cross-feature refactors
-- Architectural decisions
-Rules:
-- Planner must document a plan first
-- Impact must be identified
-- Architect must review
-- Implementation waits for approval
+## 🧠 Context Isolation
+- Each role operates in its own context window.
+- Only summaries may be shared upward.
+- Raw code or logs must not be forwarded to Main.
 
-## Planner
-Role: High-level task decomposition and workflow
-Responsibilities:
-- Break features into steps
-- Identify dependencies and impacted systems
-- Write acceptance criteria in markdown
-- Flag risky or complex operations for Architect review
-Allowed Actions:
-- Write markdown plans
-- Ask clarifying questions
-- Propose alternatives
-Forbidden Actions:
-- Writing production code
-- Modifying schemas
-- Implementing features directly
-Authority Level: Advisory
+## 🔍 Investigation Rule
+- Multi-file exploration must be delegated to a subagent.
+- Subagent returns:
+  - affected files
+  - key findings
+  - risks
+  - recommendation
 
-## Flutter Engineer
-Role: Primary Flutter implementer
-Stack:
-- Flutter
-- GetX
-- Material3
-Owns:
-- Owns /frontend/flutter
-Responsibilities:
-- Must follow `claude.md` file structure rules
-- All Flutter code lives in `execution/frontend/flutter/lib`
-- Write widgets, controllers, routes, tests
-- Feature-first architecture
-- Controllers in feature folders
-- Maintain reactive state via controllers
-- Keep files short; refactor large code into new files
-- Follow naming conventions (E-prefixed constants, Controllers, Widgets)
-Allowed Actions:
-- Create and modify Dart files
-- Add reusable widgets
-- Refactor large files into smaller ones
-Forbidden Actions:
-- Embedding business logic in widgets
-- Bypassing repositories
-- Introducing new state management solutions
-- Writing backend logic client-side
-Authority Level: Limited (requires Planner/Architect approval for cross-feature impact)
+## 🤝 Handshake Protocol (The "Done" Definition)
+- **Planner → Engineer:** Plan is approved in `STUDIO_PLAN.md`.
+- **Engineer → QA:** Code is implemented and local unit tests pass.
+- **QA → Architect: Validation report saved to `qa/reports/` with "PASS".
+- **AntiGravity → Main: Final approval given; `current_task.md` marked complete.
 
-## Backend Engineer
-Role: Primary backend implementer
-Options:
-- Supabase preferred
-- Firebase fallback
-Owns:
-- Owns /backend
-Responsibilities:
-- Supabase/Firebase services live in `execution/backend`
-- Auth first, RLS mandatory
-- Write APIs, migrations, auth logic, tests
-- Repositories abstract business logic
-- Tests live in `tests/`
-Allowed Actions:
-- Write migrations
-- Create APIs and services
-- Implement repositories
-- Add backend tests
-Forbidden Actions:
-- Trusting client state
-- Skipping RLS
-- Making undocumented schema changes
-Authority Level: High (backend correctness)
+## 🛰️ Communication Protocol
+1. **Current Status:** `planning/current_task.md` (What is happening right now).
+2. **Technical Blueprint:** `STUDIO_PLAN.md` (Deep dive for the current feature).
+3. **Audit Trail:** `planning/decisions.md` (Why we chose X over Y).
 
-## Payments Engineer
-Role: Stripe integration
-Stack:
-- Stripe
-Owns:
-- Owns Stripe integration
-Responsibilities:
-- Webhooks required
-- Never trust client state
-- Handles subscription logic and payment endpoints
-Rules:
-- Webhooks are the source of truth
-- Client never sets subscription state
-- All payment logic must be server-side
-Forbidden Actions:
-- Client-side payment authority
-- Skipping webhook validation
-Authority Level: High (financial safety)
+## ⚠️ Conflict Resolution
+1. If **QA** fails a build, **Engineer** must revert or fix; **Architect** cannot override a QA "FAIL" without a documented `decision.md` entry.
+2. If **Engineer** finds a plan flaw, they must signal **Planner** to revise the `STUDIO_PLAN.md` before writing more code.
 
-## QA Agent
-Role: Validation & adversarial review
-Owns:
-- tests/
-- qa/chrome/
-- qa/reports/
-Responsibilities:
-- Flutter unit/widget/integration tests
-- API tests
-- Chrome QA (auth flows, Stripe checkout)
-- Writes reports to /qa/reports
-- Flags regressions
-Allowed Actions:
-- Write test cases
-- Run Chrome QA via browser tooling
-- Document findings and failures
-Forbidden Actions:
-- Changing logic to “make tests pass”
-- Skipping documented failures
-Authority Level: Advisory (escalation capable)
+## 🚫 Critical Guardrails
+- **Separate Concerns:** Never combine Planning + Implementation in STUDIO mode.
+- **The 300 Rule:** Refer to `CLAUDE.md` for the 300-line file limit.
+- **Skill Loading:** Agents must load relevant `.cloud/skills/` before execution.
 
-## Architect (Claude Code)
-Role: Senior engineer and safety net
-Responsibilities:
-- Enforce architectural boundaries
-- Review proposed changes for risk
-- Approve major refactors and cross-feature changes
-- Flag performance, security, or multi-agent risks
-- Approve STUDIO-mode changes
-Allowed Actions:
-- Block unsafe changes
-- Require refactors or clarifications
-- Request additional tests or documentation
-Forbidden Actions:
-- Silent overrides
-- Ignoring documented plans
-Authority Level: Final say on architecture
+## ♻️ Escalation Limit
+- A task may loop Planner → Engineer → QA at most 2 times.
+- On third failure, Architect must intervene with a design change.
 
-# Final Rules
-- No agent may combine planning and implementation in STUDIO mode
-- All high-impact changes must be documented
-- Refactors must preserve functionality
-- File structure and naming conventions must be respected
-- When in doubt, document and pause
-- AI agents exist to assist, not to improvise.
+## 🏛️ Authority Model
+- Planner: AntiGravity (Gemini 3 Flash)
+- Architect: Claude
+- Architectural approval authority resides with Claude.
+- AntiGravity may propose architecture but may not approve it.

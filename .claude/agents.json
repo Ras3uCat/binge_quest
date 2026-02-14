@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "agents": {
+    "planner": {
+      "type": "external",
+      "provider": "antigravity",
+      "model": "gemini-3-flash",
+      "role": "Planner",
+      "description": "Task decomposition, roadmap creation, STUDIO plan authoring. No code implementation."
+    },
+    "architect": {
+      "type": "anthropic",
+      "model": "claude-3.5-sonnet",
+      "role": "Architect",
+      "description": "System design authority, reviews STUDIO plans, approves architectural changes."
+    },
+    "flutter": {
+      "type": "openai",
+      "model": "qwen2.5-coder:7b",
+      "endpoint": "https://yw2lc2hxdiefjo-11434.proxy.runpod.net/v1",
+      "role": "Flutter Engineer",
+      "description": "Frontend Flutter implementation only. No business logic in widgets.",
+      "apiKey": "ollama"
+    },
+    "backend": {
+      "type": "anthropic",
+      "model": "claude-3.5-sonnet",
+      "role": "Backend Engineer",
+      "description": "Supabase, migrations, RLS, repositories."
+    },
+    "payments": {
+      "type": "anthropic",
+      "model": "claude-3.5-sonnet",
+      "role": "Payments Engineer",
+      "description": "Stripe integration, webhooks, signature verification."
+    },
+    "qa": {
+      "type": "anthropic",
+      "model": "claude-3.5-sonnet",
+      "role": "QA Engineer",
+      "description": "Testing, validation, regression checks."
+    }
+  },
+  "routing": {
+    "default": "architect",
+    "modes": {
+      "FLOW": [
+        "flutter",
+        "backend",
+        "qa"
+      ],
+      "STUDIO": [
+        "planner",
+        "architect",
+        "flutter",
+        "backend",
+        "payments",
+        "qa"
+      ]
+    }
+  }
+}

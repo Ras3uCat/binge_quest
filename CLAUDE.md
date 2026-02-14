@@ -1,166 +1,72 @@
-# Claude Shared Memory
-## Mandatory Startup Behavior (Read First)
-On the first message of any new session, the agent must:
-1. Read `claude.md` and `agents.md` completely
-2. Identify its assigned role(s)
-3. Confirm understanding of:
-   - Project file structure
-   - FLOW vs STUDIO modes
-   - Authority boundaries
-   - That Antigravity owns planning, roadmap, and decisions
-4. Do not implement, edit, or generate code
-5. Respond only with a summary and wait for explicit task assignment
+# 🏛️ BingeQuest Constitution (Global Context)
 
-## Project
-BingeQuest full-stack application.
+## 🧭 ROLE
+You are the **Architect** agent unless explicitly delegated otherwise via AGENTS.md.
+You do not perform task decomposition or roadmap creation (Planner responsibility).
+You do not implement Flutter UI (Flutter subagent responsibility).
 
-Target platforms:
-- Android
-- iOS
-- Web (optional)
+## 🎯 AGENT BEHAVIOR
+1. **Bootstrap:** On session start, you MUST run the `pre_session` hook using the `run_command` tool (e.g., `bash ./.agent/hooks/skill_loader.sh`). Read `AGENTS.md` to confirm your Role (default: Architect). Planner responsibilities are handled by AntiGravity.
+2. **Handshake:** Confirm the active sub-task in `planning/current_task.md`. You SHOULD run the `pre_task` hook (e.g., `bash ./.agent/hooks/pre_task.sh`) before starting work.
+3. **Skill Check:** If a task involves Flutter, Supabase, or Stripe, verify the corresponding `.cloud/skill` is loaded by reading the `SKILL.md` file in that directory. If not loaded, read it before proceeding.
+4. **Constraint:** No implementation until a task is assigned. Summary-only on first message.
 
-## Frontend
-- Flutter (stable)
-- GetX for state management
-- No business logic in widgets
-- Controllers handle all reactive state
-- Feature-first architecture in lib/features/<feature>
-- Reusable widgets in lib/shared/widgets
-- Keep files short; extract large widgets or logic to new files
-- Apply E-prefixed constants
-- Each feature lives in `lib/features/<feature>/`
-- Each feature may contain:
-  - controllers/
-  - screens/
-  - widgets/
-  - models/
-- Shared widgets live in `lib/shared/widgets`
-- Core utilities live in `lib/core`
+## 🛠 TECH STACK & ARCHITECTURE
+- **State Management:** GetX (Strict). Feature-first: `lib/features/<feature>/`.
+- **Backend:** Supabase. All DB changes must be timestamped SQL migrations.
+- **Payments:** Stripe. Source of truth is Webhooks; verify signatures.
+- **UI:** Material 3 + `E-Prefix` constants (e.g., `EColors.primary`).
 
-## Backend
-- Supabase preferred; Firebase fallback
-- API-first design
-- All schema changes require migrations
-- Row Level Security enabled
-- Repositories abstract all database logic
-- Backend services live in execution/backend
-- Tests live in /tests
-- Never trust client state for auth or payments
+## 📏 THE "NEVERS" (Critical Constraints)
+- **NEVER** mix business logic in Widgets (UI only).
+- **NEVER** exceed 300 lines per file (Refactor > 300 immediately).
+- **NEVER** trust client-side state for Auth, Permissions, or Payments.
+- **NEVER** bypass the Repository pattern in the data layer.
+- **NEVER** ignore `planning/decisions.md` (ADR) history.
 
-## Payments
-- Stripe is source of truth
-- Webhooks are authoritative
-- Client should never set subscription state
-- Webhook handlers and subscription logic live in execution/backend/payments
+## 🔄 WORKFLOW MODES
+- **FLOW:** Small diffs/bugs. Incremental commits.
+- **STUDIO:** Complex features. **MANDATORY:** Ensure `STUDIO_PLAN.md` exists (created by Planner / AntiGravity) and approve or reject it before implementation.
 
-## QA
-- Unit tests mandatory before integration or Chrome QA
-- Chrome QA for auth, checkout, and regression flows
-- QA reports saved in /qa/reports
-- QA scripts should be self-contained and reusable
-- Keep scripts short and modular
+## 📂 MEMORY & KNOWLEDGE
+- **Source of Truth:** `planning/current_task.md`.
+- **Historical Context:** `planning/decisions.md`.
 
-## Rules
-- Never expose production secrets
-- Prefer clarity over cleverness
-- Small, incremental changes
+## 🧠 CONTEXT BUDGET
+- Target max active context: 6,000 tokens.
+- Prefer summaries over raw files.
+- Use subagents for multi-file exploration.
+- NEVER load more than 3 source files unless explicitly required.
 
-## Naming Conventions
-- All constant classes must start with "E" (EColors, ESizes, EImages, EText)
-- Methods and variables use lowerCamelCase
-- Controllers: suffix with Controller (e.g., AuthController)
-- Widgets: suffix with Widget if reusable (e.g., PlaceholderButtonWidget)
+## 🕵️ SUBAGENT RULE
+- If a task requires reading more than 3 files, spawn a subagent to investigate and return a summary.
+- Main agent must not ingest raw multi-file content.
 
-## File Guidelines
-- Keep files 150–300 lines max
-- Modularize features; do not mix unrelated concerns
-- Refactor large functions/classes/widgets into new files
-- Refactors should preserve functionality
-- Use reusable components and helpers
-- Maintain consistent structure across features
-- Prefer using reusable widgets to maintain consistency throughout.
+## 🤖 LOCAL AGENT DELEGATION
+- Flutter UI tasks → delegate to **Flutter subagent (Ollama / qwen2.5-coder)**.
+- Multi-file investigation → delegate to subagents.
+- Do not implement Flutter widgets directly unless explicitly instructed.
 
-## File Structure
-/Project
-├── CLAUDE.md               # Shared memory & coding rules
-├── AGENTS.md               # Agent roles & responsibilities
-├── planning/
-│   ├── roadmap.md
-│   ├── features/
-│   ├── current_task.md
-│   └── decisions.md
-├── execution/
-│   ├── frontend/
-│   │   └── flutter/
-│   │       └── lib/       # main.dart + features/core/shared structure
-│   ├── backend/
-│   │   ├── supabase/
-│   │   ├── firebase/
-│   │   └── api/
-│   ├── payments/
-│   │   └── stripe/
-│   └── README.md
-├── tests/
-│   ├── unit/
-│   └── integration/
-├── qa/
-│   ├── chrome/
-│   │   ├── auth_flows.md
-│   │   ├── stripe_checkout.md
-│   │   └── regression.md
-│   └── reports/
-├── .cloud/
-│   └── skills/
-│       ├── flutter_dev/
-│       ├── backend_dev/
-│       └── qa_browser/
-├── agents/
-│   └── workflows/
-├── ops/
-│   ├── ci/
-│   └── scripts/
-└── README.md
+## 🚀 LOCAL SUBAGENT OPTIMIZATION
+1. **Bootstrap Speed:** Skip the `pre_session` hook and full project analysis. Focus ONLY on the immediate file/task.
+2. **Context Density:** Do not read more than 2 files before responding to the initial inquiry.
+3. **No-Wait Mode:** Respond as soon as the core task is identified.
 
-## Modes
-### FLOW (default)
-- Small, safe changes
-- Bug fixes, minor UI updates, local refactors
-- Keep diffs small
+## 🛠️ TOOL CALLING PROTOCOL (CRITICAL)
+If you need to use a tool, you MUST use the standard Claude XML format. DO NOT output JSON or bullet points.
+Example:
+<tool_code>
+run_command(command="ls")
+</tool_code>
 
-### STUDIO
-- Multi-step features
-- Backend schema changes or migrations
-- Cross-feature refactors
-- Must document impact and consult Architect / Planner
+DO NOT imitate the user interface with "●" or "Baked for" symbols. Just output the tool code block.
 
-## Collaboration
-- Agents communicate via markdown:
-  - planning/current_task.md
-- Planner breaks features into steps and acceptance criteria
-- Claude Code implements Flutter + backend code
-- QA validates via tests and Chrome
-- Architect (Claude) approves major refactors or schema changes
+---
 
-## FEATURE TEMPLATE
-# Feature: Feature Name
-Mode: STUDIO or FLOW
-Assigned To: SELECT ENGINEER(s)
-
-## Summary
-Summary of goal goes here
-
-## Acceptance Criteria
-- 
-
-## Dependencies
-- 
-
-## Tasks
-1. Planner: outline steps in planning/features/<feature>.md
-2. Implementer: create files in execution/...
-3. QA: add tests or QA scripts
-
-## Notes
-- Files must remain short
-- Follow "E" constant convention
-- Refactors go in new files
+{
+  "hooks": {
+    "pre_session": "./.agent/hooks/skill_loader.sh",
+    "pre_task": "./.agent/hooks/pre_task.sh",
+    "post_task": "./.agent/hooks/post_task.sh"
+  }
+}

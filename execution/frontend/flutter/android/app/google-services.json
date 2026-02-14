@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "58540891155",
+    "project_id": "binge-quest",
+    "storage_bucket": "binge-quest.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:58540891155:android:7543c59ae7426f491fb3e6",
+        "android_client_info": {
+          "package_name": "com.ras3ucat.binge_quest"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCW52g1MtlvhlUkYvzzPnw1Y3Wakw-AmfQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

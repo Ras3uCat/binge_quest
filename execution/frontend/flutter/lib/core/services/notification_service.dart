@@ -1,0 +1,257 @@
+import 'dart:io';
+import 'package:device_info_plus/device_info_plus.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:get/get.dart';
+import '../constants/e_colors.dart';
+import '../../shared/models/watchlist_item.dart';
+import '../../shared/repositories/notification_repository.dart';
+import '../../shared/repositories/watchlist_repository.dart';
+import '../../features/auth/controllers/auth_controller.dart';
+import '../../features/watchlist/screens/item_detail_screen.dart';
+import '../../features/search/screens/person_detail_screen.dart';
+import '../../features/notifications/screens/notifications_screen.dart';
+
+class NotificationService extends GetxService {
+  final FirebaseMessaging _fcm = FirebaseMessaging.instance;
+  final NotificationRepository _repository = NotificationRepository();
+  final AuthController _authController = Get.find<AuthController>();
+  final FlutterLocalNotificationsPlugin _localNotifications =
+      FlutterLocalNotificationsPlugin();
+  final Rxn<RemoteMessage> foregroundMessage = Rxn<RemoteMessage>();
+
+  @override
+  void onInit() {
+    super.onInit();
+    _initLocalNotifications();
+    _initFCM();
+  }
+
+  Future<void> _initLocalNotifications() async {
+    const androidSettings =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+    const initSettings = InitializationSettings(android: androidSettings);
+    await _localNotifications.initialize(settings: initSettings);
+  }
+
+  Future<void> _initFCM() async {
+    // 1. Request Permission
+    NotificationSettings settings = await _fcm.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+      provisional: false,
+    );
+
+    if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+      debugPrint('User granted permission');
+
+      // 2. Get initial Token
+      String? token = await _fcm.getToken();
+      if (token != null) {
+        _registerToken(token);
+      }
+
+      // 3. Listen for token refresh
+      _fcm.onTokenRefresh.listen((newToken) {
+        _registerToken(newToken);
+      });
+
+      // 4. Handle Foreground Messages
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+        debugPrint('Got a message whilst in the foreground!');
+        debugPrint('Message data: ${message.data}');
+
+        if (message.notification != null) {
+          debugPrint(
+            'Message also contained a notification: ${message.notification}',
+          );
+
+          // Show in-app snackbar
+          Get.snackbar(
+            message.notification?.title ?? 'New Notification',
+            message.notification?.body ?? '',
+            snackPosition: SnackPosition.TOP,
+            onTap: (_) => _handleMessageTap(message),
+          );
+        }
+
+        // Notify listeners
+        foregroundMessage.value = message;
+      });
+
+      // 5. Handle Background/Terminated Taps
+      FirebaseMessaging.onMessageOpenedApp.listen(_handleMessageTap);
+
+      // Check if app was opened from a terminated state
+      RemoteMessage? initialMessage = await _fcm.getInitialMessage();
+      if (initialMessage != null) {
+        _handleMessageTap(initialMessage);
+      }
+    } else {
+      debugPrint('User declined or has not accepted permission');
+    }
+  }
+
+  Future<void> _registerToken(String token) async {
+    final user = _authController.user;
+    if (user == null) return; // Only register if logged in
+
+    try {
+      final deviceInfo = DeviceInfoPlugin();
+      String deviceId = 'unknown_device';
+      String deviceType = 'unknown';
+
+      if (kIsWeb) {
+        deviceType = 'web';
+        final webInfo = await deviceInfo.webBrowserInfo;
+        deviceId = webInfo.userAgent ?? 'unknown_web_agent';
+      } else if (Platform.isAndroid) {
+        deviceType = 'android';
+        final androidInfo = await deviceInfo.androidInfo;
+        deviceId = androidInfo.id;
+      } else if (Platform.isIOS) {
+        deviceType = 'ios';
+        final iosInfo = await deviceInfo.iosInfo;
+        deviceId = iosInfo.identifierForVendor ?? 'unknown_ios_device';
+      }
+
+      await _repository.registerDeviceToken(
+        userId: user.id,
+        fcmToken: token,
+        deviceId: deviceId,
+        deviceType: deviceType,
+      );
+      debugPrint(
+        'FCM Token registered: ${token.substring(0, 10)}... Device: $deviceId',
+      );
+    } catch (e) {
+      debugPrint('Error registering FCM token: $e');
+    }
+  }
+
+  void _handleMessageTap(RemoteMessage message) {
+    final data = message.data;
+    final type = data['type'] as String?;
+    final tmdbIdStr = data['tmdb_id'] as String?;
+    final mediaType = data['media_type'] as String?;
+    final personIdStr = data['person_id'] as String?;
+
+    if (type == null) {
+      Get.to(() => const NotificationsScreen());
+      return;
+    }
+
+    switch (type) {
+      case 'streaming_alert':
+      case 'new_episode':
+      case 'talent_release':
+        if (tmdbIdStr != null && mediaType != null) {
+          _navigateToContent(
+            tmdbId: int.tryParse(tmdbIdStr),
+            mediaType: mediaType,
+            personId: personIdStr != null ? int.tryParse(personIdStr) : null,
+          );
+        } else {
+          Get.to(() => const NotificationsScreen());
+        }
+        break;
+      default:
+        Get.to(() => const NotificationsScreen());
+    }
+  }
+
+  Future<void> _navigateToContent({
+    int? tmdbId,
+    String? mediaType,
+    int? personId,
+  }) async {
+    if (tmdbId == null || mediaType == null) {
+      Get.to(() => const NotificationsScreen());
+      return;
+    }
+
+    try {
+      final item = await WatchlistRepository.getItemByTmdbId(
+        tmdbId: tmdbId,
+        mediaType: mediaType == 'movie' ? MediaType.movie : MediaType.tv,
+      );
+
+      if (item != null) {
+        Get.to(() => ItemDetailScreen(item: item));
+      } else if (personId != null) {
+        Get.to(() => PersonDetailScreen(personId: personId));
+      } else {
+        Get.to(() => const NotificationsScreen());
+      }
+    } catch (e) {
+      debugPrint('Deep link navigation error: $e');
+      Get.to(() => const NotificationsScreen());
+    }
+  }
+
+  Future<void> logout() async {
+    try {
+      String? token = await _fcm.getToken();
+      if (token != null) {
+        await _repository.removeDeviceToken(token);
+      }
+      await _fcm.deleteToken();
+    } catch (e) {
+      debugPrint('Error removing FCM token on logout: $e');
+    }
+  }
+
+  Future<void> sendTestNotification() async {
+    final user = _authController.user;
+    if (user == null) {
+      Get.snackbar('Error', 'Must be logged in to send test notification');
+      return;
+    }
+
+    try {
+      // Import needed for Supabase.instance if not available globally,
+      // but NotificationRepository usually handles Supabase interactions.
+      // However, invoking functions is often done directly or via repo.
+      // Let's use the repository to keep it clean, or just invoke here since it's a dev tool.
+      // Since we don't have a repo method for this yet, I'll access Supabase directly here
+      // as imported from the repository file implicitly? No, need explicit import.
+      // I'll add the import of supabase_flutter to the top of file if it's missing?
+      // Wait, 'notification_repository.dart' imports it.
+      // I should probably add the method to the repository or just import supabase_flutter here.
+      // I'll just use Get.find<SupabaseClient>() if available or import it.
+      // Checking file... no supabase_flutter import.
+      // I added imports at the top. I should have added 'package:supabase_flutter/supabase_flutter.dart'.
+      // I missed that in the first chunk. I'll rely on Repository or add it.
+      // Let's use the repository. I'll add `invokeFunction` to repo in next step.
+      // Promoting `sendTestNotification` to call repo.
+
+      await _repository.sendTestNotification(userId: user.id);
+
+      // Show a local system tray notification for testing
+      await _localNotifications.show(
+        id: 0,
+        title: 'Test Notification',
+        body: 'Quest Complete! \u{1F3C6}',
+        notificationDetails: const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'binge_quest_test',
+            'BingeQuest Test',
+            channelDescription: 'Test notifications',
+            importance: Importance.high,
+            priority: Priority.high,
+          ),
+        ),
+      );
+    } catch (e) {
+      debugPrint('Error sending test notification: $e');
+      Get.snackbar(
+        'Error',
+        'Failed to send test notification: $e',
+        backgroundColor: EColors.error.withOpacity(0.1),
+        colorText: EColors.error,
+      );
+    }
+  }
+}
