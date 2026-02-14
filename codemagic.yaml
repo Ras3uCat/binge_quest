@@ -8,7 +8,7 @@ workflows:
       xcode: latest
 
     integrations:
-      app_store_connect: Codemagic API   
+      app_store_connect: BingeQuest 
 
     working_directory: execution/frontend/flutter
 
