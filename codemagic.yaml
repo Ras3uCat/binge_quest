@@ -6,24 +6,17 @@ workflows:
     integrations:
       app_store_connect: BingeQuest 
 
+    
     environment:
       flutter: stable
       xcode: latest
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.ras3ucat.bingeQuest
-        automatic_code_signing: true
 
     working_directory: execution/frontend/flutter
 
     scripts:
-      - name: Debug path
-        script: |
-          echo "PWD:"
-          pwd
-          echo "FILES:"
-          ls -la
-
       - name: Get Flutter packages
         script: flutter pub get
 
