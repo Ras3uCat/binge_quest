@@ -3,7 +3,7 @@ workflows:
     name: iOS TestFlight Build
     max_build_duration: 60
     # Ensure this matches your repo exactly: 'execute' vs 'execution'
-    working_directory: execute/frontend/flutter
+    working_directory: execution/frontend/flutter
 
     integrations:
       app_store_connect: CodeMagic API 
@@ -39,4 +39,3 @@ workflows:
       app_store_connect:
         auth: integration # Must be the literal word 'integration'
         submit_to_testflight: true
-        testflight_internal_testing_only: true
