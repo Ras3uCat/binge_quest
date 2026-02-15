@@ -2,6 +2,7 @@ workflows:
   ios-testflight:
     name: iOS TestFlight Build
     max_build_duration: 60
+    working_directory: execution/frontend/flutter
 
     integrations:
       app_store_connect: CodeMagic API
@@ -10,22 +11,27 @@ workflows:
     environment:
       flutter: stable
       xcode: latest
+      groups:
+        - apple_credentials
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.ras3ucat.bingeQuest
-
-    working_directory: execution/frontend/flutter
 
     scripts:
       - name: Get Flutter packages
         script: flutter pub get
 
+      - name: Install CocoaPods dependencies
+        script: cd ios && pod install
+
       - name: Build IPA
-        script: flutter build ipa --release
+        script: flutter build ipa --release --export-method app-store --build-number=$(($(google-play-get-latest-build-number --package-name com.ras3ucat.bingeQuest) + 1))
 
     artifacts:
       - build/ios/ipa/*.ipa
 
     publishing:
       app_store_connect:
-        auth: integration
+        auth: CodeMagic API
+        submit_to_testflight: true
+        testflight_internal_testing_only: true
