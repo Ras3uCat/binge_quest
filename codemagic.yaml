@@ -12,6 +12,7 @@ workflows:
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.ras3ucat.bingeQuest
+        automatic_code_signing: true
 
     working_directory: execution/frontend/flutter
 
