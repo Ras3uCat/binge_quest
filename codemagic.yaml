@@ -2,17 +2,15 @@ workflows:
   ios-testflight:
     name: iOS TestFlight Build
     max_build_duration: 60
-    working_directory: execution/frontend/flutter
+    # Ensure this matches your repo exactly: 'execute' vs 'execution'
+    working_directory: execute/frontend/flutter
 
     integrations:
-      app_store_connect: CodeMagic API
+      app_store_connect: CodeMagic API 
 
-    
     environment:
       flutter: stable
       xcode: latest
-      groups:
-        - apple_credentials
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.ras3ucat.bingeQuest
@@ -21,17 +19,24 @@ workflows:
       - name: Get Flutter packages
         script: flutter pub get
 
-      - name: Install CocoaPods dependencies
-        script: cd ios && pod install
+      - name: Install CocoaPods
+        script: |
+          cd ios
+          pod install --repo-update
 
       - name: Build IPA
-        script: flutter build ipa --release --export-method app-store --build-number=$(($(google-play-get-latest-build-number --package-name com.ras3ucat.bingeQuest) + 1))
+        # Note: 'google-play-get-latest-build-number' only works if 
+        # you've also connected Google Play. If not, use: $(date +%Y%m%d%H%M)
+        script: |
+          flutter build ipa --release \
+            --export-method app-store \
+            --build-number=$(date +%s) 
 
     artifacts:
       - build/ios/ipa/*.ipa
 
     publishing:
       app_store_connect:
-        auth: CodeMagic API
+        auth: integration # Must be the literal word 'integration'
         submit_to_testflight: true
         testflight_internal_testing_only: true
