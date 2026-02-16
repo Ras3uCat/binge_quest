@@ -79,6 +79,7 @@ class WatchlistController extends GetxController {
       _statusFilter.value != WatchlistStatusFilter.all;
   int get activeFilterCount {
     int count = 0;
+    if (_selectedMoods.isNotEmpty) count++;
     if (_selectedGenreIds.isNotEmpty) count++;
     if (_selectedStreamingProviderIds.isNotEmpty) count++;
     if (_statusFilter.value != WatchlistStatusFilter.all) count++;
