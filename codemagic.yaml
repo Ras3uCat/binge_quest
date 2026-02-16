@@ -14,8 +14,10 @@ workflows:
       groups:
         - secure
       ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.ras3ucat.bingeQuest
+        certificates:
+          - certificate_reference: "Ryan Richardson"
+        provisioning_profiles:
+          - "BingeQuest AppStore"
 
 
     scripts:
