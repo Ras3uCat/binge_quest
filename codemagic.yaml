@@ -13,8 +13,7 @@ workflows:
       xcode: latest
       ios_signing:
         distribution_type: app_store
-        bundle_identifiers:
-          - com.ras3ucat.bingeQuest
+        bundle_identifier: com.ras3ucat.bingeQuest
 
     scripts:
       - name: Get Flutter packages
