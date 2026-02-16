@@ -6,7 +6,7 @@ workflows:
     working_directory: execution/frontend/flutter
 
     integrations:
-      app_store_connect: integration
+      app_store_connect: Codemagic API
 
     environment:
       flutter: stable
@@ -37,5 +37,5 @@ workflows:
 
     publishing:
       app_store_connect:
-        auth: integration # Must be the literal word 'integration'
+        auth: Codemagic API
         submit_to_testflight: true
