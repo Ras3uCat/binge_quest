@@ -13,12 +13,6 @@ workflows:
       xcode: latest
       groups:
         - secure
-      ios_signing:
-        certificates:
-          - certificate_reference: "Ryan Richardson"
-        provisioning_profiles:
-          - "BingeQuest AppStore"
-
 
     scripts:
       - name: Get Flutter packages
