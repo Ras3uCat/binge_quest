@@ -14,7 +14,6 @@ workflows:
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.ras3ucat.bingeQuest
-        automatic_signing: true
 
     scripts:
       - name: Get Flutter packages
