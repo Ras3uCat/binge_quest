@@ -6,7 +6,7 @@ workflows:
     working_directory: execution/frontend/flutter
 
     integrations:
-      app_store_connect: CodeMagic API 
+      app_store_connect: integration 
 
     environment:
       flutter: stable
@@ -14,6 +14,7 @@ workflows:
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.ras3ucat.bingeQuest
+        automatic_signing: true
 
     scripts:
       - name: Get Flutter packages
