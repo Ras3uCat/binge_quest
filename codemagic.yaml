@@ -18,6 +18,17 @@ workflows:
         bundle_identifier: com.ras3ucat.bingeQuest
 
     scripts:
+      - name: Generate env.dart
+        script: |
+          cat > lib/core/config/env.dart << EOF
+          class Env {
+            Env._();
+            static const String supabaseUrl = '$SUPABASE_URL';
+            static const String supabaseAnonKey = '$SUPABASE_ANON_KEY';
+            static const String tmdbApiKey = '$TMDB_API_KEY';
+          }
+          EOF
+
       - name: Get Flutter packages
         script: flutter pub get
 
