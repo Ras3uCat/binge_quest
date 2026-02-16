@@ -13,6 +13,9 @@ workflows:
       xcode: latest
       groups:
         - secure
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.ras3ucat.bingeQuest
 
     scripts:
       - name: Get Flutter packages
@@ -24,12 +27,9 @@ workflows:
           pod install --repo-update
 
       - name: Build IPA
-        # Note: 'google-play-get-latest-build-number' only works if 
-        # you've also connected Google Play. If not, use: $(date +%Y%m%d%H%M)
         script: |
           flutter build ipa --release \
-            --export-method app-store \
-            --build-number=$(date +%s) 
+            --build-number=$PROJECT_BUILD_NUMBER
 
     artifacts:
       - build/ios/ipa/*.ipa
@@ -37,5 +37,5 @@ workflows:
 
     publishing:
       app_store_connect:
-        auth: Codemagic API
+        auth: integration
         submit_to_testflight: true
