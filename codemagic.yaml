@@ -6,14 +6,15 @@ workflows:
     working_directory: execution/frontend/flutter
 
     integrations:
-      app_store_connect: integration 
+      app_store_connect: CodeMagic API
 
     environment:
       flutter: stable
       xcode: latest
       ios_signing:
         distribution_type: app_store
-        bundle_identifier: com.ras3ucat.bingeQuest
+        bundle_identifiers:
+          - com.ras3ucat.bingeQuest
 
     scripts:
       - name: Get Flutter packages
@@ -34,6 +35,7 @@ workflows:
 
     artifacts:
       - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
 
     publishing:
       app_store_connect:
