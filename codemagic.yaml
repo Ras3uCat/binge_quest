@@ -14,8 +14,8 @@ workflows:
       groups:
         - secure
       ios_signing:
-        provisioning_profiles:
-          - "BingeQuest AppStore"
+        distribution_type: app_store
+        bundle_identifier: com.ras3ucat.bingeQuest
 
 
     scripts:
