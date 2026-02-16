@@ -5,7 +5,8 @@ workflows:
     # Ensure this matches your repo exactly: 'execute' vs 'execution'
     working_directory: execution/frontend/flutter
 
-
+    integrations:
+      app_store_connect: integration
 
     environment:
       flutter: stable
