@@ -15,7 +15,7 @@ workflows:
         - secure
       ios_signing:
         provisioning_profiles:
-          com.ras3ucat.bingeQuest: "BingeQuest AppStore"
+          - "BingeQuest AppStore"
 
 
     scripts:
