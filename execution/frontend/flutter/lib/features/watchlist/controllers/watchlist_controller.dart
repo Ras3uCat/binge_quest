@@ -113,12 +113,11 @@ class WatchlistController extends GetxController {
       }).toList();
     }
 
-    // Apply genre filter (OR logic - item matches any selected genre)
-    if (_selectedGenreIds.isNotEmpty) {
+    // Apply genre filter (OR logic - item matches any selected genre or mood genre)
+    final activeGenres = _activeGenreIds;
+    if (activeGenres.isNotEmpty) {
       itemList = itemList
-          .where(
-            (item) => item.genreIds.any((id) => _selectedGenreIds.contains(id)),
-          )
+          .where((item) => item.genreIds.any((id) => activeGenres.contains(id)))
           .toList();
     }
 
