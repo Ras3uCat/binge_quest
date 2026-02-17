@@ -2,6 +2,7 @@ class Review {
   final String id;
   final String userId;
   final String? displayName; // From users table join
+  final String? username; // From users table join
   final int tmdbId;
   final String mediaType;
   final int rating;
@@ -13,6 +14,7 @@ class Review {
     required this.id,
     required this.userId,
     this.displayName,
+    this.username,
     required this.tmdbId,
     required this.mediaType,
     required this.rating,
@@ -29,6 +31,7 @@ class Review {
       id: json['id'] as String,
       userId: json['user_id'] as String,
       displayName: users?['display_name'] as String?,
+      username: users?['username'] as String?,
       tmdbId: json['tmdb_id'] as int,
       mediaType: json['media_type'] as String,
       rating: json['rating'] as int,
@@ -47,5 +50,6 @@ class Review {
 
   bool get hasText => reviewText != null && reviewText!.isNotEmpty;
 
-  String get reviewerName => displayName ?? 'Anonymous';
+  String get reviewerName =>
+      username != null ? '@$username' : displayName ?? 'Anonymous';
 }

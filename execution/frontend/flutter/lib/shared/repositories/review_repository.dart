@@ -15,7 +15,7 @@ class ReviewRepository {
     try {
       final response = await _client
           .from('reviews')
-          .select('*, users(display_name)')
+          .select('*, users(display_name, username)')
           .eq('tmdb_id', tmdbId)
           .eq('media_type', mediaType)
           .order('created_at', ascending: false);
