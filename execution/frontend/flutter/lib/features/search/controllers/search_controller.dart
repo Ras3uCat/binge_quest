@@ -128,28 +128,37 @@ class ContentSearchController extends GetxController {
     }
   }
 
-  // Filtered results based on current filter
+  // Filtered results based on current filter + provider selection
   List<TmdbSearchResult> get filteredResults {
+    Iterable<TmdbSearchResult> results;
+
     switch (_filter.value) {
       case SearchFilter.movies:
-        return _searchResults
-            .where((r) => r.mediaType == MediaType.movie)
-            .toList();
+        results = _searchResults.where((r) => r.mediaType == MediaType.movie);
+        break;
       case SearchFilter.tvShows:
-        return _searchResults
-            .where((r) => r.mediaType == MediaType.tv)
-            .toList();
+        results = _searchResults.where((r) => r.mediaType == MediaType.tv);
+        break;
       case SearchFilter.all:
-        return _searchResults
-            .where(
-              (r) =>
-                  r.mediaType == MediaType.movie || r.mediaType == MediaType.tv,
-            )
-            .toList();
+        results = _searchResults.where(
+          (r) => r.mediaType == MediaType.movie || r.mediaType == MediaType.tv,
+        );
+        break;
       case SearchFilter.people:
-        // Person results are stored separately, return empty for content results
         return [];
     }
+
+    // Apply provider filter on top of search results (not discover results)
+    if (_selectedProviders.isNotEmpty && _searchQuery.value.isNotEmpty) {
+      final providerIds = _selectedProviders.map((p) => p.id).toSet();
+      results = results.where((r) {
+        final providers = _cachedStreamingProviders[r.id];
+        if (providers == null) return false;
+        return providers.any((p) => providerIds.contains(p.id));
+      });
+    }
+
+    return results.toList();
   }
 
   @override
@@ -315,12 +324,13 @@ class ContentSearchController extends GetxController {
       _selectedProviders.add(provider);
     }
 
-    // Refresh results if we have providers selected
-    if (_selectedProviders.isNotEmpty) {
+    if (_searchQuery.value.isNotEmpty) {
+      // Active text search — let filteredResults handle provider filtering
+      // reactively (no re-fetch needed). Just trigger rebuild.
+      _searchResults.refresh();
+    } else if (_selectedProviders.isNotEmpty) {
+      // No search text — use discover mode
       _discoverByProviders();
-    } else if (_searchQuery.value.isNotEmpty) {
-      // If no providers selected, go back to regular search
-      search(_searchQuery.value);
     } else {
       _searchResults.clear();
     }

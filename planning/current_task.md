@@ -22,8 +22,8 @@ When a user searches by text AND selects a streaming provider filter, the search
 
 | # | Task | Status | Owner |
 |---|------|--------|-------|
-| 1 | Update `toggleProvider` — don't call `_discoverByProviders` when `_searchQuery` is active; just toggle the provider and let `filteredResults` handle it | TODO | Frontend |
-| 2 | Update `filteredResults` getter — when `_selectedProviders` is not empty AND `_searchQuery` is not empty, filter results to items where `_cachedStreamingProviders[id]` contains any selected provider ID | TODO | Frontend |
+| 1 | Update `toggleProvider` — don't call `_discoverByProviders` when `_searchQuery` is active; just toggle the provider and let `filteredResults` handle it | DONE | Frontend |
+| 2 | Update `filteredResults` getter — when `_selectedProviders` is not empty AND `_searchQuery` is not empty, filter results to items where `_cachedStreamingProviders[id]` contains any selected provider ID | DONE | Frontend |
 | 3 | Verify: empty search + provider selected still uses Discover mode (existing behavior preserved) | TODO | QA |
 | 4 | Verify: "Batman" + Netflix filter shows only Batman titles on Netflix | TODO | QA |
 | 5 | Verify: toggling providers on/off reactively filters without re-fetching | TODO | QA |
