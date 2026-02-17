@@ -71,12 +71,16 @@ class WatchlistRepository {
         .eq('user_id', userId)
         .eq('status', 'accepted');
 
-    final coOwnedIds = (coOwnedRows as List)
-        .map((r) => r['watchlist_id'] as String)
-        .toList();
-
     final ownedLists = (owned as List)
         .map((json) => Watchlist.fromJson(json))
+        .toList();
+
+    final ownedIds = ownedLists.map((w) => w.id).toSet();
+
+    // Exclude co-owned IDs that are already in the owned list
+    final coOwnedIds = (coOwnedRows as List)
+        .map((r) => r['watchlist_id'] as String)
+        .where((id) => !ownedIds.contains(id))
         .toList();
 
     if (coOwnedIds.isEmpty) return ownedLists;
