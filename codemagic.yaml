@@ -42,8 +42,7 @@ workflows:
           keychain initialize
           app-store-connect fetch-signing-files "com.ras3ucat.bingeQuest" \
             --type IOS_APP_STORE \
-            --create \
-            --force
+            --create
           keychain add-certificates
           xcode-project use-profiles
 
