@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import '../../../../core/constants/e_colors.dart';
 import '../../../../shared/widgets/tv_rating_selector.dart';
 import '../../../../shared/repositories/review_repository.dart';
@@ -41,9 +42,13 @@ class _ReviewFormSheetState extends State<ReviewFormSheet> {
 
   Future<void> _submit() async {
     if (_rating == 0) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Please select a rating')));
+      Get.snackbar(
+        'Missing Rating',
+        'Please select a rating',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: EColors.surface,
+        colorText: EColors.textPrimary,
+      );
       return;
     }
 
@@ -58,12 +63,16 @@ class _ReviewFormSheetState extends State<ReviewFormSheet> {
             ? null
             : _textController.text.trim(),
       );
-      if (mounted) Navigator.pop(context, true);
+      if (mounted) Get.back(result: true);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+        Get.snackbar(
+          'Error',
+          '$e',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: EColors.surface,
+          colorText: EColors.textPrimary,
+        );
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);

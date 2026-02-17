@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import '../../../../core/constants/e_colors.dart';
 import '../../../../core/constants/e_sizes.dart';
 import '../../../../shared/models/review.dart';
@@ -65,19 +66,20 @@ class _ReviewsSectionState extends State<ReviewsSection> {
   }
 
   Future<void> _openReviewForm() async {
-    final result = await showModalBottomSheet<bool>(
-      context: context,
+    final result = await Get.bottomSheet<bool>(
+      Container(
+        decoration: const BoxDecoration(
+          color: EColors.surface,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        ),
+        child: ReviewFormSheet(
+          tmdbId: widget.tmdbId,
+          mediaType: widget.mediaType,
+          initialRating: _userReview?.rating,
+          initialText: _userReview?.reviewText,
+        ),
+      ),
       isScrollControlled: true,
-      backgroundColor: EColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (context) => ReviewFormSheet(
-        tmdbId: widget.tmdbId,
-        mediaType: widget.mediaType,
-        initialRating: _userReview?.rating,
-        initialText: _userReview?.reviewText,
-      ),
     );
 
     if (result == true) {
