@@ -267,6 +267,11 @@ class ContentSearchController extends GetxController {
   Future<void> loadMore() async {
     if (_isLoading.value || !hasMorePages) return;
 
+    if (hasSelectedProviders) {
+      await loadMoreProviderResults();
+      return;
+    }
+
     _currentPage.value++;
     await search(_searchQuery.value, resetResults: false);
   }
