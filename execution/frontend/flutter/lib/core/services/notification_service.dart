@@ -31,7 +31,15 @@ class NotificationService extends GetxService {
   Future<void> _initLocalNotifications() async {
     const androidSettings =
         AndroidInitializationSettings('@mipmap/ic_launcher');
-    const initSettings = InitializationSettings(android: androidSettings);
+    const iosSettings = DarwinInitializationSettings(
+      requestAlertPermission: false,
+      requestBadgePermission: false,
+      requestSoundPermission: false,
+    );
+    const initSettings = InitializationSettings(
+      android: androidSettings,
+      iOS: iosSettings,
+    );
     await _localNotifications.initialize(settings: initSettings);
   }
 
@@ -47,18 +55,27 @@ class NotificationService extends GetxService {
     if (settings.authorizationStatus == AuthorizationStatus.authorized) {
       debugPrint('User granted permission');
 
-      // 2. Get initial Token
+      // 2. On iOS, wait for APNs token before requesting FCM token
+      String? apnsToken = await _fcm.getAPNSToken();
+      if (apnsToken == null) {
+        // APNs token not ready yet, wait briefly and retry
+        await Future.delayed(const Duration(seconds: 2));
+        apnsToken = await _fcm.getAPNSToken();
+      }
+      debugPrint('APNs token: ${apnsToken != null ? "received" : "null"}');
+
+      // 3. Get FCM token
       String? token = await _fcm.getToken();
       if (token != null) {
         _registerToken(token);
       }
 
-      // 3. Listen for token refresh
+      // 4. Listen for token refresh
       _fcm.onTokenRefresh.listen((newToken) {
         _registerToken(newToken);
       });
 
-      // 4. Handle Foreground Messages
+      // 5. Handle Foreground Messages
       FirebaseMessaging.onMessage.listen((RemoteMessage message) {
         debugPrint('Got a message whilst in the foreground!');
         debugPrint('Message data: ${message.data}');
@@ -81,7 +98,7 @@ class NotificationService extends GetxService {
         foregroundMessage.value = message;
       });
 
-      // 5. Handle Background/Terminated Taps
+      // 6. Handle Background/Terminated Taps
       FirebaseMessaging.onMessageOpenedApp.listen(_handleMessageTap);
 
       // Check if app was opened from a terminated state
@@ -241,6 +258,11 @@ class NotificationService extends GetxService {
             channelDescription: 'Test notifications',
             importance: Importance.high,
             priority: Priority.high,
+          ),
+          iOS: DarwinNotificationDetails(
+            presentAlert: true,
+            presentBadge: true,
+            presentSound: true,
           ),
         ),
       );
