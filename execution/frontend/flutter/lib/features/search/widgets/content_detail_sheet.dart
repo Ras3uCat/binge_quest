@@ -62,12 +62,8 @@ class _ContentDetailSheetState extends State<ContentDetailSheet> {
     if (!Get.isRegistered<FriendController>()) return;
 
     final ctrl = FriendController.to;
-    // ensure friendIds are available
-    if (ctrl.friends.isEmpty && !ctrl.isLoading.value) {
-      // We don't await here to not block UI, but friendIds depends on it.
-      // Actually, we should probably just rely on what's there or await if fast.
-      // Given this is a sheet, maybe we just use what's available or trigger a background refresh?
-      // For now, let's just use current friendIds.
+    if (ctrl.friends.isEmpty) {
+      await ctrl.refresh();
     }
 
     final friendIds = ctrl.friendIds.toList();

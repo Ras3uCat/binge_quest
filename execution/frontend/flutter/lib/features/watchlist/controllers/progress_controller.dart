@@ -109,7 +109,12 @@ class ProgressController extends GetxController {
   Future<void> loadFriendsWatching() async {
     if (!Get.isRegistered<FriendController>()) return;
 
-    final friendIds = FriendController.to.friendIds.toList();
+    final ctrl = FriendController.to;
+    if (ctrl.friends.isEmpty) {
+      await ctrl.refresh();
+    }
+
+    final friendIds = ctrl.friendIds.toList();
     if (friendIds.isEmpty) return;
 
     try {

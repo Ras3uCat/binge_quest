@@ -1,47 +1,41 @@
-# Current Task: Friends Watching Content Indicator
+# Current Task: Search + Provider Filter Integration
 
-**Status**: QA
+**Status**: TODO
 **Mode**: FLOW
 **Priority**: Medium
 **Started**: 2026-02-17
-**Specs**: `friends_watching_content.md`
+**Specs**: N/A (bugfix — search ignores text query when provider filter is active)
 
 ---
 
 ## Overview
 
-Show which friends are also watching the same content on detail pages. Includes a privacy toggle so users can opt out of being visible to friends.
+When a user searches by text AND selects a streaming provider filter, the search results should be filtered to only show items available on that provider. Currently, selecting a provider switches entirely to "Discover" mode, discarding the text query.
+
+**Approach:** Reactive client-side filtering via the `filteredResults` getter. No API changes needed (TMDB search doesn't support provider filtering).
 
 ---
 
 ## Tasks
 
-### Backend Tasks
-
-| # | Task | Status | Owner |
-|---|------|--------|-------|
-| 1 | Apply migration: `share_watching_activity` column + `get_friends_watching_content` RPC | DONE | Backend |
-| 2 | Run security advisors (no new warnings) | DONE | Backend |
-
 ### Frontend Tasks
 
 | # | Task | Status | Owner |
 |---|------|--------|-------|
-| 3 | Create `FriendWatching` model | DONE | Frontend |
-| 4 | Create `FriendsWatchingRow` widget (overlapping avatar stack + label) | DONE | Frontend |
-| 5 | Add `getFriendsWatching()` to `WatchlistRepository` | DONE | Frontend |
-| 6 | Add privacy methods to `FriendRepository` | DONE | Frontend |
-| 7 | Add `shareWatchingActivity` observable to `FriendController` | DONE | Frontend |
-| 8 | Integrate into `ContentDetailSheet` (search detail) | DONE | Frontend |
-| 9 | Integrate into `ItemDetailScreen` (watchlist detail, via ProgressController) | DONE | Frontend |
-| 10 | Add Privacy section to `SettingsScreen` | DONE | Frontend |
+| 1 | Update `toggleProvider` — don't call `_discoverByProviders` when `_searchQuery` is active; just toggle the provider and let `filteredResults` handle it | TODO | Frontend |
+| 2 | Update `filteredResults` getter — when `_selectedProviders` is not empty AND `_searchQuery` is not empty, filter results to items where `_cachedStreamingProviders[id]` contains any selected provider ID | TODO | Frontend |
+| 3 | Verify: empty search + provider selected still uses Discover mode (existing behavior preserved) | TODO | QA |
+| 4 | Verify: "Batman" + Netflix filter shows only Batman titles on Netflix | TODO | QA |
+| 5 | Verify: toggling providers on/off reactively filters without re-fetching | TODO | QA |
+| 6 | Verify: clearing search text with providers active reverts to Discover mode | TODO | QA |
 
-Tasks 3-7 can be parallelized. Tasks 8-10 depend on 3-7.
+**Single file modified:** `lib/features/search/controllers/search_controller.dart`
 
 ---
 
 ## Previous Tasks
 
+- Friends Watching Content Indicator - **Complete**
 - Mood Guide - **Complete**
 - Social Features Suite (Friend System, Watchlist Co-Curators) - **In Progress** (Watch Party + Shareable Playlists remaining)
 - Follow Talent (Actors & Directors) - **Complete**
