@@ -98,12 +98,12 @@ class FriendsWatchingRow extends StatelessWidget {
     final firstFriend = allFriends[0];
 
     if (allFriends.length == 1) {
-      return '${firstFriend.displayName} is also watching';
+      return '${firstFriend.displayLabel} is also watching';
     } else if (allFriends.length == 2) {
       final secondFriend = allFriends[1];
-      return '${firstFriend.displayName} & ${secondFriend.displayName} are watching';
+      return '${firstFriend.displayLabel} & ${secondFriend.displayLabel} are watching';
     } else {
-      return '${firstFriend.displayName} & ${allFriends.length - 1} more friends watching';
+      return '${firstFriend.displayLabel} & ${allFriends.length - 1} more friends watching';
     }
   }
 }

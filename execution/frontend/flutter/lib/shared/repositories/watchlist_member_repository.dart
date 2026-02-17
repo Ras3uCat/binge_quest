@@ -145,6 +145,31 @@ class WatchlistMemberRepository {
     );
   }
 
+  /// Transfer watchlist ownership to a co-curator.
+  Future<void> transferOwnership({
+    required String watchlistId,
+    required String newOwnerId,
+  }) async {
+    await _supabase.rpc('transfer_watchlist_ownership', params: {
+      'p_watchlist_id': watchlistId,
+      'p_new_owner_id': newOwnerId,
+    });
+  }
+
+  /// Get accepted co-curators (excludes the owner row).
+  Future<List<WatchlistMember>> getAcceptedCoCurators(
+      String watchlistId) async {
+    final rows = await _supabase
+        .from('watchlist_members')
+        .select()
+        .eq('watchlist_id', watchlistId)
+        .eq('status', 'accepted')
+        .eq('role', 'co_owner')
+        .order('created_at');
+
+    return _attachProfiles(rows);
+  }
+
   // ---------------------------------------------------------------------------
   // Helpers
   // ---------------------------------------------------------------------------

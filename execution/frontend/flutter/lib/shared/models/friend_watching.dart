@@ -4,6 +4,10 @@ class FriendWatching {
   final String username;
   final String? avatarUrl;
 
+  /// Prefer username, fall back to displayName.
+  String get displayLabel =>
+      username.isNotEmpty ? '@$username' : displayName;
+
   FriendWatching({
     required this.userId,
     required this.displayName,
@@ -14,8 +18,8 @@ class FriendWatching {
   factory FriendWatching.fromJson(Map<String, dynamic> json) {
     return FriendWatching(
       userId: json['user_id'] as String,
-      displayName: json['display_name'] as String,
-      username: json['username'] as String,
+      displayName: json['display_name'] as String? ?? 'Unknown',
+      username: json['username'] as String? ?? '',
       avatarUrl: json['avatar_url'] as String?,
     );
   }

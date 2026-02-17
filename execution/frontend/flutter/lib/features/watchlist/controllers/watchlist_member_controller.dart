@@ -159,6 +159,39 @@ class WatchlistMemberController extends GetxController {
     }
   }
 
+  /// Transfer ownership to a co-curator, then remove the old owner.
+  Future<bool> transferOwnership({
+    required String watchlistId,
+    required String newOwnerId,
+    required String newOwnerName,
+  }) async {
+    try {
+      await _repository.transferOwnership(
+        watchlistId: watchlistId,
+        newOwnerId: newOwnerId,
+      );
+      sharedWatchlistIds.remove(watchlistId);
+      WatchlistController.to.loadWatchlists();
+      Get.snackbar('Transferred', 'Ownership transferred to $newOwnerName');
+      return true;
+    } catch (e) {
+      debugPrint('Error transferring ownership: $e');
+      Get.snackbar('Error', 'Failed to transfer ownership');
+      return false;
+    }
+  }
+
+  /// Get accepted co-curators for a watchlist (for transfer dialog).
+  Future<List<WatchlistMember>> getAcceptedCoCurators(
+      String watchlistId) async {
+    try {
+      return await _repository.getAcceptedCoCurators(watchlistId);
+    } catch (e) {
+      debugPrint('Error loading co-curators: $e');
+      return [];
+    }
+  }
+
   /// Leave a shared watchlist (co-curator action).
   Future<void> leaveWatchlist(WatchlistMember membership) async {
     try {

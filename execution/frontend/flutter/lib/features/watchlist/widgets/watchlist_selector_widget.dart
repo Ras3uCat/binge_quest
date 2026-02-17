@@ -5,6 +5,7 @@ import '../../../core/constants/e_sizes.dart';
 import '../../../core/constants/e_text.dart';
 import '../controllers/watchlist_controller.dart';
 import '../controllers/watchlist_member_controller.dart';
+import '../../../shared/models/watchlist_member.dart';
 import '../widgets/shared_list_indicator.dart';
 import 'create_watchlist_dialog.dart';
 
@@ -297,7 +298,23 @@ class WatchlistSelectorWidget extends StatelessWidget {
     Get.dialog(CreateWatchlistDialog(watchlist: watchlist));
   }
 
-  void _confirmDeleteWatchlist(BuildContext context, watchlist) {
+  void _confirmDeleteWatchlist(BuildContext context, watchlist) async {
+    if (!Get.isRegistered<WatchlistMemberController>()) {
+      _showSimpleDeleteDialog(watchlist);
+      return;
+    }
+
+    final coCurators = await WatchlistMemberController.to
+        .getAcceptedCoCurators(watchlist.id);
+
+    if (coCurators.isEmpty) {
+      _showSimpleDeleteDialog(watchlist);
+    } else {
+      _showTransferOrDeleteDialog(watchlist, coCurators);
+    }
+  }
+
+  void _showSimpleDeleteDialog(watchlist) {
     Get.dialog(
       AlertDialog(
         backgroundColor: EColors.surface,
@@ -324,6 +341,80 @@ class WatchlistSelectorWidget extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  void _showTransferOrDeleteDialog(watchlist, List<WatchlistMember> coCurators) {
+    final selected = coCurators.first.obs;
+
+    Get.dialog(
+      Obx(() => AlertDialog(
+            backgroundColor: EColors.surface,
+            title: const Text(
+              'This list has co-curators',
+              style: TextStyle(color: EColors.textPrimary),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Transfer ownership so the list lives on, or delete for everyone.',
+                  style: TextStyle(color: EColors.textSecondary),
+                ),
+                const SizedBox(height: ESizes.md),
+                const Text(
+                  'Transfer to:',
+                  style: TextStyle(
+                    color: EColors.textPrimary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: ESizes.xs),
+                ...coCurators.map((member) => RadioListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(
+                        member.user?.displayLabel ?? 'Unknown',
+                        style: const TextStyle(color: EColors.textPrimary),
+                      ),
+                      value: member,
+                      groupValue: selected.value,
+                      onChanged: (val) {
+                        if (val != null) selected.value = val;
+                      },
+                      activeColor: EColors.primary,
+                    )),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Get.back(),
+                child: const Text(EText.cancel),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  Get.back();
+                  WatchlistController.to.deleteWatchlist(watchlist.id);
+                },
+                style:
+                    ElevatedButton.styleFrom(backgroundColor: EColors.error),
+                child: const Text('Delete for All'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  Get.back();
+                  final member = selected.value;
+                  await WatchlistMemberController.to.transferOwnership(
+                    watchlistId: watchlist.id,
+                    newOwnerId: member.userId,
+                    newOwnerName: member.user?.displayLabel ?? 'co-curator',
+                  );
+                },
+                child: const Text('Transfer & Leave'),
+              ),
+            ],
+          )),
     );
   }
 }
