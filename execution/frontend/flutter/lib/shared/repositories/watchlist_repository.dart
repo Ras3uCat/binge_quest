@@ -5,6 +5,7 @@ import '../models/watchlist.dart';
 import '../models/watchlist_item.dart';
 import '../models/queue_efficiency.dart';
 import '../models/streaming_breakdown.dart';
+import '../models/friend_watching.dart';
 
 /// Repository for watchlist-related database operations.
 class WatchlistRepository {
@@ -74,8 +75,9 @@ class WatchlistRepository {
         .map((r) => r['watchlist_id'] as String)
         .toList();
 
-    final ownedLists =
-        (owned as List).map((json) => Watchlist.fromJson(json)).toList();
+    final ownedLists = (owned as List)
+        .map((json) => Watchlist.fromJson(json))
+        .toList();
 
     if (coOwnedIds.isEmpty) return ownedLists;
 
@@ -86,8 +88,9 @@ class WatchlistRepository {
         .inFilter('id', coOwnedIds)
         .order('created_at', ascending: true);
 
-    final coOwnedLists =
-        (coOwned as List).map((json) => Watchlist.fromJson(json)).toList();
+    final coOwnedLists = (coOwned as List)
+        .map((json) => Watchlist.fromJson(json))
+        .toList();
 
     return [...ownedLists, ...coOwnedLists];
   }
@@ -510,6 +513,39 @@ class WatchlistRepository {
     await _client.from('watchlist_items').delete().eq('id', itemId);
   }
 
+  // ============================================
+  // SOCIAL OPERATIONS
+  // ============================================
+
+  /// Get friends who are also watching a specific content item.
+  /// Respects friends' privacy settings server-side.
+  static Future<List<FriendWatching>> getFriendsWatching({
+    required int tmdbId,
+    required MediaType mediaType,
+    required List<String> friendIds,
+  }) async {
+    if (friendIds.isEmpty) return [];
+
+    final response = await _client.rpc(
+      'get_friends_watching_content',
+      params: {
+        'p_tmdb_id': tmdbId,
+        'p_media_type': mediaType.value,
+        'p_friend_ids': friendIds,
+      },
+    );
+
+    if (response == null) return [];
+
+    return (response as List)
+        .map((json) => FriendWatching.fromJson(json))
+        .toList();
+  }
+
+  // ============================================
+  // PROGRESS OPERATIONS
+  // ============================================
+
   /// Check if a watch_progress entry exists for a specific episode
   static Future<bool> watchProgressExistsForEpisode(
     String watchlistItemId,
@@ -782,18 +818,19 @@ class WatchlistRepository {
 
       final response = await _client.rpc(
         'get_dashboard_data',
-        params: {
-          'p_user_id': userId,
-          'p_watchlist_id': watchlistId,
-        },
+        params: {'p_user_id': userId, 'p_watchlist_id': watchlistId},
       );
 
       stopwatch.stop();
-      debugPrint('[Dashboard RPC] Completed in ${stopwatch.elapsedMilliseconds}ms');
+      debugPrint(
+        '[Dashboard RPC] Completed in ${stopwatch.elapsedMilliseconds}ms',
+      );
 
       if (response != null && (response as List).isNotEmpty) {
         final data = response[0] as Map<String, dynamic>;
-        debugPrint('[Dashboard RPC] Got data with ${(data['items'] as List?)?.length ?? 0} items');
+        debugPrint(
+          '[Dashboard RPC] Got data with ${(data['items'] as List?)?.length ?? 0} items',
+        );
         return DashboardData.fromJson(data);
       }
       debugPrint('[Dashboard RPC] Empty response');
@@ -856,7 +893,8 @@ class WatchlistRepository {
         for (final entry in progressEntries) {
           if (entry['watched'] == true) {
             // Fix: Get runtime from nested content_cache_episodes
-            final episodeData = entry['content_cache_episodes'] as Map<String, dynamic>?;
+            final episodeData =
+                entry['content_cache_episodes'] as Map<String, dynamic>?;
             final runtime = (episodeData?['runtime_minutes'] as int?) ?? 0;
             totalMinutesWatched += runtime;
 
@@ -896,7 +934,9 @@ class WatchlistRepository {
   /// Get queue efficiency metrics for a specific watchlist or all watchlists.
   /// If [watchlistId] is provided, calculates for that watchlist only.
   /// Uses database function if available, falls back to local calculation.
-  static Future<QueueEfficiency> getQueueEfficiency({String? watchlistId}) async {
+  static Future<QueueEfficiency> getQueueEfficiency({
+    String? watchlistId,
+  }) async {
     final userId = SupabaseService.currentUserId;
     if (userId == null) throw Exception('User not authenticated');
 
@@ -948,7 +988,10 @@ class WatchlistRepository {
   /// Returns true if an item is available to watch (not unreleased, has streaming).
   static bool _isItemAvailable(WatchlistItem item) {
     const unreleasedStatuses = {
-      'In Production', 'Planned', 'Post Production', 'Rumored',
+      'In Production',
+      'Planned',
+      'Post Production',
+      'Rumored',
     };
 
     // Unreleased by date

@@ -19,6 +19,9 @@ import '../../watchlist/screens/item_detail_screen.dart';
 import '../../../shared/repositories/review_repository.dart';
 import 'reviews_section.dart';
 import 'person_detail_sheet.dart';
+import '../../social/controllers/friend_controller.dart';
+import '../../../shared/models/friend_watching.dart';
+import '../../../shared/widgets/friends_watching_row.dart';
 
 class ContentDetailSheet extends StatefulWidget {
   final TmdbSearchResult result;
@@ -42,6 +45,7 @@ class _ContentDetailSheetState extends State<ContentDetailSheet> {
   int _userCount = 0;
   double? _bqRating;
   int _bqReviewCount = 0;
+  List<FriendWatching> _friendsWatching = [];
 
   @override
   void initState() {
@@ -51,6 +55,37 @@ class _ContentDetailSheetState extends State<ContentDetailSheet> {
     _loadVideosAndProviders();
     _loadUserCount();
     _loadReviewStats();
+    _loadFriendsWatching();
+  }
+
+  Future<void> _loadFriendsWatching() async {
+    if (!Get.isRegistered<FriendController>()) return;
+
+    final ctrl = FriendController.to;
+    // ensure friendIds are available
+    if (ctrl.friends.isEmpty && !ctrl.isLoading.value) {
+      // We don't await here to not block UI, but friendIds depends on it.
+      // Actually, we should probably just rely on what's there or await if fast.
+      // Given this is a sheet, maybe we just use what's available or trigger a background refresh?
+      // For now, let's just use current friendIds.
+    }
+
+    final friendIds = ctrl.friendIds.toList();
+    if (friendIds.isEmpty) return;
+
+    try {
+      final friends = await WatchlistRepository.getFriendsWatching(
+        tmdbId: widget.result.id,
+        mediaType: widget.result.mediaType,
+        friendIds: friendIds,
+      );
+
+      if (mounted && friends.isNotEmpty) {
+        setState(() => _friendsWatching = friends);
+      }
+    } catch (e) {
+      debugPrint('Error loading friends watching: $e');
+    }
   }
 
   Future<void> _loadReviewStats() async {
@@ -271,6 +306,11 @@ class _ContentDetailSheetState extends State<ContentDetailSheet> {
                       ),
                     ],
                   ),
+                ),
+              if (_friendsWatching.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: ESizes.sm),
+                  child: FriendsWatchingRow(friends: _friendsWatching),
                 ),
               if (content is TmdbMovie && content.tagline != null)
                 Padding(

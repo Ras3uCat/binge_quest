@@ -8,7 +8,7 @@ class FriendRepository {
   final SupabaseClient _supabase;
 
   FriendRepository({SupabaseClient? supabase})
-      : _supabase = supabase ?? Supabase.instance.client;
+    : _supabase = supabase ?? Supabase.instance.client;
 
   String? get _currentUserId => _supabase.auth.currentUser?.id;
 
@@ -46,6 +46,35 @@ class FriendRepository {
         .eq('username', username.toLowerCase())
         .maybeSingle();
     return row == null;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Privacy
+  // ---------------------------------------------------------------------------
+
+  /// Get the current user's privacy setting for sharing watching activity.
+  Future<bool> getShareWatchingActivity() async {
+    final userId = _currentUserId;
+    if (userId == null) return true; // Default to true if not logged in
+
+    final row = await _supabase
+        .from('users')
+        .select('share_watching_activity')
+        .eq('id', userId)
+        .maybeSingle();
+
+    return row?['share_watching_activity'] as bool? ?? true;
+  }
+
+  /// Update the current user's privacy setting for sharing watching activity.
+  Future<void> setShareWatchingActivity(bool share) async {
+    final userId = _currentUserId;
+    if (userId == null) return;
+
+    await _supabase
+        .from('users')
+        .update({'share_watching_activity': share})
+        .eq('id', userId);
   }
 
   // ---------------------------------------------------------------------------
@@ -93,9 +122,7 @@ class FriendRepository {
           .limit(20);
     }
 
-    return (response as List)
-        .map((e) => UserProfile.fromJson(e))
-        .toList();
+    return (response).map((e) => UserProfile.fromJson(e)).toList();
   }
 
   // ---------------------------------------------------------------------------
@@ -162,21 +189,27 @@ class FriendRepository {
     required String addresseeId,
     required String requesterName,
   }) async {
-    await _supabase.functions.invoke('send-notification', body: {
-      'user_id': addresseeId,
-      'category': 'social',
-      'title': 'Friend Request',
-      'body': '$requesterName sent you a friend request',
-      'data': {'type': 'friend_request'},
-    });
+    await _supabase.functions.invoke(
+      'send-notification',
+      body: {
+        'user_id': addresseeId,
+        'category': 'social',
+        'title': 'Friend Request',
+        'body': '$requesterName sent you a friend request',
+        'data': {'type': 'friend_request'},
+      },
+    );
   }
 
   /// Accept a friend request (only the addressee can do this).
   Future<void> acceptFriendRequest(String friendshipId) async {
-    await _supabase.from('friendships').update({
-      'status': 'accepted',
-      'updated_at': DateTime.now().toIso8601String(),
-    }).eq('id', friendshipId);
+    await _supabase
+        .from('friendships')
+        .update({
+          'status': 'accepted',
+          'updated_at': DateTime.now().toIso8601String(),
+        })
+        .eq('id', friendshipId);
   }
 
   /// Decline or cancel a friend request (deletes the row).
@@ -241,8 +274,7 @@ class FriendRepository {
 
     if (rows.isEmpty) return [];
 
-    final blockedIds =
-        rows.map((r) => r['blocked_id'] as String).toList();
+    final blockedIds = rows.map((r) => r['blocked_id'] as String).toList();
 
     final profiles = await _supabase
         .from('users')
@@ -256,10 +288,12 @@ class FriendRepository {
     }
 
     return rows
-        .map((row) => UserBlock.fromJson(
-              row,
-              blockedUser: profileMap[row['blocked_id'] as String],
-            ))
+        .map(
+          (row) => UserBlock.fromJson(
+            row,
+            blockedUser: profileMap[row['blocked_id'] as String],
+          ),
+        )
         .toList();
   }
 

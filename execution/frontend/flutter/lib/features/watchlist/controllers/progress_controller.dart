@@ -4,6 +4,8 @@ import '../../../shared/models/watchlist_item.dart';
 import '../../../shared/repositories/watchlist_repository.dart';
 import 'watchlist_controller.dart';
 import '../../../shared/repositories/review_repository.dart';
+import '../../social/controllers/friend_controller.dart';
+import '../../../shared/models/friend_watching.dart';
 
 /// Controller for managing watch progress of a single watchlist item.
 class ProgressController extends GetxController {
@@ -20,7 +22,11 @@ class ProgressController extends GetxController {
   // Review state
   final _userRating = Rxn<int>();
   final _userReviewText = Rxn<String>();
+
   final _isLoadingReview = false.obs;
+
+  // Social state
+  final _friendsWatching = <FriendWatching>[].obs;
 
   // Getters
   List<WatchProgress> get progressEntries => _progressEntries;
@@ -34,6 +40,9 @@ class ProgressController extends GetxController {
   bool get isLoadingReview => _isLoadingReview.value;
   bool get hasReviewText =>
       _userReviewText.value != null && _userReviewText.value!.isNotEmpty;
+
+  // Social Getters
+  List<FriendWatching> get friendsWatching => _friendsWatching;
 
   // Computed properties
   bool get isMovie => item.mediaType == MediaType.movie;
@@ -94,6 +103,25 @@ class ProgressController extends GetxController {
     super.onInit();
     loadProgress();
     loadUserReview();
+    loadFriendsWatching();
+  }
+
+  Future<void> loadFriendsWatching() async {
+    if (!Get.isRegistered<FriendController>()) return;
+
+    final friendIds = FriendController.to.friendIds.toList();
+    if (friendIds.isEmpty) return;
+
+    try {
+      final friends = await WatchlistRepository.getFriendsWatching(
+        tmdbId: item.tmdbId,
+        mediaType: item.mediaType,
+        friendIds: friendIds,
+      );
+      _friendsWatching.assignAll(friends);
+    } catch (e) {
+      print('Error loading friends watching: $e');
+    }
   }
 
   /// Load all progress entries for this item.

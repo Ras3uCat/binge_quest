@@ -39,14 +39,9 @@ class AnalyticsService {
   static Future<void> logAddToWatchlist({
     required int tmdbId,
     required String mediaType,
-  }) =>
-      _log('add_to_watchlist', {
-        'tmdb_id': tmdbId,
-        'media_type': mediaType,
-      });
+  }) => _log('add_to_watchlist', {'tmdb_id': tmdbId, 'media_type': mediaType});
 
-  static Future<void> logRemoveFromWatchlist() =>
-      _log('remove_from_watchlist');
+  static Future<void> logRemoveFromWatchlist() => _log('remove_from_watchlist');
 
   static Future<void> logMoveItem() => _log('move_item');
 
@@ -55,18 +50,16 @@ class AnalyticsService {
   static Future<void> logMarkWatched({
     required int tmdbId,
     required String mediaType,
-  }) =>
-      _log('mark_watched', {
-        'tmdb_id': tmdbId,
-        'media_type': mediaType,
-      });
+  }) => _log('mark_watched', {'tmdb_id': tmdbId, 'media_type': mediaType});
 
   // --- Social Events ---
 
+  static Future<void> logTogglePrivacy({required bool shareWatching}) =>
+      _log('toggle_privacy', {'share_watching': shareWatching.toString()});
+
   static Future<void> logSendFriendRequest() => _log('send_friend_request');
 
-  static Future<void> logAcceptFriendRequest() =>
-      _log('accept_friend_request');
+  static Future<void> logAcceptFriendRequest() => _log('accept_friend_request');
 
   static Future<void> logBlockUser() => _log('block_user');
 
@@ -77,15 +70,9 @@ class AnalyticsService {
   static Future<void> logSubmitReview({
     required int tmdbId,
     required String mediaType,
-  }) =>
-      _log('submit_review', {
-        'tmdb_id': tmdbId,
-        'media_type': mediaType,
-      });
+  }) => _log('submit_review', {'tmdb_id': tmdbId, 'media_type': mediaType});
 
-  static Future<void> logShareContent({
-    required String contentType,
-  }) =>
+  static Future<void> logShareContent({required String contentType}) =>
       _log('share_content', {'content_type': contentType});
 
   // --- Badge Events ---
@@ -95,9 +82,6 @@ class AnalyticsService {
 
   // --- Generic ---
 
-  static Future<void> _log(
-    String name, [
-    Map<String, Object>? params,
-  ]) =>
+  static Future<void> _log(String name, [Map<String, Object>? params]) =>
       _analytics.logEvent(name: name, parameters: params);
 }

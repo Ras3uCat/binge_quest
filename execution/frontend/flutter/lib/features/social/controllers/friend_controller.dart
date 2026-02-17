@@ -26,6 +26,7 @@ class FriendController extends GetxController {
   final username = Rxn<String>();
   final isLoading = false.obs;
   final isSearching = false.obs;
+  final shareWatchingActivity = true.obs;
 
   /// True if the current user has not set a username yet.
   bool get needsUsername => username.value == null;
@@ -67,11 +68,13 @@ class FriendController extends GetxController {
         _repository.getFriends(),
         _repository.getPendingReceived(),
         _repository.getPendingSent(),
+        _repository.getShareWatchingActivity(),
       ]);
       username.value = results[0] as String?;
       friends.assignAll(results[1] as List<Friendship>);
       pendingReceived.assignAll(results[2] as List<Friendship>);
       pendingSent.assignAll(results[3] as List<Friendship>);
+      shareWatchingActivity.value = results[4] as bool;
     } catch (e) {
       debugPrint('Error loading friend data: $e');
     } finally {
@@ -80,6 +83,7 @@ class FriendController extends GetxController {
   }
 
   /// Reload all friend data.
+  @override
   Future<void> refresh() => _loadInitialData();
 
   // ---------------------------------------------------------------------------
@@ -140,6 +144,23 @@ class FriendController extends GetxController {
   }
 
   // ---------------------------------------------------------------------------
+  // Privacy
+  // ---------------------------------------------------------------------------
+
+  Future<void> toggleShareWatchingActivity(bool value) async {
+    shareWatchingActivity.value = value;
+    try {
+      await _repository.setShareWatchingActivity(value);
+      AnalyticsService.logTogglePrivacy(shareWatching: value);
+    } catch (e) {
+      // Revert on error
+      shareWatchingActivity.value = !value;
+      debugPrint('Error toggling privacy: $e');
+      Get.snackbar('Error', 'Failed to update privacy settings');
+    }
+  }
+
+  // ---------------------------------------------------------------------------
   // Search
   // ---------------------------------------------------------------------------
 
@@ -191,8 +212,8 @@ class FriendController extends GetxController {
     try {
       final requesterName =
           AuthController.to.user?.userMetadata?['full_name'] as String? ??
-              username.value ??
-              'Someone';
+          username.value ??
+          'Someone';
       await _repository.sendFriendRequestNotification(
         addresseeId: user.id,
         requesterName: requesterName,
@@ -298,15 +319,9 @@ class FriendController extends GetxController {
       await _repository.blockUser(userId);
       AnalyticsService.logBlockUser();
       // Remove from friends/pending lists locally
-      friends.removeWhere(
-        (f) => f.friendId(_userId ?? '') == userId,
-      );
-      pendingReceived.removeWhere(
-        (f) => f.requesterId == userId,
-      );
-      pendingSent.removeWhere(
-        (f) => f.addresseeId == userId,
-      );
+      friends.removeWhere((f) => f.friendId(_userId ?? '') == userId);
+      pendingReceived.removeWhere((f) => f.requesterId == userId);
+      pendingSent.removeWhere((f) => f.addresseeId == userId);
       // Reload blocks
       blockedUsers.assignAll(await _repository.getBlockedUsers());
       Get.snackbar('Blocked', '${displayName ?? "User"} has been blocked');

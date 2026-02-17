@@ -1,42 +1,48 @@
-# Current Task: Mood Guide
+# Current Task: Friends Watching Content Indicator
 
 **Status**: QA
-**Mode**: STUDIO
+**Mode**: FLOW
 **Priority**: Medium
-**Started**: 2026-02-12
-**Specs**: `mood_guide.md`
-**Plan**: `STUDIO_PLAN.md`
+**Started**: 2026-02-17
+**Specs**: `friends_watching_content.md`
 
 ---
 
 ## Overview
 
-Add a mood legend so users understand what genres each mood filter maps to. Two entry points: an (i) info button on the dashboard mood filter bar, and a "Mood Guide" tile in Settings.
+Show which friends are also watching the same content on detail pages. Includes a privacy toggle so users can opt out of being visible to friends.
 
 ---
 
 ## Tasks
 
+### Backend Tasks
+
+| # | Task | Status | Owner |
+|---|------|--------|-------|
+| 1 | Apply migration: `share_watching_activity` column + `get_friends_watching_content` RPC | DONE | Backend |
+| 2 | Run security advisors (no new warnings) | DONE | Backend |
+
 ### Frontend Tasks
 
 | # | Task | Status | Owner |
 |---|------|--------|-------|
-| 1 | Create `MoodGuideSheet` shared widget (bottom sheet listing all 6 moods with icon, color, name, description, genre tags) | DONE | Frontend |
-| 2 | Add info icon button to `MoodFilterChips` row that opens `MoodGuideSheet` | DONE | Frontend |
-| 3 | Add "Help" section to `SettingsScreen` with "Mood Guide" tile that opens `MoodGuideSheet` | DONE | Frontend |
+| 3 | Create `FriendWatching` model | DONE | Frontend |
+| 4 | Create `FriendsWatchingRow` widget (overlapping avatar stack + label) | DONE | Frontend |
+| 5 | Add `getFriendsWatching()` to `WatchlistRepository` | DONE | Frontend |
+| 6 | Add privacy methods to `FriendRepository` | DONE | Frontend |
+| 7 | Add `shareWatchingActivity` observable to `FriendController` | DONE | Frontend |
+| 8 | Integrate into `ContentDetailSheet` (search detail) | DONE | Frontend |
+| 9 | Integrate into `ItemDetailScreen` (watchlist detail, via ProgressController) | DONE | Frontend |
+| 10 | Add Privacy section to `SettingsScreen` | DONE | Frontend |
 
-### QA
-
-| # | Task | Status |
-|---|------|--------|
-| 4 | Verify info button on dashboard opens mood guide sheet | TODO |
-| 5 | Verify Settings > Mood Guide opens same sheet | TODO |
-| 6 | Verify sheet displays all 6 moods with correct genres | TODO |
+Tasks 3-7 can be parallelized. Tasks 8-10 depend on 3-7.
 
 ---
 
 ## Previous Tasks
 
+- Mood Guide - **Complete**
 - Social Features Suite (Friend System, Watchlist Co-Curators) - **In Progress** (Watch Party + Shareable Playlists remaining)
 - Follow Talent (Actors & Directors) - **Complete**
 - Streaming Availability Alerts - **Complete**

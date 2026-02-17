@@ -20,6 +20,7 @@ import '../../../shared/widgets/progress_slider.dart';
 import '../../../shared/widgets/tv_rating_selector.dart';
 import '../../search/widgets/review_form_sheet.dart';
 import '../widgets/move_item_sheet.dart';
+import '../../../shared/widgets/friends_watching_row.dart';
 
 class ItemDetailScreen extends StatelessWidget {
   final WatchlistItem item;
@@ -279,6 +280,7 @@ class ItemDetailScreen extends StatelessWidget {
               ],
               const SizedBox(height: ESizes.xs),
               _buildUserCountRow(),
+              _buildFriendsWatchingRow(controller),
             ],
           ),
         ),
@@ -318,6 +320,18 @@ class ItemDetailScreen extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  Widget _buildFriendsWatchingRow(ProgressController controller) {
+    return Obx(() {
+      final friends = controller.friendsWatching;
+      if (friends.isEmpty) return const SizedBox.shrink();
+
+      return Padding(
+        padding: const EdgeInsets.only(top: ESizes.sm),
+        child: FriendsWatchingRow(friends: friends),
+      );
+    });
   }
 
   Widget _buildProgressCard(ProgressController controller) {

@@ -9,6 +9,7 @@ import '../../../shared/models/notification_preferences.dart';
 import '../../../shared/repositories/episode_backfill_repository.dart';
 import '../../auth/controllers/auth_controller.dart';
 import '../../notifications/controllers/notification_controller.dart';
+import '../../social/controllers/friend_controller.dart';
 import 'privacy_policy_screen.dart';
 import 'streaming_services_screen.dart';
 import 'terms_of_service_screen.dart';
@@ -92,6 +93,8 @@ class SettingsScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: ESizes.xl),
                       _buildNotificationSection(context),
+                      const SizedBox(height: ESizes.xl),
+                      _buildPrivacySection(),
                       const SizedBox(height: ESizes.xl),
                       _buildSection(
                         title: 'Data',
@@ -435,6 +438,27 @@ class SettingsScreen extends StatelessWidget {
         colorText: EColors.error,
       );
     }
+  }
+
+  Widget _buildPrivacySection() {
+    if (!Get.isRegistered<FriendController>()) {
+      Get.put(FriendController());
+    }
+    final controller = Get.find<FriendController>();
+
+    return _buildSection(
+      title: 'Privacy',
+      children: [
+        Obx(
+          () => _buildSwitchTile(
+            label: 'Share Watching Activity',
+            subtitle: 'Allow friends to see what you are watching',
+            value: controller.shareWatchingActivity.value,
+            onChanged: (val) => controller.toggleShareWatchingActivity(val),
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _buildNotificationSection(BuildContext context) {
