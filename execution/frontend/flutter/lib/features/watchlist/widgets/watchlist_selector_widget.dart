@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../../core/constants/e_colors.dart';
 import '../../../core/constants/e_sizes.dart';
 import '../../../core/constants/e_text.dart';
+import '../../../shared/widgets/e_confirm_dialog.dart';
 import '../controllers/watchlist_controller.dart';
 import '../controllers/watchlist_member_controller.dart';
 import '../../../shared/models/watchlist_member.dart';
@@ -315,32 +316,12 @@ class WatchlistSelectorWidget extends StatelessWidget {
   }
 
   void _showSimpleDeleteDialog(watchlist) {
-    Get.dialog(
-      AlertDialog(
-        backgroundColor: EColors.surface,
-        title: const Text(
-          EText.deleteWatchlist,
-          style: TextStyle(color: EColors.textPrimary),
-        ),
-        content: const Text(
-          EText.deleteWatchlistConfirm,
-          style: TextStyle(color: EColors.textSecondary),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: const Text(EText.cancel),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Get.back();
-              WatchlistController.to.deleteWatchlist(watchlist.id);
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: EColors.error),
-            child: const Text(EText.delete),
-          ),
-        ],
-      ),
+    EConfirmDialog.show(
+      title: EText.deleteWatchlist,
+      message: EText.deleteWatchlistConfirm,
+      confirmLabel: EText.delete,
+      isDestructive: true,
+      onConfirm: () => WatchlistController.to.deleteWatchlist(watchlist.id),
     );
   }
 

@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../../core/constants/e_colors.dart';
 import '../../../core/constants/e_sizes.dart';
 import '../../../core/constants/e_text.dart';
+import '../../../shared/widgets/e_confirm_dialog.dart';
 import '../../../shared/models/watchlist.dart';
 import '../../../shared/models/watchlist_item.dart';
 import '../../../shared/repositories/watchlist_repository.dart';
@@ -226,36 +227,11 @@ class _MoveItemSheetState extends State<MoveItemSheet> {
   }
 
   void _confirmMove(Watchlist destination) {
-    Get.dialog(
-      AlertDialog(
-        backgroundColor: EColors.surface,
-        surfaceTintColor: Colors.transparent,
-        title: Text(
-          EText.moveConfirmTitle.replaceAll('%s', destination.name),
-          style: const TextStyle(color: EColors.textPrimary),
-        ),
-        content: const Text(
-          EText.moveConfirmDesc,
-          style: TextStyle(color: EColors.textSecondary),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: const Text(EText.cancel),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Get.back(); // Close dialog
-              _performMove(destination);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: EColors.primary,
-              foregroundColor: EColors.textOnPrimary,
-            ),
-            child: const Text(EText.confirm),
-          ),
-        ],
-      ),
+    EConfirmDialog.show(
+      title: EText.moveConfirmTitle.replaceAll('%s', destination.name),
+      message: EText.moveConfirmDesc,
+      confirmLabel: EText.confirm,
+      onConfirm: () => _performMove(destination),
     );
   }
 

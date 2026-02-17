@@ -3,6 +3,7 @@ import '../../../../core/constants/e_colors.dart';
 import '../../../../core/constants/e_sizes.dart';
 import '../../../../shared/models/review.dart';
 import '../../../../shared/repositories/review_repository.dart';
+import '../../../../shared/widgets/e_confirm_dialog.dart';
 import '../../../../shared/widgets/review_card.dart';
 import 'review_form_sheet.dart';
 
@@ -85,39 +86,19 @@ class _ReviewsSectionState extends State<ReviewsSection> {
   }
 
   Future<void> _deleteReview() async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: EColors.surface,
-        title: const Text(
-          'Delete Review?',
-          style: TextStyle(color: EColors.textPrimary),
-        ),
-        content: const Text(
-          'Are you sure you want to delete your review?',
-          style: TextStyle(color: EColors.textSecondary),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: EColors.error),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+    EConfirmDialog.show(
+      title: 'Delete Review?',
+      message: 'Are you sure you want to delete your review?',
+      confirmLabel: 'Delete',
+      isDestructive: true,
+      onConfirm: () async {
+        await ReviewRepository.deleteReview(
+          tmdbId: widget.tmdbId,
+          mediaType: widget.mediaType,
+        );
+        _loadReviews();
+      },
     );
-
-    if (confirm == true) {
-      await ReviewRepository.deleteReview(
-        tmdbId: widget.tmdbId,
-        mediaType: widget.mediaType,
-      );
-      _loadReviews();
-    }
   }
 
   @override

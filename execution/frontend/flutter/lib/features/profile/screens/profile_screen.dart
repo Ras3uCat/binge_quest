@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../../core/constants/e_colors.dart';
 import '../../../core/constants/e_sizes.dart';
 import '../../../core/constants/e_text.dart';
+import '../../../shared/widgets/e_confirm_dialog.dart';
 import '../../settings/screens/settings_screen.dart';
 import '../../social/controllers/friend_controller.dart';
 import '../../social/widgets/friends_section.dart';
@@ -363,34 +364,12 @@ class ProfileScreen extends StatelessWidget {
   }
 
   void _confirmSignOut() {
-    Get.dialog(
-      AlertDialog(
-        backgroundColor: EColors.surface,
-        title: const Text(
-          EText.signOut,
-          style: TextStyle(color: EColors.textPrimary),
-        ),
-        content: const Text(
-          EText.signOutConfirm,
-          style: TextStyle(color: EColors.textSecondary),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: const Text(EText.cancel),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Get.back();
-              ProfileController.to.signOut();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: EColors.error,
-            ),
-            child: const Text(EText.signOut),
-          ),
-        ],
-      ),
+    EConfirmDialog.show(
+      title: EText.signOut,
+      message: EText.signOutConfirm,
+      confirmLabel: EText.signOut,
+      isDestructive: true,
+      onConfirm: () => ProfileController.to.signOut(),
     );
   }
 }

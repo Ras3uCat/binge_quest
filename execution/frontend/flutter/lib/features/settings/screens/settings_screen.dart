@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/constants/e_colors.dart';
 import '../../../core/constants/e_sizes.dart';
 import '../../../core/constants/e_text.dart';
+import '../../../shared/widgets/e_confirm_dialog.dart';
 import '../../../shared/models/notification_preferences.dart';
 import '../../../shared/repositories/episode_backfill_repository.dart';
 import '../../auth/controllers/auth_controller.dart';
@@ -257,32 +258,12 @@ class SettingsScreen extends StatelessWidget {
   }
 
   void _showDeleteAccountDialog() {
-    Get.dialog(
-      AlertDialog(
-        backgroundColor: EColors.surface,
-        title: const Row(
-          children: [
-            Icon(Icons.warning_amber, color: EColors.error),
-            SizedBox(width: ESizes.sm),
-            Text(EText.deleteAccount, style: TextStyle(color: EColors.error)),
-          ],
-        ),
-        content: const Text(
-          EText.deleteAccountWarning,
-          style: TextStyle(color: EColors.textSecondary),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: const Text(EText.cancel),
-          ),
-          ElevatedButton(
-            onPressed: () => _confirmDeleteAccount(),
-            style: ElevatedButton.styleFrom(backgroundColor: EColors.error),
-            child: const Text(EText.delete),
-          ),
-        ],
-      ),
+    EConfirmDialog.show(
+      title: EText.deleteAccount,
+      message: EText.deleteAccountWarning,
+      confirmLabel: EText.delete,
+      isDestructive: true,
+      onConfirm: () => _confirmDeleteAccount(),
     );
   }
 

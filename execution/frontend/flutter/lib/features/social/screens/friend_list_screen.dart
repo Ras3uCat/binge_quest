@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../core/constants/e_colors.dart';
 import '../../../core/constants/e_sizes.dart';
+import '../../../shared/widgets/e_confirm_dialog.dart';
 import '../../../shared/models/friendship.dart';
 import '../controllers/friend_controller.dart';
 import '../widgets/friend_request_card.dart';
@@ -158,30 +159,13 @@ class _FriendsTab extends StatelessWidget {
   }
 
   void _confirmRemove(FriendController ctrl, Friendship f) {
-    Get.dialog(
-      AlertDialog(
-        backgroundColor: EColors.surface,
-        title: const Text('Remove Friend',
-            style: TextStyle(color: EColors.textPrimary)),
-        content: Text(
+    EConfirmDialog.show(
+      title: 'Remove Friend',
+      message:
           'Remove ${f.friend?.displayName ?? "this user"} from your friends?',
-          style: const TextStyle(color: EColors.textSecondary),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              Get.back();
-              ctrl.removeFriend(f);
-            },
-            child:
-                const Text('Remove', style: TextStyle(color: EColors.error)),
-          ),
-        ],
-      ),
+      confirmLabel: 'Remove',
+      isDestructive: true,
+      onConfirm: () => ctrl.removeFriend(f),
     );
   }
 }

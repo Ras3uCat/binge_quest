@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../core/constants/e_colors.dart';
 import '../../../core/constants/e_sizes.dart';
+import '../../../shared/widgets/e_confirm_dialog.dart';
 import '../../../shared/models/watchlist_member.dart';
 import '../../auth/controllers/auth_controller.dart';
 import '../controllers/watchlist_member_controller.dart';
@@ -231,55 +232,26 @@ class _ManageMembersScreenState extends State<ManageMembersScreen> {
   }
 
   void _confirmRemove(WatchlistMember member) {
-    Get.dialog(
-      AlertDialog(
-        backgroundColor: EColors.surface,
-        title: const Text(
-          'Remove Co-Curator',
-          style: TextStyle(color: EColors.textPrimary),
-        ),
-        content: Text(
+    EConfirmDialog.show(
+      title: 'Remove Co-Curator',
+      message:
           'Remove ${member.user?.displayLabel ?? "this user"} from the watchlist?',
-          style: const TextStyle(color: EColors.textSecondary),
-        ),
-        actions: [
-          TextButton(onPressed: () => Get.back(), child: const Text('Cancel')),
-          TextButton(
-            onPressed: () {
-              Get.back();
-              WatchlistMemberController.to.removeMember(member);
-            },
-            child: const Text('Remove', style: TextStyle(color: EColors.error)),
-          ),
-        ],
-      ),
+      confirmLabel: 'Remove',
+      isDestructive: true,
+      onConfirm: () => WatchlistMemberController.to.removeMember(member),
     );
   }
 
   void _confirmLeave(WatchlistMember membership) {
-    Get.dialog(
-      AlertDialog(
-        backgroundColor: EColors.surface,
-        title: const Text(
-          'Leave Watchlist',
-          style: TextStyle(color: EColors.textPrimary),
-        ),
-        content: const Text(
-          'You will no longer be able to see or edit this watchlist.',
-          style: TextStyle(color: EColors.textSecondary),
-        ),
-        actions: [
-          TextButton(onPressed: () => Get.back(), child: const Text('Cancel')),
-          TextButton(
-            onPressed: () {
-              Get.back();
-              WatchlistMemberController.to.leaveWatchlist(membership);
-              Get.back(); // Return to watchlist screen
-            },
-            child: const Text('Leave', style: TextStyle(color: EColors.error)),
-          ),
-        ],
-      ),
+    EConfirmDialog.show(
+      title: 'Leave Watchlist',
+      message: 'You will no longer be able to see or edit this watchlist.',
+      confirmLabel: 'Leave',
+      isDestructive: true,
+      onConfirm: () {
+        WatchlistMemberController.to.leaveWatchlist(membership);
+        Get.back(); // Return to watchlist screen
+      },
     );
   }
 }
