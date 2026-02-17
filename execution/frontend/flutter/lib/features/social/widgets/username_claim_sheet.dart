@@ -43,18 +43,25 @@ class _UsernameClaimSheetState extends State<UsernameClaimSheet> {
 
   void _onChanged(String value) {
     _debounce?.cancel();
+    final lower = value.toLowerCase();
     setState(() => _isAvailable = null);
 
-    if (!_usernameRegex.hasMatch(value)) return;
+    if (!_usernameRegex.hasMatch(lower)) return;
 
     _debounce = Timer(const Duration(milliseconds: 500), () async {
+      if (!mounted) return;
       setState(() => _isChecking = true);
-      final available = await FriendController.to.isUsernameAvailable(value);
-      if (mounted && _controller.text == value) {
-        setState(() {
-          _isAvailable = available;
-          _isChecking = false;
-        });
+      try {
+        final available =
+            await FriendController.to.isUsernameAvailable(lower);
+        if (mounted && _controller.text.toLowerCase() == lower) {
+          setState(() {
+            _isAvailable = available;
+            _isChecking = false;
+          });
+        }
+      } catch (_) {
+        if (mounted) setState(() => _isChecking = false);
       }
     });
   }
@@ -74,9 +81,10 @@ class _UsernameClaimSheetState extends State<UsernameClaimSheet> {
 
   String? _validate(String? value) {
     if (value == null || value.isEmpty) return 'Username is required';
-    if (value.length < 3) return 'At least 3 characters';
-    if (value.length > 20) return 'Max 20 characters';
-    if (!_usernameRegex.hasMatch(value)) {
+    final lower = value.toLowerCase();
+    if (lower.length < 3) return 'At least 3 characters';
+    if (lower.length > 20) return 'Max 20 characters';
+    if (!_usernameRegex.hasMatch(lower)) {
       return 'Lowercase letters, numbers, underscores only. Must start with a letter.';
     }
     if (_isAvailable == false) return 'Username is taken';
@@ -135,6 +143,9 @@ class _UsernameClaimSheetState extends State<UsernameClaimSheet> {
               validator: _validate,
               onChanged: _onChanged,
               autofocus: true,
+              autocorrect: false,
+              enableSuggestions: false,
+              textCapitalization: TextCapitalization.none,
               style: const TextStyle(color: EColors.textPrimary),
               decoration: InputDecoration(
                 prefixText: '@ ',

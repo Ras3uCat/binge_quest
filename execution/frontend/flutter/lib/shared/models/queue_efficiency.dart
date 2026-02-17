@@ -39,6 +39,7 @@ class QueueEfficiency {
   }
 
   /// Empty/default efficiency for new users or when no items.
+  /// Score starts at 100 — a clean queue is a perfect queue.
   factory QueueEfficiency.empty() {
     return const QueueEfficiency(
       totalItems: 0,
@@ -46,8 +47,8 @@ class QueueEfficiency {
       activeItems: 0,
       idleItems: 0,
       staleItems: 0,
-      completionRate: 0.0,
-      efficiencyScore: 0,
+      completionRate: 100.0,
+      efficiencyScore: 100,
       recentCompletions: 0,
       excludedItems: 0,
     );
@@ -63,10 +64,10 @@ class QueueEfficiency {
     required int recentCompletions,
     int excluded = 0,
   }) {
-    // Calculate completion rate
+    // Calculate completion rate — empty queue = 100%
     final completionRate = total > 0
         ? (completed / total) * 100
-        : 0.0;
+        : 100.0;
 
     // Calculate efficiency score (0-100)
     // Base: completion rate
