@@ -44,7 +44,37 @@ class NotificationService extends GetxService {
   }
 
   Future<void> _initFCM() async {
-    // 1. Request Permission
+    // 1. Always set up message handlers first
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      debugPrint('Got a message whilst in the foreground!');
+      debugPrint('Message data: ${message.data}');
+
+      if (message.notification != null) {
+        debugPrint(
+          'Message also contained a notification: ${message.notification}',
+        );
+
+        // Show in-app snackbar
+        Get.snackbar(
+          message.notification?.title ?? 'New Notification',
+          message.notification?.body ?? '',
+          snackPosition: SnackPosition.TOP,
+          onTap: (_) => _handleMessageTap(message),
+        );
+      }
+
+      // Notify listeners
+      foregroundMessage.value = message;
+    });
+
+    FirebaseMessaging.onMessageOpenedApp.listen(_handleMessageTap);
+
+    RemoteMessage? initialMessage = await _fcm.getInitialMessage();
+    if (initialMessage != null) {
+      _handleMessageTap(initialMessage);
+    }
+
+    // 2. Request Permission
     NotificationSettings settings = await _fcm.requestPermission(
       alert: true,
       badge: true,
@@ -54,68 +84,35 @@ class NotificationService extends GetxService {
 
     debugPrint('Notification permission: ${settings.authorizationStatus}');
 
-    if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-      debugPrint('User granted permission');
-
-      // 3. On iOS, wait for APNs token before requesting FCM token
-      if (!kIsWeb && Platform.isIOS) {
-        String? apnsToken = await _fcm.getAPNSToken();
-        if (apnsToken == null) {
-          await Future.delayed(const Duration(seconds: 3));
-          apnsToken = await _fcm.getAPNSToken();
-        }
-        debugPrint('APNs token: ${apnsToken != null ? "received" : "null"}');
-        if (apnsToken == null) {
-          debugPrint('WARNING: No APNs token - push notifications will not work');
-          return;
-        }
-      }
-
-      // 4. Get FCM token
-      String? token = await _fcm.getToken();
-      if (token != null) {
-        _registerToken(token);
-      }
-
-      // 5. Listen for token refresh
-      _fcm.onTokenRefresh.listen((newToken) {
-        _registerToken(newToken);
-      });
-
-      // 6. Handle Foreground Messages
-      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-        debugPrint('Got a message whilst in the foreground!');
-        debugPrint('Message data: ${message.data}');
-
-        if (message.notification != null) {
-          debugPrint(
-            'Message also contained a notification: ${message.notification}',
-          );
-
-          // Show in-app snackbar
-          Get.snackbar(
-            message.notification?.title ?? 'New Notification',
-            message.notification?.body ?? '',
-            snackPosition: SnackPosition.TOP,
-            onTap: (_) => _handleMessageTap(message),
-          );
-        }
-
-        // Notify listeners
-        foregroundMessage.value = message;
-      });
-
-      // 7. Handle Background/Terminated Taps
-      FirebaseMessaging.onMessageOpenedApp.listen(_handleMessageTap);
-
-      // Check if app was opened from a terminated state
-      RemoteMessage? initialMessage = await _fcm.getInitialMessage();
-      if (initialMessage != null) {
-        _handleMessageTap(initialMessage);
-      }
-    } else {
+    if (settings.authorizationStatus != AuthorizationStatus.authorized) {
       debugPrint('User declined or has not accepted permission');
+      return;
     }
+
+    // 3. On iOS, wait for APNs token before requesting FCM token
+    if (!kIsWeb && Platform.isIOS) {
+      String? apnsToken = await _fcm.getAPNSToken();
+      if (apnsToken == null) {
+        await Future.delayed(const Duration(seconds: 3));
+        apnsToken = await _fcm.getAPNSToken();
+      }
+      debugPrint('APNs token: ${apnsToken != null ? "received" : "null"}');
+      if (apnsToken == null) {
+        debugPrint('WARNING: No APNs token - push will not work');
+      }
+    }
+
+    // 4. Get FCM token
+    String? token = await _fcm.getToken();
+    debugPrint('FCM token: ${token != null ? "${token.substring(0, 10)}..." : "null"}');
+    if (token != null) {
+      _registerToken(token);
+    }
+
+    // 5. Listen for token refresh
+    _fcm.onTokenRefresh.listen((newToken) {
+      _registerToken(newToken);
+    });
   }
 
   Future<void> _registerToken(String token) async {
