@@ -92,8 +92,8 @@ class NotificationRepository {
         .isFilter('read_at', null);
   }
 
-  Future<Map<String, dynamic>> sendTestNotification({required String userId}) async {
-    final response = await _supabase.functions.invoke(
+  Future<void> sendTestNotification({required String userId}) async {
+    await _supabase.functions.invoke(
       'send-notification',
       body: {
         'title': 'Test Notification',
@@ -106,6 +106,5 @@ class NotificationRepository {
         },
       },
     );
-    return response.data as Map<String, dynamic>? ?? {};
   }
 }

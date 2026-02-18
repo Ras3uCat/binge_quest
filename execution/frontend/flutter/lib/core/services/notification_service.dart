@@ -248,16 +248,7 @@ class NotificationService extends GetxService {
       // Let's use the repository. I'll add `invokeFunction` to repo in next step.
       // Promoting `sendTestNotification` to call repo.
 
-      final response = await _repository.sendTestNotification(userId: user.id);
-      debugPrint('Test notification response: $response');
-
-      // Show the FCM response so we can debug
-      Get.snackbar(
-        'FCM Result',
-        'Sent: ${response['sent_count'] ?? '?'}, Failed: ${response['failure_count'] ?? '?'}',
-        snackPosition: SnackPosition.TOP,
-        duration: const Duration(seconds: 5),
-      );
+      await _repository.sendTestNotification(userId: user.id);
 
       // Show a local system tray notification for testing
       await _localNotifications.show(
