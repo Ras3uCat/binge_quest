@@ -52,30 +52,37 @@ class NotificationService extends GetxService {
       provisional: false,
     );
 
+    debugPrint('Notification permission: ${settings.authorizationStatus}');
+
     if (settings.authorizationStatus == AuthorizationStatus.authorized) {
       debugPrint('User granted permission');
 
-      // 2. On iOS, wait for APNs token before requesting FCM token
-      String? apnsToken = await _fcm.getAPNSToken();
-      if (apnsToken == null) {
-        // APNs token not ready yet, wait briefly and retry
-        await Future.delayed(const Duration(seconds: 2));
-        apnsToken = await _fcm.getAPNSToken();
+      // 3. On iOS, wait for APNs token before requesting FCM token
+      if (!kIsWeb && Platform.isIOS) {
+        String? apnsToken = await _fcm.getAPNSToken();
+        if (apnsToken == null) {
+          await Future.delayed(const Duration(seconds: 3));
+          apnsToken = await _fcm.getAPNSToken();
+        }
+        debugPrint('APNs token: ${apnsToken != null ? "received" : "null"}');
+        if (apnsToken == null) {
+          debugPrint('WARNING: No APNs token - push notifications will not work');
+          return;
+        }
       }
-      debugPrint('APNs token: ${apnsToken != null ? "received" : "null"}');
 
-      // 3. Get FCM token
+      // 4. Get FCM token
       String? token = await _fcm.getToken();
       if (token != null) {
         _registerToken(token);
       }
 
-      // 4. Listen for token refresh
+      // 5. Listen for token refresh
       _fcm.onTokenRefresh.listen((newToken) {
         _registerToken(newToken);
       });
 
-      // 5. Handle Foreground Messages
+      // 6. Handle Foreground Messages
       FirebaseMessaging.onMessage.listen((RemoteMessage message) {
         debugPrint('Got a message whilst in the foreground!');
         debugPrint('Message data: ${message.data}');
@@ -98,7 +105,7 @@ class NotificationService extends GetxService {
         foregroundMessage.value = message;
       });
 
-      // 6. Handle Background/Terminated Taps
+      // 7. Handle Background/Terminated Taps
       FirebaseMessaging.onMessageOpenedApp.listen(_handleMessageTap);
 
       // Check if app was opened from a terminated state
