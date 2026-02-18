@@ -12,6 +12,7 @@ import '../../../shared/models/watchlist_item.dart';
 import '../../../shared/models/watch_progress.dart';
 import '../../../shared/models/tmdb_content.dart';
 import '../../../core/services/share_service.dart';
+import '../../../shared/widgets/e_confirm_dialog.dart';
 import '../controllers/progress_controller.dart';
 import '../controllers/watchlist_controller.dart';
 import '../../search/controllers/search_controller.dart';
@@ -634,23 +635,28 @@ class ItemDetailScreen extends StatelessWidget {
       child: ExpansionTile(
         tilePadding: const EdgeInsets.symmetric(horizontal: ESizes.md),
         childrenPadding: EdgeInsets.zero,
-        leading: Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: season.isComplete
-                ? EColors.success.withValues(alpha: 0.2)
-                : EColors.primary.withValues(alpha: 0.2),
-            borderRadius: BorderRadius.circular(ESizes.radiusSm),
-          ),
-          child: Center(
-            child: Text(
-              '${season.seasonNumber}',
-              style: TextStyle(
-                fontSize: ESizes.fontLg,
-                fontWeight: FontWeight.bold,
-                color: season.isComplete ? EColors.success : EColors.primary,
-              ),
+        leading: GestureDetector(
+          onTap: () => _confirmSeasonToggle(controller, season),
+          child: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: season.isComplete
+                  ? EColors.success.withValues(alpha: 0.2)
+                  : EColors.primary.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(ESizes.radiusSm),
+            ),
+            child: Center(
+              child: season.isComplete
+                  ? const Icon(Icons.check, color: EColors.success, size: 22)
+                  : Text(
+                      '${season.seasonNumber}',
+                      style: TextStyle(
+                        fontSize: ESizes.fontLg,
+                        fontWeight: FontWeight.bold,
+                        color: EColors.primary,
+                      ),
+                    ),
             ),
           ),
         ),
@@ -691,6 +697,24 @@ class ItemDetailScreen extends StatelessWidget {
           return _buildEpisodeTile(controller, episode);
         }).toList(),
       ),
+    );
+  }
+
+  void _confirmSeasonToggle(
+    ProgressController controller,
+    SeasonProgress season,
+  ) {
+    final markComplete = !season.isComplete;
+    final action = markComplete ? 'complete' : 'unwatched';
+    EConfirmDialog.show(
+      title: 'Mark Season ${season.seasonNumber} $action?',
+      message: markComplete
+          ? 'All ${season.totalEpisodes} episodes will be marked as watched.'
+          : 'All ${season.watchedEpisodes} watched episodes will be unmarked.',
+      confirmLabel: markComplete ? 'Mark Complete' : 'Unmark All',
+      isDestructive: !markComplete,
+      onConfirm: () =>
+          controller.markSeasonWatched(season.seasonNumber, markComplete),
     );
   }
 

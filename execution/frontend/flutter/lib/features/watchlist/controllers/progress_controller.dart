@@ -229,10 +229,19 @@ class ProgressController extends GetxController {
           progressId: entry.id,
           watched: watched,
         );
+
+        // Update local state in-place
+        final idx = _progressEntries.indexWhere((e) => e.id == entry.id);
+        if (idx != -1) {
+          _progressEntries[idx] = _progressEntries[idx].copyWith(
+            watched: watched,
+            watchedAt: watched ? DateTime.now() : null,
+          );
+        }
       }
 
-      // Reload progress
-      await loadProgress();
+      // Rebuild season grouping from local state
+      if (isTvShow) _buildSeasonProgress();
 
       // Refresh parent watchlist controller
       await WatchlistController.to.refresh();
@@ -253,12 +262,18 @@ class ProgressController extends GetxController {
           progressId: entry.id,
           watched: watched,
         );
+
+        final idx = _progressEntries.indexWhere((e) => e.id == entry.id);
+        if (idx != -1) {
+          _progressEntries[idx] = _progressEntries[idx].copyWith(
+            watched: watched,
+            watchedAt: watched ? DateTime.now() : null,
+          );
+        }
       }
 
-      // Reload progress
-      await loadProgress();
+      if (isTvShow) _buildSeasonProgress();
 
-      // Refresh parent watchlist controller
       await WatchlistController.to.refresh();
     } catch (e) {
       _error.value = 'Failed to update all';
