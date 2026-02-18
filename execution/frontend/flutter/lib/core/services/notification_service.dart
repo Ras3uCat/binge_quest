@@ -232,23 +232,14 @@ class NotificationService extends GetxService {
     }
 
     try {
-      // Import needed for Supabase.instance if not available globally,
-      // but NotificationRepository usually handles Supabase interactions.
-      // However, invoking functions is often done directly or via repo.
-      // Let's use the repository to keep it clean, or just invoke here since it's a dev tool.
-      // Since we don't have a repo method for this yet, I'll access Supabase directly here
-      // as imported from the repository file implicitly? No, need explicit import.
-      // I'll add the import of supabase_flutter to the top of file if it's missing?
-      // Wait, 'notification_repository.dart' imports it.
-      // I should probably add the method to the repository or just import supabase_flutter here.
-      // I'll just use Get.find<SupabaseClient>() if available or import it.
-      // Checking file... no supabase_flutter import.
-      // I added imports at the top. I should have added 'package:supabase_flutter/supabase_flutter.dart'.
-      // I missed that in the first chunk. I'll rely on Repository or add it.
-      // Let's use the repository. I'll add `invokeFunction` to repo in next step.
-      // Promoting `sendTestNotification` to call repo.
-
       await _repository.sendTestNotification(userId: user.id);
+
+      // Show in-app snackbar confirmation
+      Get.snackbar(
+        'Test Notification',
+        'Quest Complete! \u{1F3C6}',
+        snackPosition: SnackPosition.TOP,
+      );
 
       // Show a local system tray notification for testing
       await _localNotifications.show(
