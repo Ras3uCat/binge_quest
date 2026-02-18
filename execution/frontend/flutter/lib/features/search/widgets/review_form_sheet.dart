@@ -41,6 +41,8 @@ class _ReviewFormSheetState extends State<ReviewFormSheet> {
   }
 
   Future<void> _submit() async {
+    FocusScope.of(context).unfocus();
+
     if (_rating == 0) {
       Get.snackbar(
         'Missing Rating',
@@ -63,15 +65,15 @@ class _ReviewFormSheetState extends State<ReviewFormSheet> {
             ? null
             : _textController.text.trim(),
       );
-      if (mounted) Get.back(result: true);
+      if (mounted) Navigator.pop(context, true);
     } catch (e) {
       if (mounted) {
         Get.snackbar(
           'Error',
           '$e',
           snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: EColors.surface,
-          colorText: EColors.textPrimary,
+          backgroundColor: EColors.error,
+          colorText: EColors.textOnPrimary,
         );
       }
     } finally {
@@ -81,9 +83,9 @@ class _ReviewFormSheetState extends State<ReviewFormSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
+    return SingleChildScrollView(
       padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
         left: 16,
         right: 16,
         top: 16,
@@ -149,7 +151,6 @@ class _ReviewFormSheetState extends State<ReviewFormSheet> {
                   : const Text('Submit Review'),
             ),
           ),
-          const SizedBox(height: 24),
         ],
       ),
     );
