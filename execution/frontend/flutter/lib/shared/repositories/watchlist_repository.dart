@@ -568,27 +568,35 @@ class WatchlistRepository {
   /// Create a watch progress entry for a movie or episode.
   /// For episodes: episodeCacheId links to content_cache_episodes (has runtime, season, episode)
   /// For movies: episodeCacheId is null, runtime comes from content_cache via join
+  /// Set [isBackfill] to true when creating entries for multiple episodes at once
+  /// (e.g. adding a whole show or syncing new season episodes).
   static Future<void> createWatchProgress({
     required String watchlistItemId,
     String? episodeCacheId, // FK to content_cache_episodes (null for movies)
+    bool isBackfill = false,
   }) async {
     await _client.from('watch_progress').insert({
       'watchlist_item_id': watchlistItemId,
       'episode_cache_id': episodeCacheId,
       'watched': false,
+      'is_backfill': isBackfill,
     });
   }
 
   /// Mark a watch progress entry as watched/unwatched.
   /// Updates watched_at on any progress change to support Recent Progress mode.
+  /// Set [isBackfill] to true when updating multiple entries at once
+  /// (e.g. mark season watched, mark all watched).
   static Future<void> updateWatchProgress({
     required String progressId,
     required bool watched,
     int? minutesWatched,
+    bool isBackfill = false,
   }) async {
     final updates = <String, dynamic>{
       'watched': watched,
       'watched_at': DateTime.now().toIso8601String(),
+      'is_backfill': isBackfill,
     };
     if (minutesWatched != null) {
       updates['minutes_watched'] = minutesWatched;

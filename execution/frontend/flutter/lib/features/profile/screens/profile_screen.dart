@@ -11,6 +11,7 @@ import '../../social/widgets/username_claim_sheet.dart';
 import '../controllers/profile_controller.dart';
 import '../widgets/badges_section.dart';
 import '../widgets/following_section.dart';
+import '../widgets/profile_stats_section.dart';
 import '../widgets/streaming_breakdown_section.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -18,7 +19,6 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Initialize controllers
     if (!Get.isRegistered<ProfileController>()) {
       Get.put(ProfileController());
     }
@@ -45,7 +45,7 @@ class ProfileScreen extends StatelessWidget {
                     children: [
                       _buildProfileCard(),
                       const SizedBox(height: ESizes.lg),
-                      _buildStatsSection(),
+                      const ProfileStatsSection(),
                       const SizedBox(height: ESizes.lg),
                       const StreamingBreakdownSection(),
                       const SizedBox(height: ESizes.lg),
@@ -102,7 +102,6 @@ class ProfileScreen extends StatelessWidget {
       ),
       child: Column(
         children: [
-          // Avatar
           Obx(() {
             final avatarUrl = controller.avatarUrl;
             if (avatarUrl != null) {
@@ -127,7 +126,6 @@ class ProfileScreen extends StatelessWidget {
             );
           }),
           const SizedBox(height: ESizes.md),
-          // Name
           Obx(() => Text(
                 controller.displayName,
                 style: const TextStyle(
@@ -136,7 +134,6 @@ class ProfileScreen extends StatelessWidget {
                   color: EColors.textOnPrimary,
                 ),
               )),
-          // Username
           Obx(() {
             final uname = Get.isRegistered<FriendController>()
                 ? FriendController.to.username.value
@@ -159,7 +156,6 @@ class ProfileScreen extends StatelessWidget {
             );
           }),
           const SizedBox(height: ESizes.xs),
-          // Email
           Obx(() => Text(
                 controller.email,
                 style: TextStyle(
@@ -167,127 +163,6 @@ class ProfileScreen extends StatelessWidget {
                   color: EColors.textOnPrimary.withValues(alpha: 0.8),
                 ),
               )),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatsSection() {
-    final controller = ProfileController.to;
-
-    return Container(
-      padding: const EdgeInsets.all(ESizes.lg),
-      decoration: BoxDecoration(
-        color: EColors.surface,
-        borderRadius: BorderRadius.circular(ESizes.radiusMd),
-        border: Border.all(color: EColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Your Stats',
-            style: TextStyle(
-              fontSize: ESizes.fontLg,
-              fontWeight: FontWeight.bold,
-              color: EColors.textPrimary,
-            ),
-          ),
-          const SizedBox(height: ESizes.md),
-          Obx(() {
-            if (controller.isLoading) {
-              return const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(ESizes.lg),
-                  child: CircularProgressIndicator(color: EColors.primary),
-                ),
-              );
-            }
-
-            return Column(
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildStatCard(
-                        icon: Icons.schedule,
-                        label: 'Time Watched',
-                        value: controller.formattedWatchTime,
-                        color: EColors.primary,
-                      ),
-                    ),
-                    const SizedBox(width: ESizes.md),
-                    Expanded(
-                      child: _buildStatCard(
-                        icon: Icons.check_circle,
-                        label: 'Episodes',
-                        value: '${controller.episodesWatched}',
-                        color: EColors.success,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: ESizes.md),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildStatCard(
-                        icon: Icons.movie,
-                        label: 'Movies',
-                        value: '${controller.moviesCompleted}',
-                        color: EColors.accent,
-                      ),
-                    ),
-                    const SizedBox(width: ESizes.md),
-                    Expanded(
-                      child: _buildStatCard(
-                        icon: Icons.tv,
-                        label: 'Shows',
-                        value: '${controller.showsCompleted}',
-                        color: EColors.secondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            );
-          }),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatCard({
-    required IconData icon,
-    required String label,
-    required String value,
-    required Color color,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(ESizes.md),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(ESizes.radiusMd),
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: color, size: 28),
-          const SizedBox(height: ESizes.xs),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: ESizes.fontXl,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: ESizes.fontXs,
-              color: EColors.textSecondary,
-            ),
-          ),
         ],
       ),
     );

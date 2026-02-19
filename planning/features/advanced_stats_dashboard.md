@@ -1,7 +1,7 @@
 # Feature: Advanced Stats Dashboard
 
 ## Status
-TODO
+COMPLETE — 2026-02-19
 
 ## Overview
 Provide users with detailed insights into their viewing habits through an interactive stats dashboard with charts. Summary cards live on the profile screen; tapping opens a dedicated full-screen stats experience with mood distribution, watch time trends, completion rate, episode pace, peak viewing hours, and streak tracking. All stats are filterable by time window (Week / Month / Year / All Time).
@@ -155,17 +155,21 @@ Map<MoodTag, MoodStats> aggregateMoods(List<GenreStats> genreData) {
 ### Profile Summary Cards (updated)
 ```
 ┌──────────────┬──────────────┐
-│  72h 15m     │  12/45       │
-│  Time Watched│  Completed   │
+│  72h 15m     │  87/340      │
+│  Time Watched│  Episodes    │
 ├──────────────┼──────────────┤
-│  87          │  5 days      │
-│  Episodes    │  Streak      │
+│  5/12        │  7/33        │
+│  Movies      │  TV Shows    │
 └──────────────┴──────────────┘
        [ View Full Stats > ]
 ```
-- Replaces current 4-card layout (swaps Movies/Shows for Completed ratio + Streak)
+- **Top left:** Total time watched (all-time)
+- **Top right:** Episodes watched / total episodes across all watchlist TV shows
+- **Bottom left:** Movies completed / total movies in watchlists
+- **Bottom right:** TV shows completed / total shows in watchlists
 - "View Full Stats" opens the dedicated stats screen
-- Cards show all-time values; the full screen has time filtering
+- All values are all-time; time filtering lives in the full stats screen
+- All four values come from `get_user_stats()` — no extra RPC needed
 
 ### Stats Screen Layout
 ```
@@ -273,6 +277,39 @@ dependencies:
 - **Existing `MoodTag` enum** — mood-to-genre mapping for donut chart
 - **Existing `get_user_stats()` RPC** — profile summary cards continue to use this for all-time quick stats
 - **`watched_at` column on `watch_progress`** — required for time-windowed queries, peak hours, streaks
+
+---
+
+## Backfill Data Caveat
+
+When users add shows they've already watched and bulk-mark seasons as watched, `watched_at` is stamped as the current time — not when they actually watched it. This taints time-series stats:
+
+- **Watch time trend** — spike on the backfill day
+- **Peak hours** — reflects when they were organizing, not when they watch TV
+- **Streak** — artificially creates/extends a streak on the backfill date
+- **Episode pace** — wildly inflated on the backfill day
+
+Aggregate stats (total minutes, completion rate, mood distribution) are unaffected — the content is correct, only the timing is wrong.
+
+### Mitigation
+
+`watch_progress` rows created through the **Settings backfill tool** are stamped with `is_backfill = true`. Time-series queries (trend, peak hours, streak, pace) filter these out with `WHERE is_backfill = false`. Aggregate queries include all rows regardless.
+
+### What this does NOT cover
+
+- A user manually marking a full season as watched outside the backfill tool — indistinguishable from a genuine binge session. Accepted as noise.
+- Individual episode marking is always treated as real-time viewing (`is_backfill = false`).
+
+This is intentional. Prompting users on every bulk-mark ("are you logging history?") adds friction for a marginal accuracy gain. The backfill tool covers the most egregious case.
+
+### Schema change required
+
+Add to `watch_progress` table:
+```sql
+ALTER TABLE watch_progress ADD COLUMN is_backfill BOOLEAN NOT NULL DEFAULT false;
+```
+
+The existing backfill flow in `settings_screen.dart` must pass `is_backfill: true` when writing progress rows. All other write paths default to `false`.
 
 ---
 

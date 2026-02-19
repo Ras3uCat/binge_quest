@@ -228,6 +228,7 @@ class ProgressController extends GetxController {
         await WatchlistRepository.updateWatchProgress(
           progressId: entry.id,
           watched: watched,
+          isBackfill: true,
         );
 
         // Update local state in-place
@@ -261,6 +262,7 @@ class ProgressController extends GetxController {
         await WatchlistRepository.updateWatchProgress(
           progressId: entry.id,
           watched: watched,
+          isBackfill: true,
         );
 
         final idx = _progressEntries.indexWhere((e) => e.id == entry.id);

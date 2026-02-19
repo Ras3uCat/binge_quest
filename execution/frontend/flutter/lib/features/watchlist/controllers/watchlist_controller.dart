@@ -1001,6 +1001,7 @@ class WatchlistController extends GetxController {
           await WatchlistRepository.createWatchProgress(
             watchlistItemId: item.id,
             episodeCacheId: episode.id,
+            isBackfill: true,
           );
         }
       }

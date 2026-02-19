@@ -1,159 +1,166 @@
-# Pre-Launch Hardening
+# Advanced Stats Dashboard — v1.1 Bug Fixes & Iteration
 
 **Status:** COMPLETE — All tracks done (2026-02-19)
 **Mode:** STUDIO
-**Priority:** Critical
+**Priority:** High
 **Started:** 2026-02-19
-**Specs:** Full audit results from pre-launch review
+**Specs:** `planning/features/advanced_stats_dashboard.md`
 
 ---
 
 ## Problem Description
 
-Full pre-launch audit surfaced database performance issues (RLS initplan re-evaluation, duplicate indexes, merged policies), Flutter code quality issues (print() in production, showDialog() inconsistency), one Auth security gap (leaked password protection disabled), and incomplete dialog standardization.
+Post-implementation QA found 10 issues: RPC data scoping bugs, zero denominators on profile cards, empty all-time results, inflated episode pace, a chart crash on outside tap, a design change to watch time chart (dates → days of week), streak dot mismatch, formatting inconsistency, and completion section undercounting.
 
 ---
 
-## Design Decisions (ADR)
+## Track A: Backend Fixes
 
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| RLS `auth.uid()` fix | Wrap in `(SELECT auth.uid())` | Standard Supabase optimization — evaluates once per query instead of per row |
-| Merge permissive SELECT policies | Combine into single policy with OR condition | Postgres evaluates all permissive policies; merging eliminates redundant evaluation |
-| `print()` removal | Delete outright | They're in error catch blocks with no user-facing value; release builds still emit them |
-| `showDialog()` → `Get.dialog()` | Replace with Get.dialog() | Consistency with rest of app; GetX context management |
-| Leaked password protection | Enable in dashboard | Zero-code security uplift via HaveIBeenPwned API |
-| Duplicate index drop | Drop `idx_watch_progress_item_watched` | `idx_watch_progress_watched` is identical; duplicate wastes write overhead |
+### A1 — Audit Data Scope (All Watchlists)
 
----
+Query `get_stats_dashboard` and `get_user_stats` source SQL. Confirm every subquery joins through the user's watchlists via `watchlists.user_id = p_user_id` and does NOT inadvertently filter to a single watchlist. Fix any missing join conditions.
 
-## Track A: Database Migrations ✅ COMPLETE
+Co-curator watch progress should be included — if a co-curator marked progress on a shared watchlist, it means they watched together. The scope is: all watchlist items on any watchlist the user owns OR is a co-curator of, with all associated watch progress rows regardless of who logged them.
 
-### A1 — Fix `auth_rls_initplan` (All Tables)
+### A2 — Fix `get_user_stats()` Totals Returning 0
 
-Replace `auth.uid()` with `(SELECT auth.uid())` in RLS USING/WITH CHECK clauses across all affected tables. This prevents per-row re-evaluation and is the highest-impact performance fix.
+Debug `total_episodes`, `total_movies`, `total_shows` subqueries. Likely causes:
+- Join on wrong column (`tmdb_id` type mismatch between `watchlist_items` and `content_cache`)
+- `media_type` value mismatch (`'tv'` vs `'TV'` vs integer)
+- `number_of_episodes` is NULL for many `content_cache` rows (TMDB doesn't always populate this)
 
-**Affected tables:** `users`, `watchlists`, `watchlist_items`, `watch_progress`, `reviews`, `user_episode_notifications`, `user_device_tokens`, `notification_preferences`, `notifications`, `user_streaming_preferences`, `followed_talent`, `user_blocks`, `friendships`, `watchlist_members`, `user_badges`
+Fix: use `COALESCE(cc.number_of_episodes, 0)` and verify the exact `media_type` values stored.
 
-**Pattern:**
-```sql
--- Before
-USING (auth.uid() = user_id)
--- After
-USING ((SELECT auth.uid()) = user_id)
-```
+### A3 — Fix `get_stats_dashboard('all')` Returning Empty
 
-### A2 — Merge Multiple Permissive Policies
+The `'all'` time window branch should apply NO date filter (return all rows). Check for:
+- An `ELSE` branch that accidentally applies a filter
+- A `NULL` interval that causes `watched_at >= now() - NULL` to evaluate unexpectedly
+- Missing `CASE` branch for `'all'`
 
-**`users` table — SELECT:**
-Merge `Users can view their own profile` + `Authenticated users can view all profiles` into one policy.
-Result: `USING (true)` (since all authenticated users can view all profiles already).
+Fix: ensure `p_time_window = 'all'` results in no `WHERE watched_at >=` clause at all.
 
-**`watchlists` table — SELECT:**
-Merge `Users can view their own watchlists` + `Co-owners can view shared watchlists`.
-Result: single policy with `OR` covering both conditions.
+### A4 — Fix Episode Pace Calculation
 
-**`watchlist_items` table — SELECT/INSERT/UPDATE/DELETE:**
-Merge owner + co-owner variants for each operation into combined policies.
+Current formula divides by `days_with_activity` (days where at least one episode was watched). This inflates the number — a user who watched 10 episodes on 1 day out of 30 gets "10 eps/day" instead of "0.3 eps/day".
 
-**`watch_progress` table — SELECT/INSERT/UPDATE/DELETE:**
-Merge owner + co-owner variants for each operation into combined policies.
-
-### A3 — Drop Duplicate Index
+Fix: divide by `days_in_window` (full calendar days in the selected window: 7, 30, 365, or days since first watch for 'all').
 
 ```sql
-DROP INDEX IF EXISTS public.idx_watch_progress_item_watched;
--- Keep: idx_watch_progress_watched
+-- days_in_window
+CASE p_time_window
+  WHEN 'week'  THEN 7
+  WHEN 'month' THEN 30
+  WHEN 'year'  THEN 365
+  ELSE EXTRACT(DAY FROM now() - MIN(watched_at))::int
+END
 ```
 
-### A4 — Leaked Password Protection (Dashboard Only)
+### A5 — Fix Completion Count for Time Window
 
-Supabase Dashboard → Authentication → Security → enable "Leaked Password Protection".
-No SQL migration needed.
+`summary.items_completed` should count items where the completion event (status changed to 'completed') falls within the selected time window — not all-time completions.
 
----
+Check `watchlist_items` for a `completed_at` or `updated_at` timestamp to filter on. If none exists, use the latest `watch_progress.watched_at` for the item as a proxy for completion date.
 
-## Track B: Flutter Code Fixes ✅ COMPLETE
+### A6 — Replace `watch_time_trend` with `watch_time_by_weekday`
 
-### B1 — Remove `print()` Calls
+Remove the date-based trend array. Add a 7-element weekday aggregation:
 
-| File | Lines |
-|------|-------|
-| `features/watchlist/controllers/progress_controller.dart` | 128, 405 |
-| `features/notifications/controllers/notification_controller.dart` | 55, 65, 87, 110, 134 |
+```sql
+SELECT
+  EXTRACT(DOW FROM watched_at)::int AS weekday,  -- 0=Sun, 1=Mon ... 6=Sat
+  SUM(wp.duration_minutes) AS minutes
+FROM watch_progress wp
+-- [time window filter + user scope]
+GROUP BY weekday
+```
 
-Delete the print statements. These are in catch blocks — silent failure is acceptable; the state simply stays at default.
+Return all 7 weekdays, filling missing days with 0 minutes:
 
-### B2 — Convert `showDialog()` → `Get.dialog()`
+```json
+"watch_time_by_weekday": [
+  { "weekday": 0, "day_name": "Sun", "minutes": 45 },
+  { "weekday": 1, "day_name": "Mon", "minutes": 120 },
+  ...
+  { "weekday": 6, "day_name": "Sat", "minutes": 0 }
+]
+```
 
-Only the controller instance is worth fixing — widget files with valid BuildContext are fine with `showDialog()`.
-
-| File | Line | Reason |
-|------|------|--------|
-| `features/badges/controllers/badge_controller.dart` | 132 | Controller has no BuildContext; was using `Get.context!` (fragile) |
-
-### B3 — Remove Dead TODO
-
-`features/dashboard/widgets/bingequest_top10_section.dart:71` — delete the TODO comment about "See All" navigation. Not shipping this screen; comment adds noise.
-
----
-
-## Track C: EConfirmDialog Standardization ✅ COMPLETE
-
-`EConfirmDialog` widget already exists and is used in `profile_screen.dart`. Convert the remaining 7 raw dialog patterns:
-
-| Task | File | Current Pattern |
-|------|------|----------------|
-| C1 | `watchlist/widgets/watchlist_selector_widget.dart:317` | `Get.dialog` + `AlertDialog` |
-| C2 | `settings/screens/settings_screen.dart:259` | `Get.dialog` + `AlertDialog` |
-| C3 | `social/screens/manage_members_screen.dart:233` | `Get.dialog` + `AlertDialog` |
-| C4 | `social/screens/manage_members_screen.dart:259` | `Get.dialog` + `AlertDialog` |
-| C5 | `social/screens/friend_list_screen.dart:160` | `Get.dialog` + `AlertDialog` |
-| C6 | `features/reviews/widgets/reviews_section.dart:87` | `showDialog` + `AlertDialog` |
-| C7 | `features/watchlist/widgets/move_item_sheet.dart:228` | `Get.dialog` + `AlertDialog` |
-
-**Custom dialogs to leave as-is:** Create watchlist, transfer ownership, delete account final confirmation, backfill progress, badge unlock animation, trailer player.
-
-**C8 — Visual polish:** After C1–C7, verify all dialogs (including custom ones) use `border-radius: 16`, `ESizes.lg` padding, and consistent button sizing.
+Always return all 7 rows regardless of activity.
 
 ---
 
-## Files Modified
+## Track B: Frontend Fixes
 
-**Migrations (new files in `supabase/migrations/`):**
-- `038_fix_rls_initplan.sql`
-- `039_merge_permissive_policies.sql`
-- `040_drop_duplicate_index.sql`
+### B1 — Fix Mood Donut `RangeError`
 
-**Flutter:**
-- `features/watchlist/controllers/progress_controller.dart` (remove prints)
-- `features/notifications/controllers/notification_controller.dart` (remove prints)
-- `features/search/widgets/trailer_player_dialog.dart` (showDialog → Get.dialog)
-- `features/badges/controllers/badge_controller.dart` (showDialog → Get.dialog)
-- `features/badges/screens/badges_screen.dart` (showDialog → Get.dialog)
-- `features/dashboard/widgets/bingequest_top10_section.dart` (remove TODO)
-- `features/watchlist/widgets/watchlist_selector_widget.dart` (EConfirmDialog)
-- `features/settings/screens/settings_screen.dart` (EConfirmDialog)
-- `features/social/screens/manage_members_screen.dart` (EConfirmDialog x2)
-- `features/social/screens/friend_list_screen.dart` (EConfirmDialog)
-- `features/reviews/widgets/reviews_section.dart` (EConfirmDialog)
-- `features/watchlist/widgets/move_item_sheet.dart` (EConfirmDialog)
+`fl_chart` PieChart touch callbacks return `touchedIndex = -1` when the user taps outside any segment. The current handler accesses `moodList[-1]` which throws.
+
+Fix in `mood_donut_chart.dart`:
+```dart
+onChartTouchCallback: (event, response) {
+  final index = response?.touchedSection?.touchedSectionIndex ?? -1;
+  if (index < 0) {
+    // clear selection
+    return;
+  }
+  // existing highlight logic
+}
+```
+
+### B2 — Redesign Watch Time Chart (Dates → Days of Week)
+
+Replace `WatchTimeBarChart` with 7 fixed bars: Sun / Mon / Tue / Wed / Thu / Fri / Sat.
+
+- X axis: 3-letter day abbreviations
+- Y axis: minutes (auto-scaled)
+- Bars use `EColors.primary`
+- Tap tooltip showing exact minutes for that weekday
+- Update `WatchTimeTrend` model → `WatchTimeWeekday(weekday: int, dayName: String, minutes: int)`
+- Update `StatsData` model field: `watchTimeTrend` → `watchTimeByWeekday`
+- Update `StatsRepository` parsing
+- Update `StatsController` references
+
+### B3 — Fix Completion Ring
+
+- Numerator: items completed within the selected time window (from fixed `summary.items_completed`)
+- Denominator: total items in the user's watchlists (all-time, from `summary.total_items`)
+- Label: "X completed this [week/month/year]" (or "all time" for the all window)
+
+### B4 — Fix Streak "Best" Formatting
+
+In `streak_indicator.dart`, the "Best" streak number should match the visual weight and size of the "Current streak" number. Only the color should differ (keep existing color distinction).
+
+### B5 — Fix Streak Dots (7-Day Row)
+
+The 7-dot row represents the current calendar week (Sun–Sat), not the selected time window. A dot is filled if the user watched anything on that calendar day this week.
+
+Fix: derive dot states from a current-week slice of data. Options:
+- Add a `current_week_activity` field to the RPC response (7 booleans, always all-time/this-week regardless of window)
+- Or filter `watch_time_by_weekday` when window is 'week' to use as proxy
+
+Simplest approach: always pass `current_week_days_active: [true, false, true, ...]` (7 booleans, Sun–Sat) from the RPC regardless of selected window. Add this field to `get_stats_dashboard` response.
 
 ---
 
-## Risk Assessment
+## Files to Touch
 
-| Item | Risk | Notes |
-|------|------|-------|
-| A1 RLS rewrite | Medium | Test all RLS-protected operations after migration |
-| A2 Policy merge | Medium | Verify co-owner access still works end-to-end |
-| A3 Drop index | Low | Duplicate index — zero functional impact |
-| B1–B3 | Low | Cosmetic/consistency changes |
-| C1–C8 | Low | UI-only, no logic changes |
+**Backend (migration or RPC update):**
+- `get_user_stats` function — fix totals
+- `get_stats_dashboard` function — fix scope, all-time, pace, completion, replace trend with weekday
+
+**Frontend:**
+- `lib/shared/models/stats_data.dart` — rename/replace `WatchTimeTrend` → `WatchTimeWeekday`, add `currentWeekActivity`
+- `lib/shared/repositories/stats_repository.dart` — update parsing
+- `lib/features/stats/controllers/stats_controller.dart` — update references
+- `lib/features/stats/widgets/mood_donut_chart.dart` — B1 fix
+- `lib/features/stats/widgets/watch_time_bar_chart.dart` — B2 redesign
+- `lib/features/stats/widgets/completion_ring.dart` — B3 label fix
+- `lib/features/stats/widgets/streak_indicator.dart` — B4 + B5 fixes
 
 ---
 
 ## Previous Plan
 
-**Mood Guide** — Complete
-**Social Features Suite** — Friend System (done), Watchlist Co-Curators (done), Watch Party Sync (todo), Shareable Playlists (todo)
+**Advanced Stats Dashboard v1.0** — Complete (2026-02-19)
+**Pre-Launch Hardening** — Complete (2026-02-19)

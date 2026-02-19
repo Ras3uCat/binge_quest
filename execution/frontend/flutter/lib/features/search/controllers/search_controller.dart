@@ -684,6 +684,7 @@ class ContentSearchController extends GetxController {
           await WatchlistRepository.createWatchProgress(
             watchlistItemId: itemId,
             episodeCacheId: cachedEpisode.id,
+            isBackfill: true,
           );
         }
       } catch (e) {

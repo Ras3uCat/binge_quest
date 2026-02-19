@@ -17,6 +17,9 @@ class ProfileController extends GetxController {
   final _moviesCompleted = 0.obs;
   final _showsCompleted = 0.obs;
   final _episodesWatched = 0.obs;
+  final _totalEpisodes = 0.obs;
+  final _totalMovies = 0.obs;
+  final _totalShows = 0.obs;
 
   // Streaming breakdown state
   final _streamingBreakdown = <StreamingBreakdownItem>[].obs;
@@ -32,6 +35,9 @@ class ProfileController extends GetxController {
   int get moviesCompleted => _moviesCompleted.value;
   int get showsCompleted => _showsCompleted.value;
   int get episodesWatched => _episodesWatched.value;
+  int get totalEpisodes => _totalEpisodes.value;
+  int get totalMovies => _totalMovies.value;
+  int get totalShows => _totalShows.value;
 
   // Streaming breakdown getters
   List<StreamingBreakdownItem> get streamingBreakdown => _streamingBreakdown;
@@ -115,6 +121,9 @@ class ProfileController extends GetxController {
       _moviesCompleted.value = stats['movies_completed'] ?? 0;
       _showsCompleted.value = stats['shows_completed'] ?? 0;
       _episodesWatched.value = stats['episodes_watched'] ?? 0;
+      _totalEpisodes.value = stats['total_episodes'] ?? 0;
+      _totalMovies.value = stats['total_movies'] ?? 0;
+      _totalShows.value = stats['total_shows'] ?? 0;
 
       // Check for new badges after stats load
       if (Get.isRegistered<BadgeController>()) {
