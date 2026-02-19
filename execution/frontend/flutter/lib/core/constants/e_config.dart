@@ -5,5 +5,5 @@ class EConfig {
 
   /// Controls visibility of Developer and Data sections in Settings.
   /// Flip to false before release.
-  static const bool kDevMode = true;
+  static const bool kDevMode = false;
 }

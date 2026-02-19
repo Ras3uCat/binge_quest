@@ -1,4 +1,6 @@
 import 'package:get/get.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/services/supabase_service.dart';
 import '../../../shared/models/streaming_breakdown.dart';
 import '../../../shared/repositories/watchlist_repository.dart';
 import '../../auth/controllers/auth_controller.dart';
@@ -19,6 +21,9 @@ class ProfileController extends GetxController {
   // Streaming breakdown state
   final _streamingBreakdown = <StreamingBreakdownItem>[].obs;
   final _isLoadingBreakdown = false.obs;
+
+  // Realtime
+  RealtimeChannel? _statsChannel;
 
   // Getters
   bool get isLoading => _isLoading.value;
@@ -63,6 +68,39 @@ class ProfileController extends GetxController {
     super.onInit();
     loadStats();
     loadStreamingBreakdown();
+    _subscribeToStats();
+  }
+
+  @override
+  void onClose() {
+    _statsChannel?.unsubscribe();
+    super.onClose();
+  }
+
+  void _subscribeToStats() {
+    final userId = SupabaseService.currentUserId;
+    if (userId == null) return;
+
+    _statsChannel = Supabase.instance.client
+        .channel('profile_stats:$userId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'watchlist_items',
+          callback: (_) => _onStatsChange(),
+        )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'watch_progress',
+          callback: (_) => _onStatsChange(),
+        )
+        .subscribe();
+  }
+
+  void _onStatsChange() {
+    if (!_isLoading.value) loadStats();
+    if (!_isLoadingBreakdown.value) loadStreamingBreakdown();
   }
 
   /// Load user watching statistics.
