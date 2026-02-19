@@ -294,6 +294,9 @@ class SettingsScreen extends StatelessWidget {
     Get.dialog(
       AlertDialog(
         backgroundColor: EColors.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(ESizes.radiusLg),
+        ),
         title: const Text(
           EText.areYouSure,
           style: TextStyle(color: EColors.textPrimary),
@@ -301,6 +304,12 @@ class SettingsScreen extends StatelessWidget {
         content: const Text(
           EText.deleteAccountFinal,
           style: TextStyle(color: EColors.textSecondary),
+        ),
+        actionsPadding: const EdgeInsets.fromLTRB(
+          ESizes.lg,
+          0,
+          ESizes.lg,
+          ESizes.md,
         ),
         actions: [
           TextButton(
@@ -315,7 +324,12 @@ class SettingsScreen extends StatelessWidget {
                   : () async {
                       await AuthController.to.deleteAccount();
                     },
-              style: ElevatedButton.styleFrom(backgroundColor: EColors.error),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: EColors.error,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(ESizes.radiusSm),
+                ),
+              ),
               child: isLoading
                   ? const SizedBox(
                       width: 20,
@@ -342,6 +356,9 @@ class SettingsScreen extends StatelessWidget {
       Obx(
         () => AlertDialog(
           backgroundColor: EColors.surface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(ESizes.radiusLg),
+          ),
           title: Row(
             children: [
               if (isRunning.value)
@@ -381,10 +398,22 @@ class SettingsScreen extends StatelessWidget {
               },
             ),
           ),
+          actionsPadding: const EdgeInsets.fromLTRB(
+            ESizes.lg,
+            0,
+            ESizes.lg,
+            ESizes.md,
+          ),
           actions: [
             if (!isRunning.value)
               ElevatedButton(
                 onPressed: () => Get.back(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: EColors.primary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(ESizes.radiusSm),
+                  ),
+                ),
                 child: const Text('Done'),
               ),
           ],
@@ -612,6 +641,9 @@ class SettingsScreen extends StatelessWidget {
     Get.dialog(
       AlertDialog(
         backgroundColor: EColors.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(ESizes.radiusLg),
+        ),
         title: const Text(
           'Quiet Hours',
           style: TextStyle(color: EColors.textPrimary),
@@ -638,6 +670,12 @@ class SettingsScreen extends StatelessWidget {
             ],
           ),
         ),
+        actionsPadding: const EdgeInsets.fromLTRB(
+          ESizes.lg,
+          0,
+          ESizes.lg,
+          ESizes.md,
+        ),
         actions: [
           TextButton(onPressed: () => Get.back(), child: const Text('Cancel')),
           ElevatedButton(
@@ -651,7 +689,12 @@ class SettingsScreen extends StatelessWidget {
               );
               Get.back();
             },
-            style: ElevatedButton.styleFrom(backgroundColor: EColors.primary),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: EColors.primary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(ESizes.radiusSm),
+              ),
+            ),
             child: const Text('Save'),
           ),
         ],

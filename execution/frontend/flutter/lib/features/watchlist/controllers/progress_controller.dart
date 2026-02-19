@@ -125,7 +125,7 @@ class ProgressController extends GetxController {
       );
       _friendsWatching.assignAll(friends);
     } catch (e) {
-      print('Error loading friends watching: $e');
+      // ignore
     }
   }
 
@@ -402,7 +402,7 @@ class ProgressController extends GetxController {
       _userRating.value = review?.rating;
       _userReviewText.value = review?.reviewText;
     } catch (e) {
-      print('Error loading review: $e');
+      // ignore
     } finally {
       _isLoadingReview.value = false;
     }

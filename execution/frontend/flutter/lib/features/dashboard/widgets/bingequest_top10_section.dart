@@ -68,7 +68,6 @@ class _BingeQuestTop10SectionState extends State<BingeQuestTop10Section> {
               if (!_isLoading && _items != null && _items!.isNotEmpty)
                 TextButton(
                   onPressed: () {
-                    // TODO: Navigate to See All screen if implemented
                   },
                   child: const Text(''),
                 ),

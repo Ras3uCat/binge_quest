@@ -52,7 +52,7 @@ class NotificationController extends GetxController {
       final fetchedPreferences = await _repository.getPreferences(userId);
       preferences.value = fetchedPreferences;
     } catch (e) {
-      print('Error loading preferences: $e');
+      // ignore
     }
   }
 
@@ -62,7 +62,6 @@ class NotificationController extends GetxController {
       await _repository.updatePreferences(newPreferences);
       preferences.value = newPreferences;
     } catch (e) {
-      print('Error updating preferences: $e');
       // Revert or show error
       Get.snackbar('Error', 'Failed to update preferences');
     } finally {
@@ -84,7 +83,7 @@ class NotificationController extends GetxController {
       final count = await _repository.getUnreadCount(userId);
       unreadCount.value = count;
     } catch (e) {
-      print('Error loading notifications: $e');
+      // ignore
     } finally {
       isLoading.value = false;
     }
@@ -107,7 +106,6 @@ class NotificationController extends GetxController {
         }
       }
     } catch (e) {
-      print('Error marking notification as read: $e');
       // Revert if needed, or just reload
       loadNotifications();
     }
@@ -131,7 +129,6 @@ class NotificationController extends GetxController {
       }
       unreadCount.value = 0;
     } catch (e) {
-      print('Error marking all as read: $e');
       loadNotifications();
     }
   }

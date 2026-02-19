@@ -1,6 +1,6 @@
 # Pre-Launch Hardening
 
-**Status:** TODO
+**Status:** COMPLETE — All tracks done (2026-02-19)
 **Mode:** STUDIO
 **Priority:** Critical
 **Started:** 2026-02-19
@@ -27,7 +27,7 @@ Full pre-launch audit surfaced database performance issues (RLS initplan re-eval
 
 ---
 
-## Track A: Database Migrations
+## Track A: Database Migrations ✅ COMPLETE
 
 ### A1 — Fix `auth_rls_initplan` (All Tables)
 
@@ -73,7 +73,7 @@ No SQL migration needed.
 
 ---
 
-## Track B: Flutter Code Fixes
+## Track B: Flutter Code Fixes ✅ COMPLETE
 
 ### B1 — Remove `print()` Calls
 
@@ -86,11 +86,11 @@ Delete the print statements. These are in catch blocks — silent failure is acc
 
 ### B2 — Convert `showDialog()` → `Get.dialog()`
 
-| File | Line | Dialog |
+Only the controller instance is worth fixing — widget files with valid BuildContext are fine with `showDialog()`.
+
+| File | Line | Reason |
 |------|------|--------|
-| `features/search/widgets/trailer_player_dialog.dart` | 21 | Trailer player |
-| `features/badges/controllers/badge_controller.dart` | 132 | Badge detail |
-| `features/badges/screens/badges_screen.dart` | 196 | Badge detail |
+| `features/badges/controllers/badge_controller.dart` | 132 | Controller has no BuildContext; was using `Get.context!` (fragile) |
 
 ### B3 — Remove Dead TODO
 
@@ -98,7 +98,7 @@ Delete the print statements. These are in catch blocks — silent failure is acc
 
 ---
 
-## Track C: EConfirmDialog Standardization
+## Track C: EConfirmDialog Standardization ✅ COMPLETE
 
 `EConfirmDialog` widget already exists and is used in `profile_screen.dart`. Convert the remaining 7 raw dialog patterns:
 

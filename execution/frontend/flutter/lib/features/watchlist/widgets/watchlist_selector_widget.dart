@@ -331,6 +331,9 @@ class WatchlistSelectorWidget extends StatelessWidget {
     Get.dialog(
       Obx(() => AlertDialog(
             backgroundColor: EColors.surface,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(ESizes.radiusLg),
+            ),
             title: const Text(
               'This list has co-curators',
               style: TextStyle(color: EColors.textPrimary),
@@ -368,6 +371,12 @@ class WatchlistSelectorWidget extends StatelessWidget {
                     )),
               ],
             ),
+            actionsPadding: const EdgeInsets.fromLTRB(
+              ESizes.lg,
+              0,
+              ESizes.lg,
+              ESizes.md,
+            ),
             actions: [
               TextButton(
                 onPressed: () => Get.back(),
@@ -378,8 +387,12 @@ class WatchlistSelectorWidget extends StatelessWidget {
                   Get.back();
                   WatchlistController.to.deleteWatchlist(watchlist.id);
                 },
-                style:
-                    ElevatedButton.styleFrom(backgroundColor: EColors.error),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: EColors.error,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(ESizes.radiusSm),
+                  ),
+                ),
                 child: const Text('Delete for All'),
               ),
               ElevatedButton(
@@ -392,6 +405,12 @@ class WatchlistSelectorWidget extends StatelessWidget {
                     newOwnerName: member.user?.displayLabel ?? 'co-curator',
                   );
                 },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: EColors.primary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(ESizes.radiusSm),
+                  ),
+                ),
                 child: const Text('Transfer & Leave'),
               ),
             ],

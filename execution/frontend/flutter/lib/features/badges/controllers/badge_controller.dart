@@ -127,12 +127,9 @@ class BadgeController extends GetxController {
 
   /// Show a celebration dialog when a badge is unlocked.
   Future<void> _showBadgeUnlockedNotification(Badge badge) async {
-    if (Get.context == null) return;
-
-    await showDialog(
-      context: Get.context!,
+    await Get.dialog(
+      BadgeUnlockDialog(badge: badge),
       barrierDismissible: true,
-      builder: (context) => BadgeUnlockDialog(badge: badge),
     );
   }
 
