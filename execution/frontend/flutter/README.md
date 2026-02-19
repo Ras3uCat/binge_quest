@@ -1,16 +1,29 @@
-# binge_quest
+# BingeQuest — Flutter Frontend
 
-A new Flutter project.
+A gamified watchlist tracker that transforms streaming backlog management into a quest.
+
+## Tech Stack
+
+- **Framework:** Flutter (Material 3)
+- **State Management:** GetX
+- **Backend:** Supabase (Postgres, Auth, Realtime, Edge Functions)
+- **Push Notifications:** Firebase Cloud Messaging
+- **UI Constants:** `E-Prefix` design system (`EColors`, `ESizes`, `EText`)
+
+## Project Structure
+
+```
+lib/
+├── core/           # Constants, services, config
+├── features/       # Feature-first modules (auth, dashboard, watchlist, social, ...)
+└── shared/         # Reusable widgets, models, repositories
+```
 
 ## Getting Started
 
-This project is a starting point for a Flutter application.
+```bash
+flutter pub get
+flutter run
+```
 
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Requires a valid `lib/core/config/env.dart` with Supabase and TMDB credentials.
