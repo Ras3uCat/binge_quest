@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/e_colors.dart';
+import '../../../core/constants/e_config.dart';
 import '../../../core/constants/e_sizes.dart';
 import '../../../core/constants/e_text.dart';
 import '../../../shared/widgets/e_confirm_dialog.dart';
@@ -42,6 +43,26 @@ class SettingsScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      _buildPrivacySection(),
+                      const SizedBox(height: ESizes.xl),
+                      _buildNotificationSection(context),
+                      const SizedBox(height: ESizes.xl),
+                      _buildSection(
+                        title: 'Help',
+                        children: [
+                          _buildSettingsTile(
+                            icon: Icons.help_outline,
+                            label: 'Mood Guide',
+                            onTap: () => MoodGuideSheet.show(),
+                          ),
+                          _buildSettingsTile(
+                            icon: Icons.insights,
+                            label: 'Queue Health Score',
+                            onTap: () => QueueEfficiencyGuideSheet.show(),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: ESizes.xl),
                       _buildSection(
                         title: 'Legal',
                         children: [
@@ -93,62 +114,44 @@ class SettingsScreen extends StatelessWidget {
                           ),
                         ],
                       ),
-                      const SizedBox(height: ESizes.xl),
-                      _buildSection(
-                        title: 'Help',
-                        children: [
-                          _buildSettingsTile(
-                            icon: Icons.help_outline,
-                            label: 'Mood Guide',
-                            onTap: () => MoodGuideSheet.show(),
-                          ),
-                          _buildSettingsTile(
-                            icon: Icons.insights,
-                            label: 'Queue Health Score',
-                            onTap: () => QueueEfficiencyGuideSheet.show(),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: ESizes.xl),
-                      _buildNotificationSection(context),
-                      const SizedBox(height: ESizes.xl),
-                      _buildPrivacySection(),
-                      const SizedBox(height: ESizes.xl),
-                      _buildSection(
-                        title: 'Data',
-                        children: [
-                          _buildSettingsTile(
-                            icon: Icons.sync,
-                            label: 'Sync Episode Metadata',
-                            onTap: () => _runEpisodeBackfill(),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: ESizes.xl),
-                      _buildSection(
-                        title: 'Developer',
-                        children: [
-                          _buildSettingsTile(
-                            icon: Icons.notifications_active,
-                            label: 'Send Test Notification',
-                            onTap: () {
-                              if (Get.isRegistered<NotificationController>()) {
-                                Get.find<NotificationController>()
-                                    .sendTestNotification();
-                              } else {
-                                Get.put(
-                                  NotificationController(),
-                                ).sendTestNotification();
-                              }
-                            },
-                          ),
-                          _buildSettingsTile(
-                            icon: Icons.live_tv,
-                            label: 'Check Streaming Changes',
-                            onTap: () => _runStreamingCheck(),
-                          ),
-                        ],
-                      ),
+                      if (EConfig.kDevMode) ...[
+                        const SizedBox(height: ESizes.xl),
+                        _buildSection(
+                          title: 'Data',
+                          children: [
+                            _buildSettingsTile(
+                              icon: Icons.sync,
+                              label: 'Sync Episode Metadata',
+                              onTap: () => _runEpisodeBackfill(),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: ESizes.xl),
+                        _buildSection(
+                          title: 'Developer',
+                          children: [
+                            _buildSettingsTile(
+                              icon: Icons.notifications_active,
+                              label: 'Send Test Notification',
+                              onTap: () {
+                                if (Get.isRegistered<NotificationController>()) {
+                                  Get.find<NotificationController>()
+                                      .sendTestNotification();
+                                } else {
+                                  Get.put(
+                                    NotificationController(),
+                                  ).sendTestNotification();
+                                }
+                              },
+                            ),
+                            _buildSettingsTile(
+                              icon: Icons.live_tv,
+                              label: 'Check Streaming Changes',
+                              onTap: () => _runStreamingCheck(),
+                            ),
+                          ],
+                        ),
+                      ],
                       const SizedBox(height: ESizes.xl),
                       _buildSection(
                         title: 'Danger Zone',
