@@ -56,6 +56,14 @@ Post-implementation QA surfaced 10 issues spanning backend RPC bugs, frontend re
 | B5 | Fix streak dots — use `current_week_activity` from RPC | **DONE** | Gemini |
 | B6 | Fix inactive streak dots — were `EColors.surface` (invisible); changed to `EColors.border` | **DONE** | Frontend |
 
+### Track C — Backfill Data Integrity
+
+| # | Task | Status | Owner |
+|---|------|--------|-------|
+| C1 | Dry-run: detect bulk-marked rows via 30-second timestamp clustering — 1,177 of 2,939 rows identified | **DONE** | Backend |
+| C2 | Migration `048`: retroactively set `is_backfill = true` on 1,177 bulk-marked rows | **DONE** | Backend |
+| C3 | Update bulk-mark write paths — `markSeasonWatched`, `markAllWatched`, `_createTvShowProgress`, `_syncNewEpisodesForShow` now pass `is_backfill: true` | **DONE** | Frontend |
+
 ---
 
 ## Execution Order
@@ -74,6 +82,7 @@ B4, B5 — no backend dep, can parallelize
 
 ## Previous Tasks
 
+- Advanced Stats Dashboard v1.1 Bug Fixes & Backfill Integrity - **Complete**
 - Advanced Stats Dashboard v1.0 - **Complete**
 - Pre-Launch Hardening (Tracks A, B, C) - **Complete**
 - Standardize Dialog Boxes (EConfirmDialog) - **Complete**

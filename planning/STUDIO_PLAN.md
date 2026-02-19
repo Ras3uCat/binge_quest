@@ -160,6 +160,15 @@ Simplest approach: always pass `current_week_days_active: [true, false, true, ..
 
 ---
 
+## Track C: Backfill Data Integrity ✅ COMPLETE
+
+- Dry-run detected 1,177 of 2,939 rows as bulk-marked (40%) via 30-second timestamp clustering
+- Migration `048_retroactive_backfill_detection.sql` applied — rows retroactively flagged
+- Bulk write paths (`markSeasonWatched`, `markAllWatched`, `_createTvShowProgress`, `_syncNewEpisodesForShow`) updated to pass `is_backfill: true` going forward
+- Single-episode paths and Settings backfill tool left untouched
+
+---
+
 ## Previous Plan
 
 **Advanced Stats Dashboard v1.0** — Complete (2026-02-19)
