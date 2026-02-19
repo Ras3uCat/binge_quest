@@ -9,7 +9,7 @@ This folder contains one file per feature describing behavior and requirements.
 * **Acceptance Criteria:** Must be binary (Pass/Fail).
 * **Context Isolation:** Reference existing ADRs (from `decisions.md`) instead of re-explaining architecture.
 
-## 👥 Agent Hand-off (New)
+## 👥 Agent Hand-off
 * **Planner:** Responsible for drafting these feature files.
 * **Architect:** Must approve the "Scope" and "Backend" sections before work begins.
 * **Flutter Subagent:** Focuses 100% on the **UX** and **Acceptance Criteria** sections.

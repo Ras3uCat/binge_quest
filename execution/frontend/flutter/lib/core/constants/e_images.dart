@@ -8,6 +8,7 @@ class EImages {
 
   // App branding
   static const String appLogo = '$_iconPath/binge_quest_logo.png';
+  static const String raspucatLogo = '$_iconPath/raspucat_logo.svg';
   static const String appLogoLight = '$_basePath/logo_light.png';
   static const String appIcon = '$_iconPath/app_icon.png';
 

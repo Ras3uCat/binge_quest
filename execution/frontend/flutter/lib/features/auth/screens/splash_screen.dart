@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import '../../../core/constants/e_colors.dart';
 import '../../../core/constants/e_text.dart';
@@ -82,55 +83,93 @@ class _SplashScreenState extends State<SplashScreen>
           ),
         ),
         child: SafeArea(
-          child: Center(
-            child: AnimatedBuilder(
-              animation: _controller,
-              builder: (context, child) {
-                return Opacity(
-                  opacity: _fadeAnimation.value,
-                  child: Transform.scale(
-                    scale: _scaleAnimation.value,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Center(
+                child: AnimatedBuilder(
+                  animation: _controller,
+                  builder: (context, child) {
+                    return Opacity(
+                      opacity: _fadeAnimation.value,
+                      child: Transform.scale(
+                        scale: _scaleAnimation.value,
+                        child: child,
+                      ),
+                    );
+                  },
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // App icon
+                      Image.asset(
+                        EImages.appLogo,
+                        height: 150,
+                        fit: BoxFit.contain,
+                      ),
+                      const SizedBox(height: ESizes.xl),
+                      // App name with gradient
+                      ShaderMask(
+                        shaderCallback: (bounds) =>
+                            EColors.primaryGradient.createShader(bounds),
+                        child: const Text(
+                          EText.appName,
+                          style: TextStyle(
+                            fontSize: 42,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            letterSpacing: 1.5,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: ESizes.sm),
+                      // Tagline
+                      const Text(
+                        EText.appTagline,
+                        style: TextStyle(
+                          fontSize: ESizes.fontLg,
+                          color: EColors.textSecondary,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              // D3V x Ras3uCat branding at bottom
+              Positioned(
+                bottom: ESizes.xl,
+                child: AnimatedBuilder(
+                  animation: _controller,
+                  builder: (context, child) => Opacity(
+                    opacity: _fadeAnimation.value,
                     child: child,
                   ),
-                );
-              },
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // App icon
-                  Image.asset(
-                    EImages.appLogo,
-                    height: 150,
-                    fit: BoxFit.contain,
-                  ),
-                  const SizedBox(height: ESizes.xl),
-                  // App name with gradient
-                  ShaderMask(
-                    shaderCallback: (bounds) =>
-                        EColors.primaryGradient.createShader(bounds),
-                    child: const Text(
-                      EText.appName,
-                      style: TextStyle(
-                        fontSize: 42,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        letterSpacing: 1.5,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        'D3V x Ras3uCat',
+                        style: TextStyle(
+                          fontSize: ESizes.fontSm,
+                          color: EColors.textTertiary,
+                          letterSpacing: 1.5,
+                        ),
                       ),
-                    ),
+                      const SizedBox(height: ESizes.xs),
+                      SvgPicture.asset(
+                        EImages.raspucatLogo,
+                        height: 20,
+                        colorFilter: const ColorFilter.mode(
+                          EColors.textTertiary,
+                          BlendMode.srcIn,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: ESizes.sm),
-                  // Tagline
-                  const Text(
-                    EText.appTagline,
-                    style: TextStyle(
-                      fontSize: ESizes.fontLg,
-                      color: EColors.textSecondary,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
         ),
       ),

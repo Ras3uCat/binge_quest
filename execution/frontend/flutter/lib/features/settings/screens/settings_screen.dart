@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/e_colors.dart';
 import '../../../core/constants/e_sizes.dart';
 import '../../../core/constants/e_text.dart';
@@ -73,6 +74,22 @@ class SettingsScreen extends StatelessWidget {
                               ),
                             ),
                             showChevron: false,
+                          ),
+                          const Divider(height: 1, color: EColors.border),
+                          _buildSettingsTile(
+                            icon: Icons.code,
+                            label: 'D3V x Ras3uCat',
+                            trailing: const Text(
+                              'raspucat.com',
+                              style: TextStyle(
+                                color: EColors.textSecondary,
+                                fontSize: ESizes.fontSm,
+                              ),
+                            ),
+                            onTap: () => launchUrl(
+                              Uri.parse('https://raspucat.com'),
+                              mode: LaunchMode.externalApplication,
+                            ),
                           ),
                         ],
                       ),
