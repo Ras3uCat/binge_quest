@@ -831,54 +831,57 @@ class _ContentDetailSheetState extends State<ContentDetailSheet> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              EText.whereToWatch,
-              style: TextStyle(
-                fontSize: ESizes.fontLg,
-                fontWeight: FontWeight.w600,
-                color: EColors.textPrimary,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  EText.whereToWatch,
+                  style: TextStyle(
+                    fontSize: ESizes.fontLg,
+                    fontWeight: FontWeight.w600,
+                    color: EColors.textPrimary,
+                  ),
+                ),
+                if (providers.link != null)
+                  GestureDetector(
+                    onTap: () => _openJustWatch(providers.link!),
+                    child: const Row(
+                      children: [
+                        Icon(
+                          Icons.open_in_new,
+                          size: 14,
+                          color: EColors.primary,
+                        ),
+                        SizedBox(width: ESizes.xs),
+                        Text(
+                          EText.checkAvailability,
+                          style: TextStyle(
+                            fontSize: ESizes.fontSm,
+                            color: EColors.primary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
             ),
             const SizedBox(height: ESizes.sm),
             // Streaming providers
             if (providers.hasStreaming) ...[
-              _buildProviderRow(EText.stream, providers.flatrate),
+              _buildProviderRow(EText.stream, providers.flatrate, providers.link),
               const SizedBox(height: ESizes.sm),
             ],
             // Rent providers
             if (providers.hasRent) ...[
-              _buildProviderRow(EText.rent, providers.rent),
+              _buildProviderRow(EText.rent, providers.rent, providers.link),
               const SizedBox(height: ESizes.sm),
             ],
             // Buy providers
             if (providers.hasBuy) ...[
-              _buildProviderRow(EText.buy, providers.buy),
+              _buildProviderRow(EText.buy, providers.buy, providers.link),
               const SizedBox(height: ESizes.sm),
             ],
-            // JustWatch link
-            if (providers.link != null)
-              GestureDetector(
-                onTap: () => _openJustWatch(providers.link!),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.open_in_new,
-                      size: 14,
-                      color: EColors.primary,
-                    ),
-                    const SizedBox(width: ESizes.xs),
-                    const Text(
-                      EText.checkAvailability,
-                      style: TextStyle(
-                        fontSize: ESizes.fontSm,
-                        color: EColors.primary,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            const SizedBox(height: ESizes.xs),
             const Text(
               EText.poweredByJustWatch,
               style: TextStyle(
@@ -892,7 +895,7 @@ class _ContentDetailSheetState extends State<ContentDetailSheet> {
     });
   }
 
-  Widget _buildProviderRow(String label, List<TmdbWatchProvider> providers) {
+  Widget _buildProviderRow(String label, List<TmdbWatchProvider> providers, String? link) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -912,21 +915,27 @@ class _ContentDetailSheetState extends State<ContentDetailSheet> {
             spacing: ESizes.sm,
             runSpacing: ESizes.sm,
             children: providers.take(6).map((provider) {
+              final icon = ClipRRect(
+                borderRadius: BorderRadius.circular(ESizes.radiusSm),
+                child: provider.logoUrl.isNotEmpty
+                    ? CachedNetworkImage(
+                        imageUrl: provider.logoUrl,
+                        width: 36,
+                        height: 36,
+                        fit: BoxFit.cover,
+                        errorWidget: (context, url, error) =>
+                            _buildProviderPlaceholder(),
+                      )
+                    : _buildProviderPlaceholder(),
+              );
               return Tooltip(
                 message: provider.providerName,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(ESizes.radiusSm),
-                  child: provider.logoUrl.isNotEmpty
-                      ? CachedNetworkImage(
-                          imageUrl: provider.logoUrl,
-                          width: 36,
-                          height: 36,
-                          fit: BoxFit.cover,
-                          errorWidget: (context, url, error) =>
-                              _buildProviderPlaceholder(),
-                        )
-                      : _buildProviderPlaceholder(),
-                ),
+                child: link != null
+                    ? GestureDetector(
+                        onTap: () => _openJustWatch(link),
+                        child: icon,
+                      )
+                    : icon,
               );
             }).toList(),
           ),
