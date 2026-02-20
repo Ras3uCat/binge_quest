@@ -196,7 +196,7 @@ class WatchlistSelectorWidget extends StatelessWidget {
                 },
               );
             }),
-            const SizedBox(height: ESizes.md),
+            const SizedBox(height: ESizes.xs),
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
@@ -208,6 +208,7 @@ class WatchlistSelectorWidget extends StatelessWidget {
                 label: const Text(EText.createWatchlist),
               ),
             ),
+            SizedBox(height: MediaQuery.of(context).padding.bottom + ESizes.xl),
           ],
         ),
       ),
