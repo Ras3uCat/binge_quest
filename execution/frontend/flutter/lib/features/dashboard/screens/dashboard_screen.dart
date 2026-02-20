@@ -13,6 +13,7 @@ import '../widgets/recommendations_section.dart';
 import '../widgets/bingequest_top10_section.dart';
 import '../../notifications/widgets/notification_bell.dart';
 import '../../profile/screens/profile_screen.dart';
+import '../../social/controllers/friend_controller.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -91,14 +92,17 @@ class DashboardScreen extends StatelessWidget {
             ),
             const SizedBox(height: ESizes.xs),
             Obx(() {
+              final username = FriendController.to.username.value;
               final user = AuthController.to.user;
-              final name =
-                  user?.userMetadata?['full_name'] ??
-                  user?.userMetadata?['name'] ??
-                  user?.email?.split('@').first ??
-                  'User';
+              final firstName = (user?.userMetadata?['full_name'] ??
+                      user?.userMetadata?['name'] ??
+                      user?.email?.split('@').first ??
+                      'User')
+                  .toString()
+                  .split(' ')
+                  .first;
               return Text(
-                name,
+                username ?? firstName,
                 style: const TextStyle(
                   fontSize: ESizes.fontXxl,
                   fontWeight: FontWeight.bold,
