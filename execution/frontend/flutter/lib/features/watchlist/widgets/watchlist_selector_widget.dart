@@ -33,79 +33,66 @@ class WatchlistSelectorWidget extends StatelessWidget {
         );
       }
 
-      return Row(
-        children: [
-          Expanded(
-            child: GestureDetector(
-              onTap: () => _showWatchlistPicker(context),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: ESizes.md,
-                  vertical: ESizes.sm,
-                ),
-                decoration: BoxDecoration(
-                  color: EColors.surface,
-                  borderRadius: BorderRadius.circular(ESizes.radiusMd),
-                  border: Border.all(color: EColors.border),
-                ),
+      return GestureDetector(
+        onTap: () => _showWatchlistPicker(context),
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: ESizes.md,
+            vertical: ESizes.sm,
+          ),
+          decoration: BoxDecoration(
+            color: EColors.surface,
+            borderRadius: BorderRadius.circular(ESizes.radiusMd),
+            border: Border.all(color: EColors.border),
+          ),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.playlist_play,
+                color: EColors.primary,
+                size: 20,
+              ),
+              const SizedBox(width: ESizes.sm),
+              Expanded(
                 child: Row(
                   children: [
-                    const Icon(
-                      Icons.playlist_play,
-                      color: EColors.primary,
-                      size: 20,
-                    ),
-                    const SizedBox(width: ESizes.sm),
-                    Expanded(
-                      child: Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              current?.name ?? 'Select Watchlist',
-                              style: const TextStyle(
-                                fontSize: ESizes.fontMd,
-                                fontWeight: FontWeight.w500,
-                                color: EColors.textPrimary,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          if (current != null &&
-                              WatchlistMemberController.to
-                                  .isShared(current.id)) ...[
-                            const SizedBox(width: ESizes.xs),
-                            const SharedListIndicator(size: 14),
-                          ],
-                        ],
+                    Flexible(
+                      child: Text(
+                        current?.name ?? 'Select Watchlist',
+                        style: const TextStyle(
+                          fontSize: ESizes.fontMd,
+                          fontWeight: FontWeight.w500,
+                          color: EColors.textPrimary,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    const SizedBox(width: ESizes.sm),
-                    Text(
-                      '${watchlists.length}',
-                      style: const TextStyle(
-                        fontSize: ESizes.fontSm,
-                        color: EColors.textTertiary,
-                      ),
-                    ),
-                    const SizedBox(width: ESizes.xs),
-                    const Icon(
-                      Icons.keyboard_arrow_down,
-                      color: EColors.textSecondary,
-                      size: 20,
-                    ),
+                    if (current != null &&
+                        WatchlistMemberController.to
+                            .isShared(current.id)) ...[
+                      const SizedBox(width: ESizes.xs),
+                      const SharedListIndicator(size: 14),
+                    ],
                   ],
                 ),
               ),
-            ),
+              const SizedBox(width: ESizes.sm),
+              Text(
+                '${watchlists.length}',
+                style: const TextStyle(
+                  fontSize: ESizes.fontSm,
+                  color: EColors.textTertiary,
+                ),
+              ),
+              const SizedBox(width: ESizes.xs),
+              const Icon(
+                Icons.keyboard_arrow_down,
+                color: EColors.textSecondary,
+                size: 20,
+              ),
+            ],
           ),
-          const SizedBox(width: ESizes.sm),
-          IconButton(
-            onPressed: () => _showCreateWatchlistDialog(context),
-            icon: const Icon(Icons.add_circle_outline),
-            color: EColors.primary,
-            tooltip: EText.createWatchlist,
-          ),
-        ],
+        ),
       );
     });
   }

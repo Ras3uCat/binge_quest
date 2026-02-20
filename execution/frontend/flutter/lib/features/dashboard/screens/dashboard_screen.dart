@@ -49,6 +49,18 @@ class DashboardScreen extends StatelessWidget {
                   const SizedBox(height: ESizes.md),
                   const Padding(
                     padding: EdgeInsets.symmetric(horizontal: ESizes.lg),
+                    child: Text(
+                      'Watchlists',
+                      style: TextStyle(
+                        fontSize: ESizes.fontXl,
+                        fontWeight: FontWeight.bold,
+                        color: EColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: ESizes.sm),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: ESizes.lg),
                     child: WatchlistSelectorWidget(),
                   ),
                   const SizedBox(height: ESizes.lg),
