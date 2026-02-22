@@ -81,12 +81,12 @@ class AuthController extends GetxController {
   Future<void> _signInWithGoogleNative() async {
     // Web client ID is used as serverClientId for Android
     const webClientId =
-        '315193779894-a2ritqh0tk4r96blt8qvdg4dnuuqme5k.apps.googleusercontent.com';
+        '58540891155-pcj46caefias3og8349fkouv6on173os.apps.googleusercontent.com';
     const iosClientId =
         '315193779894-92ddcpuemons8mhlnkp3b1jdi37dn76k.apps.googleusercontent.com';
 
     final googleSignIn = GoogleSignIn(
-      clientId: iosClientId,
+      clientId: defaultTargetPlatform == TargetPlatform.iOS ? iosClientId : null,
       serverClientId: webClientId,
     );
 

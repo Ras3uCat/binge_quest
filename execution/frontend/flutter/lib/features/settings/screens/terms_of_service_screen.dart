@@ -113,7 +113,7 @@ class TermsOfServiceScreen extends StatelessWidget {
                         title: 'Contact',
                         content:
                             'For questions about these Terms of Service, contact us at:\n\n'
-                            'support@bingequest.app',
+                            'meow@ras3ucat.com',
                       ),
                       const SizedBox(height: ESizes.xl),
                     ],

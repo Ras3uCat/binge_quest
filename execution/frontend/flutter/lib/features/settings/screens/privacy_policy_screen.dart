@@ -102,7 +102,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                         title: 'Contact Us',
                         content:
                             'If you have questions about this Privacy Policy, please contact us at:\n\n'
-                            'support@bingequest.app',
+                            'meow@ras3ucat.com',
                       ),
                       const SizedBox(height: ESizes.xl),
                     ],

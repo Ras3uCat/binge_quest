@@ -30,7 +30,7 @@ class NotificationService extends GetxService {
 
   Future<void> _initLocalNotifications() async {
     const androidSettings =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
+        AndroidInitializationSettings('@mipmap/launcher_icon');
     const iosSettings = DarwinInitializationSettings(
       requestAlertPermission: false,
       requestBadgePermission: false,
@@ -102,17 +102,21 @@ class NotificationService extends GetxService {
       }
     }
 
-    // 4. Get FCM token
-    String? token = await _fcm.getToken();
-    debugPrint('FCM token: ${token != null ? "${token.substring(0, 10)}..." : "null"}');
-    if (token != null) {
-      _registerToken(token);
-    }
+    // 4. Get FCM token (may fail on devices without Google Play Services)
+    try {
+      String? token = await _fcm.getToken();
+      debugPrint('FCM token: ${token != null ? "${token.substring(0, 10)}..." : "null"}');
+      if (token != null) {
+        _registerToken(token);
+      }
 
-    // 5. Listen for token refresh
-    _fcm.onTokenRefresh.listen((newToken) {
-      _registerToken(newToken);
-    });
+      // 5. Listen for token refresh
+      _fcm.onTokenRefresh.listen((newToken) {
+        _registerToken(newToken);
+      });
+    } catch (e) {
+      debugPrint('FCM token unavailable (no Google Play Services?): $e');
+    }
   }
 
   Future<void> _registerToken(String token) async {
