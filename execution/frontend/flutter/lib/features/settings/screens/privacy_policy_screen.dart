@@ -102,7 +102,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                         title: 'Contact Us',
                         content:
                             'If you have questions about this Privacy Policy, please contact us at:\n\n'
-                            'meow@ras3ucat.com',
+                            'meow@raspucat.com',
                       ),
                       const SizedBox(height: ESizes.xl),
                     ],

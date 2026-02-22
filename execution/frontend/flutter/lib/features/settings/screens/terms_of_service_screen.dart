@@ -113,7 +113,7 @@ class TermsOfServiceScreen extends StatelessWidget {
                         title: 'Contact',
                         content:
                             'For questions about these Terms of Service, contact us at:\n\n'
-                            'meow@ras3ucat.com',
+                            'meow@raspucat.com',
                       ),
                       const SizedBox(height: ESizes.xl),
                     ],
