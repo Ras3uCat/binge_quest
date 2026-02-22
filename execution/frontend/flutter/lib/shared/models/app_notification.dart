@@ -4,6 +4,10 @@ enum NotificationType {
   newEpisodes,
   social,
   marketing,
+  watchPartyInvite,
+  watchPartyJoin,
+  watchPartyProgress,
+  watchPartyDeleted,
   system;
 
   static const _dbMap = {
@@ -12,6 +16,10 @@ enum NotificationType {
     'new_episodes': NotificationType.newEpisodes,
     'social': NotificationType.social,
     'marketing': NotificationType.marketing,
+    'watch_party_invite': NotificationType.watchPartyInvite,
+    'watch_party_join': NotificationType.watchPartyJoin,
+    'watch_party_progress': NotificationType.watchPartyProgress,
+    'watch_party_deleted': NotificationType.watchPartyDeleted,
   };
 
   static const _toDbMap = {
@@ -20,8 +28,18 @@ enum NotificationType {
     NotificationType.newEpisodes: 'new_episodes',
     NotificationType.social: 'social',
     NotificationType.marketing: 'marketing',
+    NotificationType.watchPartyInvite: 'watch_party_invite',
+    NotificationType.watchPartyJoin: 'watch_party_join',
+    NotificationType.watchPartyProgress: 'watch_party_progress',
+    NotificationType.watchPartyDeleted: 'watch_party_deleted',
     NotificationType.system: 'system',
   };
+
+  bool get isWatchParty =>
+      this == NotificationType.watchPartyInvite ||
+      this == NotificationType.watchPartyJoin ||
+      this == NotificationType.watchPartyProgress ||
+      this == NotificationType.watchPartyDeleted;
 
   String toJson() => _toDbMap[this] ?? 'system';
   static NotificationType fromJson(String json) =>

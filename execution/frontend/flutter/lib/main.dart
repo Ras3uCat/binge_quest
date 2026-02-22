@@ -18,6 +18,7 @@ import 'features/auth/controllers/auth_controller.dart';
 import 'features/badges/controllers/badge_controller.dart';
 import 'features/dashboard/controllers/queue_health_controller.dart';
 import 'features/social/controllers/friend_controller.dart';
+import 'features/social/controllers/watch_party_controller.dart';
 import 'features/watchlist/controllers/watchlist_controller.dart';
 import 'features/watchlist/controllers/watchlist_member_controller.dart';
 import 'features/notifications/controllers/notification_controller.dart';
@@ -73,6 +74,7 @@ Future<void> main() async {
   Get.lazyPut(() => BadgeController(), fenix: true);
   Get.lazyPut(() => QueueHealthController(), fenix: true);
   Get.lazyPut(() => FriendController(), fenix: true);
+  Get.lazyPut(() => WatchPartyController(), fenix: true);
   Get.lazyPut(() => WatchlistController(), fenix: true);
   Get.lazyPut(() => WatchlistMemberController(), fenix: true);
   Get.lazyPut(() => NotificationController(), fenix: true);

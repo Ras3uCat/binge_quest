@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../controllers/notification_controller.dart';
 import '../widgets/social_notification_card.dart';
 import '../widgets/talent_notification_card.dart';
+import '../widgets/watch_party_notification_card.dart';
 import '../../../../core/constants/e_colors.dart';
 import '../../../../shared/models/app_notification.dart';
 import '../../../../shared/models/watchlist_item.dart';
@@ -70,6 +71,9 @@ class NotificationsScreen extends GetView<NotificationController> {
               }
               if (notification.type == NotificationType.social) {
                 return SocialNotificationCard(notification: notification);
+              }
+              if (notification.type.isWatchParty) {
+                return WatchPartyNotificationCard(notification: notification);
               }
 
               return _buildDefaultCard(notification);

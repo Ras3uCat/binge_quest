@@ -1,175 +1,340 @@
-# Advanced Stats Dashboard — v1.1 Bug Fixes & Iteration
+# Watch Party Sync
 
-**Status:** COMPLETE — All tracks done (2026-02-19)
+**Status:** COMPLETE — All tracks done (2026-02-22)
 **Mode:** STUDIO
 **Priority:** High
-**Started:** 2026-02-19
-**Specs:** `planning/features/advanced_stats_dashboard.md`
+**Started:** 2026-02-22
+**Specs:** `planning/features/watch_party_sync.md`
 
 ---
 
 ## Problem Description
 
-Post-implementation QA found 10 issues: RPC data scoping bugs, zero denominators on profile cards, empty all-time results, inflated episode pace, a chart crash on outside tap, a design change to watch time chart (dates → days of week), streak dot mismatch, formatting inconsistency, and completion section undercounting.
+Users want to see where friends are in a shared show or movie in real-time. Each person adds the content to their own watchlist and marks progress normally. The watch party view collects every active member's progress and displays it together. The screen is read-only — a "View in Watchlist" button deep-links to the user's own watchlist item to mark progress.
 
 ---
 
-## Track A: Backend Fixes
+## Architecture
 
-### A1 — Audit Data Scope (All Watchlists)
+Three tables: `watch_parties`, `watch_party_members`, `watch_party_progress`.
 
-Query `get_stats_dashboard` and `get_user_stats` source SQL. Confirm every subquery joins through the user's watchlists via `watchlists.user_id = p_user_id` and does NOT inadvertently filter to a single watchlist. Fix any missing join conditions.
+`watch_party_progress` is a denormalized Realtime relay — written exclusively by a SECURITY DEFINER trigger on `watch_progress`. The trigger computes `progress_percent` from `minutes_watched / runtime_minutes` using data from `content_cache` and `content_cache_episodes`. No new columns on `watch_progress`. No changes to existing write paths.
 
-Co-curator watch progress should be included — if a co-curator marked progress on a shared watchlist, it means they watched together. The scope is: all watchlist items on any watchlist the user owns OR is a co-curator of, with all associated watch progress rows regardless of who logged them.
-
-### A2 — Fix `get_user_stats()` Totals Returning 0
-
-Debug `total_episodes`, `total_movies`, `total_shows` subqueries. Likely causes:
-- Join on wrong column (`tmdb_id` type mismatch between `watchlist_items` and `content_cache`)
-- `media_type` value mismatch (`'tv'` vs `'TV'` vs integer)
-- `number_of_episodes` is NULL for many `content_cache` rows (TMDB doesn't always populate this)
-
-Fix: use `COALESCE(cc.number_of_episodes, 0)` and verify the exact `media_type` values stored.
-
-### A3 — Fix `get_stats_dashboard('all')` Returning Empty
-
-The `'all'` time window branch should apply NO date filter (return all rows). Check for:
-- An `ELSE` branch that accidentally applies a filter
-- A `NULL` interval that causes `watched_at >= now() - NULL` to evaluate unexpectedly
-- Missing `CASE` branch for `'all'`
-
-Fix: ensure `p_time_window = 'all'` results in no `WHERE watched_at >=` clause at all.
-
-### A4 — Fix Episode Pace Calculation
-
-Current formula divides by `days_with_activity` (days where at least one episode was watched). This inflates the number — a user who watched 10 episodes on 1 day out of 30 gets "10 eps/day" instead of "0.3 eps/day".
-
-Fix: divide by `days_in_window` (full calendar days in the selected window: 7, 30, 365, or days since first watch for 'all').
-
+**Progress percent computation (in trigger):**
 ```sql
--- days_in_window
-CASE p_time_window
-  WHEN 'week'  THEN 7
-  WHEN 'month' THEN 30
-  WHEN 'year'  THEN 365
-  ELSE EXTRACT(DAY FROM now() - MIN(watched_at))::int
+progress_percent = CASE
+  WHEN NEW.watched = true THEN 100
+  WHEN NEW.minutes_watched > 0 THEN
+    LEAST(100, ROUND(NEW.minutes_watched * 100.0 / NULLIF(runtime, 0)))
+  ELSE 0
 END
 ```
+- **TV:** `runtime` = `content_cache_episodes.runtime_minutes` via `NEW.episode_cache_id`
+- **Movie:** `runtime` = `content_cache.total_runtime_minutes` via `watchlist_items → content_cache`
 
-### A5 — Fix Completion Count for Time Window
-
-`summary.items_completed` should count items where the completion event (status changed to 'completed') falls within the selected time window — not all-time completions.
-
-Check `watchlist_items` for a `completed_at` or `updated_at` timestamp to filter on. If none exists, use the latest `watch_progress.watched_at` for the item as a proxy for completion date.
-
-### A6 — Replace `watch_time_trend` with `watch_time_by_weekday`
-
-Remove the date-based trend array. Add a 7-element weekday aggregation:
-
-```sql
-SELECT
-  EXTRACT(DOW FROM watched_at)::int AS weekday,  -- 0=Sun, 1=Mon ... 6=Sat
-  SUM(wp.duration_minutes) AS minutes
-FROM watch_progress wp
--- [time window filter + user scope]
-GROUP BY weekday
-```
-
-Return all 7 weekdays, filling missing days with 0 minutes:
-
-```json
-"watch_time_by_weekday": [
-  { "weekday": 0, "day_name": "Sun", "minutes": 45 },
-  { "weekday": 1, "day_name": "Mon", "minutes": 120 },
-  ...
-  { "weekday": 6, "day_name": "Sat", "minutes": 0 }
-]
-```
-
-Always return all 7 rows regardless of activity.
+**Realtime:** client subscribes to `watch_party_progress` filtered by `party_id`. On screen open, fetch full snapshot first then subscribe. On reconnect, re-fetch snapshot before resubscribing.
 
 ---
 
-## Track B: Frontend Fixes
+## Track A: Backend (Migration 036 — single migration)
 
-### B1 — Fix Mood Donut `RangeError`
+### A1 — Tables
 
-`fl_chart` PieChart touch callbacks return `touchedIndex = -1` when the user taps outside any segment. The current handler accesses `moodList[-1]` which throws.
+**`watch_parties`**
+- `id UUID PK DEFAULT gen_random_uuid()`
+- `name TEXT NOT NULL`
+- `tmdb_id INTEGER NOT NULL`
+- `media_type TEXT NOT NULL CHECK IN ('tv', 'movie')`
+- `created_by UUID NOT NULL FK auth.users ON DELETE CASCADE`
+- `created_at TIMESTAMPTZ NOT NULL DEFAULT now()`
+- Indexes: `idx_watch_parties_created_by`, `idx_watch_parties_tmdb(tmdb_id, media_type)`
 
-Fix in `mood_donut_chart.dart`:
-```dart
-onChartTouchCallback: (event, response) {
-  final index = response?.touchedSection?.touchedSectionIndex ?? -1;
-  if (index < 0) {
-    // clear selection
-    return;
-  }
-  // existing highlight logic
-}
+**`watch_party_members`**
+- `id UUID PK DEFAULT gen_random_uuid()`
+- `party_id UUID NOT NULL FK watch_parties ON DELETE CASCADE`
+- `user_id UUID NOT NULL FK auth.users ON DELETE CASCADE`
+- `status TEXT NOT NULL DEFAULT 'pending' CHECK IN ('pending', 'active', 'left')`
+- `joined_at TIMESTAMPTZ NULL`
+- `created_at TIMESTAMPTZ NOT NULL DEFAULT now()`
+- `UNIQUE(party_id, user_id)` — rejoin reuses the row
+- Indexes: `idx_watch_party_members_user_id`, `idx_watch_party_members_party_status(party_id, status)`
+
+**`watch_party_progress`** (denormalized Realtime relay, trigger-synced)
+- `id UUID PK DEFAULT gen_random_uuid()`
+- `party_id UUID NOT NULL FK watch_parties ON DELETE CASCADE`
+- `user_id UUID NOT NULL FK auth.users ON DELETE CASCADE`
+- `season_number INTEGER NOT NULL DEFAULT 0` — 0 for movies
+- `episode_number INTEGER NOT NULL DEFAULT 0` — 0 for movies
+- `progress_percent INTEGER NOT NULL DEFAULT 0 CHECK BETWEEN 0 AND 100`
+- `watched BOOLEAN NOT NULL DEFAULT false`
+- `updated_at TIMESTAMPTZ NOT NULL DEFAULT now()`
+- `UNIQUE(party_id, user_id, season_number, episode_number)`
+- Indexes: `idx_watch_party_progress_party_id` (Realtime filter), `idx_watch_party_progress_user_party(user_id, party_id)`
+
+### A2 — Member Cap Trigger
+
+`enforce_party_member_cap()` — BEFORE INSERT OR UPDATE on `watch_party_members`:
+- Fires when `NEW.status = 'active'`
+- Count active members for `NEW.party_id` WHERE `status = 'active'`
+- If count >= 10, RAISE EXCEPTION 'Party is full (10/10 members)'
+
+### A3 — Progress Sync Trigger
+
+`sync_watch_party_progress()` — SECURITY DEFINER AFTER INSERT OR UPDATE on `watch_progress`:
+
+```sql
+DECLARE
+  v_tmdb_id INTEGER;
+  v_media_type TEXT;
+  v_user_id UUID;
+  v_runtime INTEGER;
+  v_season INTEGER;
+  v_episode INTEGER;
+  v_percent INTEGER;
+  v_party RECORD;
+BEGIN
+  -- Resolve content identity and user from watchlist chain
+  SELECT wi.tmdb_id, wi.media_type, w.user_id
+  INTO v_tmdb_id, v_media_type, v_user_id
+  FROM watchlist_items wi
+  JOIN watchlists w ON w.id = wi.watchlist_id
+  WHERE wi.id = NEW.watchlist_item_id;
+
+  -- Resolve season/episode and runtime
+  IF NEW.episode_cache_id IS NOT NULL THEN
+    -- TV episode
+    SELECT cce.season_number, cce.episode_number, cce.runtime_minutes
+    INTO v_season, v_episode, v_runtime
+    FROM content_cache_episodes cce
+    WHERE cce.id = NEW.episode_cache_id;
+  ELSE
+    -- Movie
+    v_season := 0;
+    v_episode := 0;
+    SELECT cc.total_runtime_minutes INTO v_runtime
+    FROM content_cache cc
+    WHERE cc.tmdb_id = v_tmdb_id AND cc.media_type = 'movie';
+  END IF;
+
+  -- Compute progress_percent
+  IF NEW.watched = true THEN
+    v_percent := 100;
+  ELSIF NEW.minutes_watched > 0 THEN
+    v_percent := LEAST(100, ROUND(NEW.minutes_watched * 100.0 / NULLIF(v_runtime, 0)));
+  ELSE
+    v_percent := 0;
+  END IF;
+
+  -- Upsert into watch_party_progress for each active party this user belongs to
+  FOR v_party IN
+    SELECT wp.id AS party_id
+    FROM watch_parties wp
+    JOIN watch_party_members wpm ON wpm.party_id = wp.id
+    WHERE wp.tmdb_id = v_tmdb_id
+      AND wp.media_type = v_media_type
+      AND wpm.user_id = v_user_id
+      AND wpm.status = 'active'
+  LOOP
+    INSERT INTO watch_party_progress
+      (party_id, user_id, season_number, episode_number, progress_percent, watched, updated_at)
+    VALUES
+      (v_party.party_id, v_user_id, v_season, v_episode, v_percent, NEW.watched, now())
+    ON CONFLICT (party_id, user_id, season_number, episode_number)
+    DO UPDATE SET
+      progress_percent = EXCLUDED.progress_percent,
+      watched = EXCLUDED.watched,
+      updated_at = now();
+  END LOOP;
+
+  RETURN NEW;
+END;
 ```
 
-### B2 — Redesign Watch Time Chart (Dates → Days of Week)
+### A4 — RLS Policies
 
-Replace `WatchTimeBarChart` with 7 fixed bars: Sun / Mon / Tue / Wed / Thu / Fri / Sat.
+**`watch_parties`**
+| Op | Policy |
+|----|--------|
+| SELECT | `auth.uid() = created_by` OR EXISTS active member row for `auth.uid()` |
+| INSERT | `auth.uid() = created_by` |
+| UPDATE | `auth.uid() = created_by` |
+| DELETE | `auth.uid() = created_by` |
 
-- X axis: 3-letter day abbreviations
-- Y axis: minutes (auto-scaled)
-- Bars use `EColors.primary`
-- Tap tooltip showing exact minutes for that weekday
-- Update `WatchTimeTrend` model → `WatchTimeWeekday(weekday: int, dayName: String, minutes: int)`
-- Update `StatsData` model field: `watchTimeTrend` → `watchTimeByWeekday`
-- Update `StatsRepository` parsing
-- Update `StatsController` references
+**`watch_party_members`**
+| Op | Policy |
+|----|--------|
+| SELECT | `auth.uid()` is a member (any status) OR is creator |
+| INSERT | `auth.uid()` is creator; `are_friends(auth.uid(), user_id)` = true; `NOT is_blocked(auth.uid(), user_id)` |
+| UPDATE | Invitee accepts (`pending → active`); member leaves (`→ left`); creator re-invites (`left → pending`) |
+| DELETE | `auth.uid() = user_id` (decline own pending invite) — cascade handles party deletion cleanup |
 
-### B3 — Fix Completion Ring
+**`watch_party_progress`**
+| Op | Policy |
+|----|--------|
+| SELECT | `auth.uid()` is an active member of the party |
+| INSERT | None — SECURITY DEFINER trigger only |
+| UPDATE | None — SECURITY DEFINER trigger only |
+| DELETE | None — cascade from party delete only |
 
-- Numerator: items completed within the selected time window (from fixed `summary.items_completed`)
-- Denominator: total items in the user's watchlists (all-time, from `summary.total_items`)
-- Label: "X completed this [week/month/year]" (or "all time" for the all window)
+### A5 — Realtime Publication
 
-### B4 — Fix Streak "Best" Formatting
+```sql
+ALTER PUBLICATION supabase_realtime ADD TABLE watch_party_progress;
+```
 
-In `streak_indicator.dart`, the "Best" streak number should match the visual weight and size of the "Current streak" number. Only the color should differ (keep existing color distinction).
+---
 
-### B5 — Fix Streak Dots (7-Day Row)
+## Track B: Frontend (New Files)
 
-The 7-dot row represents the current calendar week (Sun–Sat), not the selected time window. A dot is filled if the user watched anything on that calendar day this week.
+### B1 — Models (`lib/shared/models/watch_party.dart`)
 
-Fix: derive dot states from a current-week slice of data. Options:
-- Add a `current_week_activity` field to the RPC response (7 booleans, always all-time/this-week regardless of window)
-- Or filter `watch_time_by_weekday` when window is 'week' to use as proxy
+- `WatchParty` — `id`, `name`, `tmdbId`, `mediaType`, `createdBy`, `createdAt`; `fromJson`
+- `WatchPartyMember` — `id`, `partyId`, `userId`, `status` (enum: pending/active/left), `joinedAt`
+- `WatchPartyMemberProgress` — `userId`, `displayName`, `avatarUrl`, `List<EpisodeProgress> episodes`
+- `EpisodeProgress` — `seasonNumber`, `episodeNumber`, `progressPercent`, `watched`, `updatedAt`
 
-Simplest approach: always pass `current_week_days_active: [true, false, true, ...]` (7 booleans, Sun–Sat) from the RPC regardless of selected window. Add this field to `get_stats_dashboard` response.
+### B2 — Repository (`lib/shared/repositories/watch_party_repository.dart`)
+
+**Party CRUD:**
+- `createParty(name, tmdbId, mediaType)` → `WatchParty`
+- `inviteMember(partyId, userId)`
+- `acceptInvite(partyId)` — UPDATE `pending → active`, set `joined_at = now()`
+- `declineInvite(partyId)` — DELETE own member row
+- `leaveParty(partyId)` — UPDATE `→ left`
+- `reinviteMember(partyId, userId)` — INSERT new `pending` row
+- `deleteParty(partyId)`
+- `fetchUserParties()` → `List<WatchParty>`
+
+**Progress:**
+- `fetchProgress(partyId)` → `List<WatchPartyMemberProgress>` — queries `watch_party_progress` joined with `users` for display name and avatar
+- `subscribeToProgress(partyId, callback)` — Supabase Realtime channel on `watch_party_progress` filtered by `party_id = partyId`
+- `unsubscribeFromProgress(partyId)`
+
+### B3 — Controller (`lib/features/social/controllers/watch_party_controller.dart`)
+
+GetX (`Get.lazyPut(fenix: true)`):
+- `RxList<WatchParty> activeParties`, `RxList<WatchParty> pendingParties`
+- `RxMap<String, List<WatchPartyMemberProgress>> progressByParty` keyed by `partyId`
+- `RxInt selectedSeason`
+- `loadParties()` — populates `activeParties` + `pendingParties`
+- `openParty(partyId)` — fetches full snapshot → subscribes to Realtime
+- `closeParty(partyId)` — unsubscribes channel
+- `_handleRealtimeUpdate(payload)` — merges row-level INSERT/UPDATE into `progressByParty`
+- On reconnect: `openParty` re-fetches snapshot then resubscribes
+
+### B4 — Create Party Sheet (`lib/features/social/screens/create_party_sheet.dart`)
+
+Bottom sheet:
+1. Party name input (pre-filled with show/movie title)
+2. Friend picker — multi-select up to 9 friends (reads from `FriendController`)
+3. Confirm → `createParty()` + `inviteMember()` for each → dismiss sheet, push `WatchPartyScreen`
+
+### B5 — Watch Party Screen (`lib/features/social/screens/watch_party_screen.dart`)
+
+**Read-only.** No progress writes on this screen.
+
+**TV:**
+- Season `TabBar` across all seasons present in any member's progress; default to latest with activity
+- Per-season: one `PartyProgressRow` per member
+- "X is N episodes behind" catch-up indicator
+- **"View in Watchlist"** button → navigates to current user's watchlist item for this show
+
+**Movie:**
+- One `PartyProgressRow` (bar variant) per member
+- "X is furthest behind" indicator
+- **"View in Watchlist"** button → navigates to current user's watchlist item for this movie
+
+**Shared:**
+- Member with no rows in `watch_party_progress` → "Not Started" placeholder row
+- Member with all episodes/movie `watched = true` → "Completed" badge
+- Overflow menu: Leave Party (members) / Delete Party (creator)
+
+### B6 — Party Progress Row (`lib/features/social/widgets/party_progress_row.dart`)
+
+**TV variant:** avatar + display name + episode circles per episode in the selected season
+- ● = `progress_percent = 100`
+- ◐ = `progress_percent` 1–99
+- ○ = `progress_percent = 0` or no row
+
+**Movie variant:** avatar + display name + `LinearProgressIndicator(value: progressPercent / 100)` + percentage text label
+
+### B7 — Party List Section (`lib/features/social/widgets/party_list_section.dart`)
+
+For Social/Friends tab:
+- **Pending Invites** sub-section: show name + inviter + Accept / Decline buttons
+- **Active Parties** list: poster + show name + "{N} friends watching" + user's furthest episode / movie percent
+- Tap row → `WatchPartyScreen`
+
+---
+
+## Track C: Integration (Modified Files)
+
+### C1 — Watchlist Item Page
+
+- Add "Create Watch Party" `OutlinedButton` for TV shows and movies
+- Taps open `CreatePartySheet` with `tmdbId` and `mediaType` pre-populated
+- **No write path changes needed** — trigger reads from existing `watch_progress` + `minutes_watched` + `watched`
+
+### C2 — Social/Friends Tab
+
+Add `PartyListSection` (B7) above existing friends list. Conditionally rendered when user has active or pending parties.
+
+### C3 — Notification Center
+
+New card type for party invite (`category = 'watch_party_invite'`):
+- Body: "{username} invited you to a watch party for {show_name}"
+- Accept / Decline action buttons → `WatchPartyController.acceptInvite` / `declineInvite`
+
+### C4 — Push Notifications (client-side, `send-notification`)
+
+| Event | Fired by | Recipients |
+|-------|----------|------------|
+| Invite sent | Creator device, after `inviteMember()` | Invitee |
+| Invite accepted | Member device, after `acceptInvite()` | Creator |
+| Episode/movie complete | Watcher device, after marking `watched = true` in watchlist | Other active party members |
+| Party deleted | Creator device, after `deleteParty()` | All active members |
+
+Partial progress changes (progress_percent 1–99) do NOT trigger push notifications.
 
 ---
 
 ## Files to Touch
 
-**Backend (migration or RPC update):**
-- `get_user_stats` function — fix totals
-- `get_stats_dashboard` function — fix scope, all-time, pace, completion, replace trend with weekday
+**Backend — new:**
+- `036_watch_party_sync.sql` — all tables, triggers, RLS, Realtime publication
 
-**Frontend:**
-- `lib/shared/models/stats_data.dart` — rename/replace `WatchTimeTrend` → `WatchTimeWeekday`, add `currentWeekActivity`
-- `lib/shared/repositories/stats_repository.dart` — update parsing
-- `lib/features/stats/controllers/stats_controller.dart` — update references
-- `lib/features/stats/widgets/mood_donut_chart.dart` — B1 fix
-- `lib/features/stats/widgets/watch_time_bar_chart.dart` — B2 redesign
-- `lib/features/stats/widgets/completion_ring.dart` — B3 label fix
-- `lib/features/stats/widgets/streak_indicator.dart` — B4 + B5 fixes
+**Frontend — new:**
+- `lib/shared/models/watch_party.dart`
+- `lib/shared/repositories/watch_party_repository.dart`
+- `lib/features/social/controllers/watch_party_controller.dart`
+- `lib/features/social/screens/watch_party_screen.dart`
+- `lib/features/social/screens/create_party_sheet.dart`
+- `lib/features/social/widgets/party_progress_row.dart`
+- `lib/features/social/widgets/party_list_section.dart`
+
+**Frontend — modified:**
+- Watchlist item detail page: "Create Watch Party" button
+- Social/Friends tab screen: `PartyListSection`
+- Notification center: party invite card type
 
 ---
 
-## Track C: Backfill Data Integrity ✅ COMPLETE
+## Key Constraints
 
-- Dry-run detected 1,177 of 2,939 rows as bulk-marked (40%) via 30-second timestamp clustering
-- Migration `048_retroactive_backfill_detection.sql` applied — rows retroactively flagged
-- Bulk write paths (`markSeasonWatched`, `markAllWatched`, `_createTvShowProgress`, `_syncNewEpisodesForShow`) updated to pass `is_backfill: true` going forward
-- Single-episode paths and Settings backfill tool left untouched
+- **`watch_party_progress` is written only by the trigger** — no client writes, no RLS INSERT/UPDATE policies
+- **`progress_percent` derived from `minutes_watched / runtime_minutes`** — no schema changes to `watch_progress`
+- **`watched = true` always forces `progress_percent = 100`** in trigger regardless of minutes
+- **Watch party screen is strictly read-only** — all progress updates go through "View in Watchlist"
+- **Decline = DELETE row; Leave = status `→ left`** — different flows, different RLS actions
+- **10-member cap enforced in DB trigger**, not client-side
+- **Realtime reconnect:** re-fetch full snapshot before resubscribing
+- **Push notifications client-side** — same pattern as friend requests / co-curator invites
+- **`verify_jwt: false`** on any new edge function calls — use in-function `getUser(token)`
 
 ---
 
 ## Previous Plan
 
+**Advanced Stats Dashboard v1.1** — Complete (2026-02-19)
 **Advanced Stats Dashboard v1.0** — Complete (2026-02-19)
 **Pre-Launch Hardening** — Complete (2026-02-19)
