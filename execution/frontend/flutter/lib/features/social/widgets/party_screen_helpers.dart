@@ -1,99 +1,54 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/constants/e_colors.dart';
 import '../../../core/constants/e_sizes.dart';
 import '../../../shared/models/watch_party.dart';
 import '../controllers/watch_party_controller.dart';
+import '../utils/watch_party_sayings.dart';
+import 'party_catch_up_indicator.dart';
 import 'party_progress_row.dart';
 
 // ---------------------------------------------------------------------------
-// TV Body — season tabs + member progress rows
+// TV Body — member progress rows sorted by TV score
 // ---------------------------------------------------------------------------
 class PartyTvBody extends StatelessWidget {
   final WatchPartyController ctrl;
   final String partyId;
+  final String partyName;
 
-  const PartyTvBody({super.key, required this.ctrl, required this.partyId});
+  const PartyTvBody({
+    super.key,
+    required this.ctrl,
+    required this.partyId,
+    required this.partyName,
+  });
+
+  /// TV score: max(season * 10000 + episode * 100 + pct ~/ 10) across episodes.
+  int _score(WatchPartyMemberProgress m) {
+    if (m.episodes.isEmpty) return -1;
+    return m.episodes
+        .map((e) =>
+            e.seasonNumber * 10000 +
+            e.episodeNumber * 100 +
+            e.displayPercent ~/ 10)
+        .reduce((a, b) => a > b ? a : b);
+  }
 
   @override
   Widget build(BuildContext context) {
     return Obx(() {
-      if (ctrl.isLoading.value) {
+      final loading = ctrl.isLoading.value;
+      final raw = ctrl.progressByParty[partyId] ?? [];
+
+      if (loading && raw.isEmpty) {
         return const Center(
             child: CircularProgressIndicator(color: EColors.primary));
       }
-      final members = ctrl.progressByParty[partyId] ?? [];
-      final seasons = _seasons(members);
-      final effectiveSeasons = seasons.isEmpty ? [1] : seasons;
-      final selectedSeason = ctrl.selectedSeason.value
-          .clamp(effectiveSeasons.first, effectiveSeasons.last);
 
-      return RefreshIndicator(
-        onRefresh: () => ctrl.openParty(partyId),
-        color: EColors.primary,
-        child: Column(
-          children: [
-            PartySeasonTabBar(
-              seasons: effectiveSeasons,
-              selected: selectedSeason,
-              onSelect: (s) => ctrl.selectedSeason.value = s,
-            ),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.all(ESizes.md),
-                children: [
-                  ...members.map((m) => PartyProgressRow.tv(
-                        member: m,
-                        selectedSeason: selectedSeason,
-                      )),
-                  PartyCatchUpIndicator(
-                      members: members, season: selectedSeason),
-                ],
-              ),
-            ),
-          ],
-        ),
-      );
-    });
-  }
-
-  List<int> _seasons(List<WatchPartyMemberProgress> members) {
-    final set = <int>{};
-    for (final m in members) {
-      for (final e in m.episodes) {
-        if (e.seasonNumber > 0) set.add(e.seasonNumber);
-      }
-    }
-    return set.toList()..sort();
-  }
-
-}
-
-// ---------------------------------------------------------------------------
-// Movie Body — linear progress bars
-// ---------------------------------------------------------------------------
-class PartyMovieBody extends StatelessWidget {
-  final WatchPartyController ctrl;
-  final String partyId;
-
-  const PartyMovieBody({super.key, required this.ctrl, required this.partyId});
-
-  @override
-  Widget build(BuildContext context) {
-    return Obx(() {
-      if (ctrl.isLoading.value) {
-        return const Center(
-            child: CircularProgressIndicator(color: EColors.primary));
-      }
-      final members = ctrl.progressByParty[partyId] ?? [];
-
-      if (members.isEmpty) {
-        return const Center(
-          child: Text('No members yet',
-              style: TextStyle(
-                  color: EColors.textSecondary, fontSize: ESizes.fontMd)),
-        );
-      }
+      final members = [...raw]..sort((a, b) => _score(b).compareTo(_score(a)));
+      final scores = members.map(_score).toList();
+      final uid = Supabase.instance.client.auth.currentUser?.id ?? '';
 
       return RefreshIndicator(
         onRefresh: () => ctrl.openParty(partyId),
@@ -101,7 +56,99 @@ class PartyMovieBody extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.all(ESizes.md),
           children: [
-            ...members.map((m) => PartyProgressRow.movie(member: m)),
+            ...List.generate(members.length, (i) {
+              final m = members[i];
+              final self = m.userId == uid;
+              final tied = isTiedAt(i, scores);
+              return PartyProgressRow.tv(
+                key: ValueKey(m.userId),
+                member: m,
+                saying: _saying(i, members, ctrl, self, tied, scores),
+                sayingColor: _color(i, members.length, m, tied),
+                isSelf: self,
+                canNudge: !self && ctrl.canNudge(m.userId),
+                onNudge: self
+                    ? null
+                    : () => ctrl.nudgeMember(
+                        partyId: partyId,
+                        partyName: partyName,
+                        nudgedUserId: m.userId),
+              );
+            }),
+            PartyCatchUpIndicator(members: members),
+          ],
+        ),
+      );
+    });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Movie Body — linear progress bars sorted by percent
+// ---------------------------------------------------------------------------
+class PartyMovieBody extends StatelessWidget {
+  final WatchPartyController ctrl;
+  final String partyId;
+  final String partyName;
+
+  const PartyMovieBody({
+    super.key,
+    required this.ctrl,
+    required this.partyId,
+    required this.partyName,
+  });
+
+  int _score(WatchPartyMemberProgress m) =>
+      m.episodes.isNotEmpty ? m.episodes.first.displayPercent : -1;
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      final loading = ctrl.isLoading.value;
+      final raw = ctrl.progressByParty[partyId] ?? [];
+
+      if (loading && raw.isEmpty) {
+        return const Center(
+            child: CircularProgressIndicator(color: EColors.primary));
+      }
+
+      if (!loading && raw.isEmpty) {
+        return const Center(
+          child: Text('No members yet',
+              style: TextStyle(
+                  color: EColors.textSecondary, fontSize: ESizes.fontMd)),
+        );
+      }
+
+      final members = [...raw]..sort((a, b) => _score(b).compareTo(_score(a)));
+      final scores = members.map(_score).toList();
+      final uid = Supabase.instance.client.auth.currentUser?.id ?? '';
+
+      return RefreshIndicator(
+        onRefresh: () => ctrl.openParty(partyId),
+        color: EColors.primary,
+        child: ListView(
+          padding: const EdgeInsets.all(ESizes.md),
+          children: [
+            ...List.generate(members.length, (i) {
+              final m = members[i];
+              final self = m.userId == uid;
+              final tied = isTiedAt(i, scores);
+              return PartyProgressRow.movie(
+                key: ValueKey(m.userId),
+                member: m,
+                saying: _saying(i, members, ctrl, self, tied, scores),
+                sayingColor: _color(i, members.length, m, tied),
+                isSelf: self,
+                canNudge: !self && ctrl.canNudge(m.userId),
+                onNudge: self
+                    ? null
+                    : () => ctrl.nudgeMember(
+                        partyId: partyId,
+                        partyName: partyName,
+                        nudgedUserId: m.userId),
+              );
+            }),
             _furthestBehind(members),
           ],
         ),
@@ -133,103 +180,47 @@ class PartyMovieBody extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Season Tab Bar
+// Shared saying/colour helpers — thin wrappers around watch_party_sayings.dart
 // ---------------------------------------------------------------------------
-class PartySeasonTabBar extends StatelessWidget {
-  final List<int> seasons;
-  final int selected;
-  final void Function(int) onSelect;
 
-  const PartySeasonTabBar({
-    super.key,
-    required this.seasons,
-    required this.selected,
-    required this.onSelect,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(
-          horizontal: ESizes.md, vertical: ESizes.sm),
-      child: Row(
-        children: seasons
-            .map(
-              (s) => Padding(
-                padding: const EdgeInsets.only(right: ESizes.sm),
-                child: ChoiceChip(
-                  label: Text('Season $s'),
-                  selected: s == selected,
-                  selectedColor: EColors.primary,
-                  labelStyle: TextStyle(
-                    color: s == selected
-                        ? EColors.textPrimary
-                        : EColors.textSecondary,
-                    fontSize: ESizes.fontSm,
-                  ),
-                  backgroundColor: EColors.surface,
-                  onSelected: (_) => onSelect(s),
-                ),
-              ),
-            )
-            .toList(),
-      ),
-    );
-  }
+String? _saying(
+  int index,
+  List<WatchPartyMemberProgress> members,
+  WatchPartyController ctrl,
+  bool isSelf,
+  bool tied,
+  List<int> scores,
+) {
+  final m = members[index];
+  return sayingFor(
+    index: index,
+    total: members.length,
+    displayName: m.displayName,
+    episodesEmpty: m.episodes.isEmpty,
+    isAllWatched: m.isAllWatched,
+    isTied: tied,
+    isSelf: isSelf,
+    firstPlaceIdx: ctrl.firstPlaceSayingIndex,
+    lastPlaceIdx: ctrl.lastPlaceSayingIndex,
+    middleIdx: ctrl.middleSayingIndex,
+    notStartedIdx: ctrl.notStartedSayingIndex,
+    completedIdx: ctrl.completedSayingIndex,
+    tiedIdx: ctrl.tiedSayingIndex,
+  );
 }
 
-// ---------------------------------------------------------------------------
-// Catch-Up Indicator (TV only)
-// ---------------------------------------------------------------------------
-class PartyCatchUpIndicator extends StatelessWidget {
-  final List<WatchPartyMemberProgress> members;
-  final int season;
-
-  const PartyCatchUpIndicator(
-      {super.key, required this.members, required this.season});
-
-  @override
-  Widget build(BuildContext context) {
-    if (members.length < 2) return const SizedBox.shrink();
-
-    int? leaderEp;
-    for (final m in members) {
-      final eps = m.episodes.where((e) => e.seasonNumber == season);
-      if (eps.isEmpty) continue;
-      final maxEp =
-          eps.map((e) => e.episodeNumber).reduce((a, b) => a > b ? a : b);
-      if (leaderEp == null || maxEp > leaderEp) leaderEp = maxEp;
-    }
-    if (leaderEp == null) return const SizedBox.shrink();
-
-    final behind = <String>[];
-    for (final m in members) {
-      final eps = m.episodes.where((e) => e.seasonNumber == season);
-      if (eps.isEmpty) {
-        behind.add('${m.displayName} has not started');
-        continue;
-      }
-      final maxEp =
-          eps.map((e) => e.episodeNumber).reduce((a, b) => a > b ? a : b);
-      final diff = leaderEp - maxEp;
-      if (diff > 0) {
-        behind.add(
-            '${m.displayName} is $diff ep${diff == 1 ? '' : 's'} behind');
-      }
-    }
-    if (behind.isEmpty) return const SizedBox.shrink();
-
-    return Padding(
-      padding: const EdgeInsets.only(top: ESizes.sm),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: behind
-            .map((t) => Text(t,
-                style: const TextStyle(
-                    color: EColors.textSecondary, fontSize: ESizes.fontSm)))
-            .toList(),
-      ),
-    );
-  }
+Color? _color(
+  int index,
+  int total,
+  WatchPartyMemberProgress m,
+  bool isTied,
+) {
+  if (total < 2) return null;
+  if (m.episodes.isEmpty) return EColors.textSecondary;
+  if (m.isAllWatched) return EColors.success;
+  if (isTied) return EColors.textSecondary;
+  if (index == 0) return EColors.primary;
+  if (index == total - 1) return EColors.textSecondary;
+  if (total >= 3 && index == total ~/ 2) return EColors.textSecondary;
+  return null;
 }

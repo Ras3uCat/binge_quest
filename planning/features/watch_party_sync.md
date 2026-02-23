@@ -1,7 +1,7 @@
 # Feature: Watch Party Sync
 
 ## Status
-TODO (on hold)
+COMPLETE — implemented 2026-02-23
 
 ## Overview
 Allow users to share watch progress for a specific TV show or movie with friends in real-time. For TV shows, users see per-episode progress across season tabs; for movies, users see percentage-based progress bars. Makes it easy to coordinate viewing and avoid spoilers.

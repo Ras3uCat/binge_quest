@@ -73,6 +73,20 @@ class _FriendsTabState extends State<_FriendsTab> {
     WatchPartyController.to.loadParties();
   }
 
+  Widget _friendsHeader() {
+    return const Padding(
+      padding: EdgeInsets.only(bottom: ESizes.sm),
+      child: Text(
+        'Friends',
+        style: TextStyle(
+          color: EColors.textSecondary,
+          fontWeight: FontWeight.w600,
+          fontSize: ESizes.fontSm,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Obx(() {
@@ -83,7 +97,10 @@ class _FriendsTabState extends State<_FriendsTab> {
       if (ctrl.friends.isEmpty) {
         return Column(
           children: [
-            const PartyListSection(),
+            Padding(
+              padding: const EdgeInsets.all(ESizes.md),
+              child: const PartyListSection(),
+            ),
             Expanded(
               child: friendEmptyState(
                 icon: Icons.people_outline,
@@ -104,6 +121,7 @@ class _FriendsTabState extends State<_FriendsTab> {
           children: [
             const PartyListSection(),
             const SizedBox(height: ESizes.md),
+            _friendsHeader(),
             ...ctrl.friends.map((f) => Padding(
                   padding: const EdgeInsets.only(bottom: ESizes.xs),
                   child: _FriendTile(friendship: f, ctrl: ctrl),

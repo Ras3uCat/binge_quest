@@ -9,19 +9,33 @@ class PartyProgressRow extends StatelessWidget {
   final WatchPartyMemberProgress member;
   final _Variant _variant;
 
-  /// Selected season number — used by TV variant to filter episodes.
-  final int selectedSeason;
+  // Saying fields
+  final String? saying;
+  final Color? sayingColor;
+  final bool isSelf;
+
+  // Nudge fields
+  final bool canNudge;
+  final VoidCallback? onNudge;
 
   const PartyProgressRow.tv({
     super.key,
     required this.member,
-    required this.selectedSeason,
+    this.saying,
+    this.sayingColor,
+    this.isSelf = false,
+    this.canNudge = false,
+    this.onNudge,
   }) : _variant = _Variant.tv;
 
   const PartyProgressRow.movie({
     super.key,
     required this.member,
-    this.selectedSeason = 0,
+    this.saying,
+    this.sayingColor,
+    this.isSelf = false,
+    this.canNudge = false,
+    this.onNudge,
   }) : _variant = _Variant.movie;
 
   @override
@@ -36,14 +50,23 @@ class PartyProgressRow extends StatelessWidget {
         color: EColors.surface,
         borderRadius: BorderRadius.circular(ESizes.radiusSm),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildAvatar(),
-          const SizedBox(width: ESizes.sm),
-          _buildName(),
-          const SizedBox(width: ESizes.sm),
-          Expanded(child: _buildProgress()),
-          if (member.isAllWatched) _buildCompletedBadge(),
+          Row(
+            children: [
+              _buildAvatar(),
+              const SizedBox(width: ESizes.sm),
+              _buildName(),
+              const SizedBox(width: ESizes.sm),
+              Expanded(child: _buildProgress()),
+              if (member.isAllWatched) _buildCompletedBadge(),
+              if (!isSelf && canNudge && onNudge != null &&
+                  !member.isAllWatched && member.hasStarted)
+                _buildNudgeButton(),
+            ],
+          ),
+          if (saying != null) _buildSaying(),
         ],
       ),
     );
@@ -81,25 +104,30 @@ class PartyProgressRow extends StatelessWidget {
   }
 
   Widget _buildTvProgress() {
-    final eps = member.episodes
-        .where((e) => e.seasonNumber == selectedSeason)
-        .toList()
-      ..sort((a, b) => a.episodeNumber.compareTo(b.episodeNumber));
-
-    if (eps.isEmpty) {
+    if (member.episodes.isEmpty) {
       return const Text(
         'Not started',
         style: TextStyle(color: EColors.textTertiary, fontSize: ESizes.fontXs),
       );
     }
 
-    // Find the current episode: first unwatched, or last if all watched.
-    final current = eps.firstWhere(
-      (e) => !e.isComplete,
-      orElse: () => eps.last,
+    // Sort all episodes across all seasons.
+    final sorted = [...member.episodes]
+      ..sort((a, b) {
+        final s = a.seasonNumber.compareTo(b.seasonNumber);
+        return s != 0 ? s : a.episodeNumber.compareTo(b.episodeNumber);
+      });
+
+    // Current = first partial in progress, then last completed, then first overall.
+    final current = sorted.firstWhere(
+      (e) => e.isPartial,
+      orElse: () => sorted.lastWhere(
+        (e) => e.isComplete,
+        orElse: () => sorted.first,
+      ),
     );
-    final watched = eps.where((e) => e.isComplete).length;
-    final pct = (watched / eps.length * 100).round();
+
+    final pct = current.displayPercent;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -107,7 +135,7 @@ class PartyProgressRow extends StatelessWidget {
         Row(
           children: [
             Text(
-              'S$selectedSeason E${current.episodeNumber}',
+              'S${current.seasonNumber} E${current.episodeNumber}',
               style: const TextStyle(
                 color: EColors.textPrimary,
                 fontSize: ESizes.fontSm,
@@ -116,7 +144,7 @@ class PartyProgressRow extends StatelessWidget {
             ),
             const Spacer(),
             Text(
-              '$watched/${eps.length} eps',
+              '$pct%',
               style: const TextStyle(
                 color: EColors.textSecondary,
                 fontSize: ESizes.fontXs,
@@ -142,7 +170,7 @@ class PartyProgressRow extends StatelessWidget {
 
   Widget _buildMovieProgress() {
     final ep = member.episodes.isNotEmpty ? member.episodes.first : null;
-    final percent = ep?.progressPercent ?? 0;
+    final percent = ep?.displayPercent ?? 0;
 
     return Row(
       children: [
@@ -187,6 +215,31 @@ class PartyProgressRow extends StatelessWidget {
           color: EColors.success,
           fontSize: ESizes.fontXs,
           fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNudgeButton() {
+    return IconButton(
+      icon: const Icon(Icons.notifications_active_outlined, size: 16),
+      color: EColors.textTertiary,
+      onPressed: onNudge,
+      tooltip: 'Nudge',
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints(),
+    );
+  }
+
+  Widget _buildSaying() {
+    return Padding(
+      padding: const EdgeInsets.only(top: ESizes.xs),
+      child: Text(
+        saying!,
+        style: TextStyle(
+          color: sayingColor ?? EColors.textSecondary,
+          fontSize: ESizes.fontSm,
+          fontStyle: FontStyle.italic,
         ),
       ),
     );

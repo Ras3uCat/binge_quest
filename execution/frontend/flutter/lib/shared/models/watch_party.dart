@@ -134,9 +134,12 @@ class EpisodeProgress {
     required this.updatedAt,
   });
 
-  bool get isComplete => progressPercent == 100;
-  bool get isPartial => progressPercent > 0 && progressPercent < 100;
-  bool get isNotStarted => progressPercent == 0;
+  bool get isComplete => watched || progressPercent == 100;
+  bool get isPartial => !watched && progressPercent > 0 && progressPercent < 100;
+  bool get isNotStarted => !watched && progressPercent == 0;
+
+  /// Display-safe percent: always 100 when watched, otherwise stored value.
+  int get displayPercent => watched ? 100 : progressPercent;
 
   factory EpisodeProgress.fromJson(Map<String, dynamic> json) {
     return EpisodeProgress(

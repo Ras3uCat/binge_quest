@@ -1,14 +1,18 @@
+import 'dart:math';
+
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../shared/models/watch_party.dart';
 import '../../../shared/repositories/watch_party_repository.dart';
-import '../../auth/controllers/auth_controller.dart';
+import '../utils/watch_party_sayings.dart';
+import 'watch_party_notifications_mixin.dart';
 import 'watch_party_realtime_mixin.dart';
 
 /// GetX controller for Watch Party state management.
 /// Registered with Get.lazyPut(fenix: true).
-class WatchPartyController extends GetxController with WatchPartyRealtimeMixin {
+class WatchPartyController extends GetxController
+    with WatchPartyRealtimeMixin, WatchPartyNotificationsMixin {
   static WatchPartyController get to => Get.find();
 
   @override
@@ -31,6 +35,17 @@ class WatchPartyController extends GetxController with WatchPartyRealtimeMixin {
 
   final selectedSeason = 1.obs;
   final isLoading = false.obs;
+
+  // Saying indices — randomised once per openParty() call, stable until refresh.
+  int firstPlaceSayingIndex = 0;
+  int lastPlaceSayingIndex = 0;
+  int middleSayingIndex = 0;
+  int notStartedSayingIndex = 0;
+  int completedSayingIndex = 0;
+  int tiedSayingIndex = 0;
+
+  // Nudge rate-limit: key = nudged userId, value = last sent DateTime.
+  final _lastNudgeSent = <String, DateTime>{};
 
   RealtimeChannel? _activeChannel;
   String? _openPartyId;
@@ -94,6 +109,15 @@ class WatchPartyController extends GetxController with WatchPartyRealtimeMixin {
     closeParty();
     _openPartyId = partyId;
 
+    // Randomise saying indices once per session open.
+    final rng = Random();
+    firstPlaceSayingIndex = rng.nextInt(10);
+    lastPlaceSayingIndex = rng.nextInt(10);
+    tiedSayingIndex = rng.nextInt(10);
+    middleSayingIndex = rng.nextInt(20);
+    notStartedSayingIndex = rng.nextInt(6);
+    completedSayingIndex = rng.nextInt(6);
+
     try {
       isLoading.value = true;
       final results = await Future.wait([
@@ -130,26 +154,12 @@ class WatchPartyController extends GetxController with WatchPartyRealtimeMixin {
     try {
       await _repository.acceptInvite(partyId);
       await loadParties();
-      // C4b: notify party creator that current user joined
+      // C4b: notify party creator that current user joined.
       final party = activeParties.firstWhereOrNull((p) => p.id == partyId);
-      if (party != null) _sendJoinNotification(party);
+      if (party != null) sendJoinNotification(party);
     } catch (e) {
       debugPrint('WatchPartyController.acceptInvite error: $e');
       Get.snackbar('Error', 'Failed to accept invite');
-    }
-  }
-
-  void _sendJoinNotification(WatchParty party) async {
-    try {
-      await _repository.sendNotification(
-        userId: party.createdBy,
-        category: 'watch_party_join',
-        title: 'Watch Party',
-        body: '${_currentUserLabel} joined your ${party.name} watch party',
-        data: {'party_id': party.id},
-      );
-    } catch (e) {
-      debugPrint('WatchPartyController._sendJoinNotification error: $e');
     }
   }
 
@@ -177,7 +187,7 @@ class WatchPartyController extends GetxController with WatchPartyRealtimeMixin {
 
   Future<void> deleteParty(String partyId) async {
     try {
-      // C4d: capture members before delete so we can notify them
+      // C4d: capture members before delete so we can notify them.
       final party = activeParties.firstWhereOrNull((p) => p.id == partyId);
       final memberIds = await _repository.fetchActiveMemberIds(partyId);
       final currentId = Supabase.instance.client.auth.currentUser?.id;
@@ -188,33 +198,11 @@ class WatchPartyController extends GetxController with WatchPartyRealtimeMixin {
       Get.back();
 
       if (party != null) {
-        _sendDeletedNotifications(party, memberIds, currentId);
+        sendDeletedNotifications(party, memberIds, currentId);
       }
     } catch (e) {
       debugPrint('WatchPartyController.deleteParty error: $e');
       Get.snackbar('Error', 'Failed to delete party');
-    }
-  }
-
-  void _sendDeletedNotifications(
-    WatchParty party,
-    List<String> memberIds,
-    String? currentId,
-  ) async {
-    final name = _currentUserLabel;
-    for (final uid in memberIds) {
-      if (uid == currentId) continue;
-      try {
-        await _repository.sendNotification(
-          userId: uid,
-          category: 'watch_party_deleted',
-          title: 'Watch Party Ended',
-          body: '${party.name} watch party was ended by $name',
-          data: {'party_id': party.id},
-        );
-      } catch (e) {
-        debugPrint('_sendDeletedNotifications error: $e');
-      }
     }
   }
 
@@ -242,60 +230,35 @@ class WatchPartyController extends GetxController with WatchPartyRealtimeMixin {
     }
   }
 
-  /// C4a: Invite and notify the invitee via push notification.
-  Future<void> inviteAndNotify({
-    required WatchParty party,
-    required String inviteeUserId,
-  }) async {
-    try {
-      await _repository.inviteMember(party.id, inviteeUserId);
-      await _repository.sendNotification(
-        userId: inviteeUserId,
-        category: 'watch_party_invite',
-        title: '${party.name} Watch Party',
-        body: '${_currentUserLabel} invited you to a watch party',
-        data: {'party_id': party.id, 'party_name': party.name},
-      );
-    } catch (e) {
-      debugPrint('WatchPartyController.inviteAndNotify error: $e');
-    }
+  // ---------------------------------------------------------------------------
+  // Nudge
+  // ---------------------------------------------------------------------------
+
+  /// Returns true when [userId] has not been nudged within the last 24 hours.
+  bool canNudge(String userId) {
+    final last = _lastNudgeSent[userId];
+    return last == null ||
+        DateTime.now().difference(last) > const Duration(hours: 24);
   }
 
-  /// C4c: Notify all other active members that current user watched content.
-  Future<void> notifyPartyProgress({
+  Future<void> nudgeMember({
     required String partyId,
     required String partyName,
-    required String episodeLabel,
+    required String nudgedUserId,
   }) async {
+    if (!canNudge(nudgedUserId)) return;
+    _lastNudgeSent[nudgedUserId] = DateTime.now();
+    final saying = kNudgeSayings[Random().nextInt(kNudgeSayings.length)];
     try {
-      final currentId = Supabase.instance.client.auth.currentUser?.id;
-      final memberIds = await _repository.fetchActiveMemberIds(partyId);
-      final name = _currentUserLabel;
-      for (final uid in memberIds) {
-        if (uid == currentId) continue;
-        await _repository.sendNotification(
-          userId: uid,
-          category: 'watch_party_progress',
-          title: partyName,
-          body: '$name just watched $episodeLabel',
-          data: {'party_id': partyId},
-        );
-      }
+      await _repository.sendNotification(
+        userId: nudgedUserId,
+        category: 'watch_party_nudge',
+        title: partyName,
+        body: saying,
+        data: {'party_id': partyId},
+      );
     } catch (e) {
-      debugPrint('WatchPartyController.notifyPartyProgress error: $e');
-    }
-  }
-
-  // ---------------------------------------------------------------------------
-  // Helpers
-  // ---------------------------------------------------------------------------
-
-  String get _currentUserLabel {
-    try {
-      return AuthController.to.user?.userMetadata?['full_name'] as String? ??
-          'Someone';
-    } catch (_) {
-      return 'Someone';
+      debugPrint('WatchPartyController.nudgeMember error: $e');
     }
   }
 }

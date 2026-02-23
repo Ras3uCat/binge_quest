@@ -39,7 +39,9 @@ class _WatchPartyScreenState extends State<WatchPartyScreen> {
   void initState() {
     super.initState();
     _ctrl = WatchPartyController.to;
-    _ctrl.openParty(widget.partyId);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _ctrl.openParty(widget.partyId);
+    });
   }
 
   @override
@@ -89,8 +91,16 @@ class _WatchPartyScreenState extends State<WatchPartyScreen> {
               )),
           Expanded(
             child: widget.mediaType == 'tv'
-                ? PartyTvBody(ctrl: _ctrl, partyId: widget.partyId)
-                : PartyMovieBody(ctrl: _ctrl, partyId: widget.partyId),
+                ? PartyTvBody(
+                    ctrl: _ctrl,
+                    partyId: widget.partyId,
+                    partyName: widget.partyName,
+                  )
+                : PartyMovieBody(
+                    ctrl: _ctrl,
+                    partyId: widget.partyId,
+                    partyName: widget.partyName,
+                  ),
           ),
         ],
       ),

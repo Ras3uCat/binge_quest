@@ -6,9 +6,9 @@ import '../../../shared/models/watch_party.dart';
 import '../controllers/watch_party_controller.dart';
 import '../screens/watch_party_screen.dart';
 
-/// Widget that renders Watch Party sections inside the Social/Friends tab.
+/// Watch Party sections for the Friends tab.
 /// Renders two sub-sections: Pending Invites + Active Parties.
-/// Uses Obx for reactive updates.
+/// Relies on parent to provide horizontal padding (e.g. ListView padding).
 class PartyListSection extends StatelessWidget {
   const PartyListSection({super.key});
 
@@ -26,12 +26,18 @@ class PartyListSection extends StatelessWidget {
         children: [
           if (pending.isNotEmpty) ...[
             _sectionHeader('Watch Party Invites'),
-            ...pending.map((p) => _PendingPartyTile(party: p, ctrl: ctrl)),
+            ...pending.map((p) => Padding(
+                  padding: const EdgeInsets.only(bottom: ESizes.xs),
+                  child: _PendingPartyTile(party: p, ctrl: ctrl),
+                )),
             const SizedBox(height: ESizes.sm),
           ],
           if (active.isNotEmpty) ...[
             _sectionHeader('Watch Parties'),
-            ...active.map((p) => _ActivePartyTile(party: p)),
+            ...active.map((p) => Padding(
+                  padding: const EdgeInsets.only(bottom: ESizes.xs),
+                  child: _ActivePartyTile(party: p),
+                )),
           ],
         ],
       );
@@ -40,14 +46,13 @@ class PartyListSection extends StatelessWidget {
 
   Widget _sectionHeader(String title) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(ESizes.md, ESizes.md, ESizes.md, ESizes.xs),
+      padding: const EdgeInsets.only(bottom: ESizes.sm),
       child: Text(
         title,
         style: const TextStyle(
           color: EColors.textSecondary,
           fontWeight: FontWeight.w600,
           fontSize: ESizes.fontSm,
-          letterSpacing: 0.5,
         ),
       ),
     );
@@ -65,32 +70,39 @@ class _PendingPartyTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: ESizes.md,
-        vertical: ESizes.xs,
+    return Container(
+      padding: const EdgeInsets.all(ESizes.md),
+      decoration: BoxDecoration(
+        color: EColors.surface,
+        borderRadius: BorderRadius.circular(ESizes.md),
       ),
-      tileColor: EColors.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(ESizes.radiusSm),
-      ),
-      title: Text(
-        party.name,
-        style: const TextStyle(
-          color: EColors.textPrimary,
-          fontWeight: FontWeight.w600,
-          fontSize: ESizes.fontMd,
-        ),
-      ),
-      subtitle: Text(
-        party.creatorUsername != null
-            ? '${party.creatorUsername} invited you to watch together'
-            : 'Invited you to watch together',
-        style: const TextStyle(color: EColors.textSecondary, fontSize: ESizes.fontSm),
-      ),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
+      child: Row(
         children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  party.name,
+                  style: const TextStyle(
+                    color: EColors.textPrimary,
+                    fontWeight: FontWeight.w600,
+                    fontSize: ESizes.fontMd,
+                  ),
+                ),
+                const SizedBox(height: ESizes.xs),
+                Text(
+                  party.creatorUsername != null
+                      ? '${party.creatorUsername} invited you'
+                      : 'Invited you to watch together',
+                  style: const TextStyle(
+                    color: EColors.textSecondary,
+                    fontSize: ESizes.fontSm,
+                  ),
+                ),
+              ],
+            ),
+          ),
           TextButton(
             style: TextButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: ESizes.sm),
@@ -141,29 +153,7 @@ class _ActivePartyTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: ESizes.md,
-        vertical: ESizes.xs,
-      ),
-      tileColor: EColors.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(ESizes.radiusSm),
-      ),
-      leading: _buildLeading(),
-      title: Text(
-        party.name,
-        style: const TextStyle(
-          color: EColors.textPrimary,
-          fontWeight: FontWeight.w600,
-          fontSize: ESizes.fontMd,
-        ),
-      ),
-      subtitle: Text(
-        party.mediaType == 'tv' ? 'TV Show' : 'Movie',
-        style: const TextStyle(color: EColors.textSecondary, fontSize: ESizes.fontSm),
-      ),
-      trailing: const Icon(Icons.chevron_right, color: EColors.textTertiary),
+    return GestureDetector(
       onTap: () => Get.to(
         () => WatchPartyScreen(
           partyId: party.id,
@@ -172,21 +162,53 @@ class _ActivePartyTile extends StatelessWidget {
           partyName: party.name,
         ),
       ),
-    );
-  }
-
-  Widget _buildLeading() {
-    return Container(
-      width: 44,
-      height: 44,
-      decoration: BoxDecoration(
-        color: EColors.surfaceLight,
-        borderRadius: BorderRadius.circular(ESizes.radiusSm),
-      ),
-      child: const Icon(
-        Icons.groups,
-        color: EColors.primary,
-        size: ESizes.iconMd,
+      child: Container(
+        padding: const EdgeInsets.all(ESizes.md),
+        decoration: BoxDecoration(
+          color: EColors.surface,
+          borderRadius: BorderRadius.circular(ESizes.md),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: EColors.surfaceLight,
+                borderRadius: BorderRadius.circular(ESizes.radiusSm),
+              ),
+              child: const Icon(
+                Icons.groups,
+                color: EColors.primary,
+                size: ESizes.iconMd,
+              ),
+            ),
+            const SizedBox(width: ESizes.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    party.name,
+                    style: const TextStyle(
+                      color: EColors.textPrimary,
+                      fontWeight: FontWeight.w600,
+                      fontSize: ESizes.fontMd,
+                    ),
+                  ),
+                  Text(
+                    party.mediaType == 'tv' ? 'TV Show' : 'Movie',
+                    style: const TextStyle(
+                      color: EColors.textSecondary,
+                      fontSize: ESizes.fontSm,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: EColors.textTertiary),
+          ],
+        ),
       ),
     );
   }
