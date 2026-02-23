@@ -7,6 +7,7 @@ import '../../../shared/models/watchlist_item.dart';
 import '../../../shared/repositories/watchlist_repository.dart';
 import '../../watchlist/screens/item_detail_screen.dart';
 import '../controllers/watch_party_controller.dart';
+import '../widgets/party_member_avatars.dart';
 import '../widgets/party_screen_helpers.dart';
 
 /// Full-screen view for a single Watch Party.
@@ -79,9 +80,20 @@ class _WatchPartyScreenState extends State<WatchPartyScreen> {
     return Scaffold(
       backgroundColor: EColors.background,
       appBar: _buildAppBar(),
-      body: widget.mediaType == 'tv'
-          ? PartyTvBody(ctrl: _ctrl, partyId: widget.partyId)
-          : PartyMovieBody(ctrl: _ctrl, partyId: widget.partyId),
+      body: Column(
+        children: [
+          Obx(() => PartyMemberAvatars(
+                members: _ctrl.membersByParty[widget.partyId] ?? [],
+                progress: _ctrl.progressByParty[widget.partyId] ?? [],
+                mediaType: widget.mediaType,
+              )),
+          Expanded(
+            child: widget.mediaType == 'tv'
+                ? PartyTvBody(ctrl: _ctrl, partyId: widget.partyId)
+                : PartyMovieBody(ctrl: _ctrl, partyId: widget.partyId),
+          ),
+        ],
+      ),
       bottomNavigationBar: _buildBottomBar(),
     );
   }

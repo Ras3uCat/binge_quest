@@ -13,6 +13,7 @@ import '../../search/widgets/content_detail_sheet.dart';
 import '../../search/widgets/review_form_sheet.dart';
 import '../../social/controllers/watch_party_controller.dart';
 import '../../social/screens/create_party_sheet.dart';
+import '../../social/screens/watch_party_screen.dart';
 import '../widgets/move_item_sheet.dart';
 import '../widgets/completed_rating_card.dart';
 import '../widgets/movie_progress_section.dart';
@@ -62,6 +63,7 @@ class ItemDetailScreen extends StatelessWidget {
                             controller: controller,
                             onPosterTap: _showTmdbInfo,
                           ),
+                          _buildWatchPartyBadge(),
                           const SizedBox(height: ESizes.lg),
                           _buildProgressCard(controller),
                           const SizedBox(height: ESizes.lg),
@@ -158,14 +160,72 @@ class ItemDetailScreen extends StatelessWidget {
   }
 
   void _showCreatePartySheet() {
-    if (!Get.isRegistered<WatchPartyController>()) {
-      Get.lazyPut(() => WatchPartyController(), fenix: true);
-    }
+    _ensurePartyController();
     CreatePartySheet.show(
       tmdbId: item.tmdbId,
       mediaType: item.mediaType.name,
       contentTitle: item.title,
     );
+  }
+
+  WatchPartyController _ensurePartyController() {
+    if (!Get.isRegistered<WatchPartyController>()) {
+      Get.lazyPut(() => WatchPartyController(), fenix: true);
+    }
+    final ctrl = WatchPartyController.to;
+    if (ctrl.activeParties.isEmpty && !ctrl.isLoading.value) {
+      ctrl.loadParties();
+    }
+    return ctrl;
+  }
+
+  Widget _buildWatchPartyBadge() {
+    final ctrl = _ensurePartyController();
+    return Obx(() {
+      final party = ctrl.activeParties.firstWhereOrNull(
+        (p) => p.tmdbId == item.tmdbId && p.mediaType == item.mediaType.name,
+      );
+      if (party == null) return const SizedBox.shrink();
+
+      return Padding(
+        padding: const EdgeInsets.only(top: ESizes.sm),
+        child: GestureDetector(
+          onTap: () => Get.to(() => WatchPartyScreen(
+                partyId: party.id,
+                tmdbId: party.tmdbId,
+                mediaType: party.mediaType,
+                partyName: party.name,
+              )),
+          child: Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: ESizes.md,
+              vertical: ESizes.sm,
+            ),
+            decoration: BoxDecoration(
+              color: EColors.primary.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(ESizes.radiusSm),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.groups, color: EColors.primary, size: 18),
+                SizedBox(width: ESizes.xs),
+                Text(
+                  'Watch Party',
+                  style: TextStyle(
+                    color: EColors.primary,
+                    fontSize: ESizes.fontSm,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                SizedBox(width: ESizes.xs),
+                Icon(Icons.chevron_right, color: EColors.primary, size: 18),
+              ],
+            ),
+          ),
+        ),
+      );
+    });
   }
 
   Widget _buildProgressCard(ProgressController controller) {

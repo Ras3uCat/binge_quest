@@ -75,6 +75,8 @@ class WatchPartyMember {
   final WatchPartyMemberStatus status;
   final DateTime? joinedAt;
   final DateTime createdAt;
+  final String? displayName;
+  final String? avatarUrl;
 
   const WatchPartyMember({
     required this.id,
@@ -83,6 +85,8 @@ class WatchPartyMember {
     required this.status,
     this.joinedAt,
     required this.createdAt,
+    this.displayName,
+    this.avatarUrl,
   });
 
   factory WatchPartyMember.fromJson(Map<String, dynamic> json) {
@@ -95,6 +99,19 @@ class WatchPartyMember {
           ? DateTime.parse(json['joined_at'] as String)
           : null,
       createdAt: DateTime.parse(json['created_at'] as String),
+    );
+  }
+
+  WatchPartyMember copyWith({String? displayName, String? avatarUrl}) {
+    return WatchPartyMember(
+      id: id,
+      partyId: partyId,
+      userId: userId,
+      status: status,
+      joinedAt: joinedAt,
+      createdAt: createdAt,
+      displayName: displayName ?? this.displayName,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
     );
   }
 }

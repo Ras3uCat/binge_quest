@@ -24,11 +24,9 @@ class PartyTvBody extends StatelessWidget {
       }
       final members = ctrl.progressByParty[partyId] ?? [];
       final seasons = _seasons(members);
-      if (seasons.isEmpty) {
-        return _emptyState('No progress yet');
-      }
-      final selectedSeason =
-          ctrl.selectedSeason.value.clamp(seasons.first, seasons.last);
+      final effectiveSeasons = seasons.isEmpty ? [1] : seasons;
+      final selectedSeason = ctrl.selectedSeason.value
+          .clamp(effectiveSeasons.first, effectiveSeasons.last);
 
       return RefreshIndicator(
         onRefresh: () => ctrl.openParty(partyId),
@@ -36,7 +34,7 @@ class PartyTvBody extends StatelessWidget {
         child: Column(
           children: [
             PartySeasonTabBar(
-              seasons: seasons,
+              seasons: effectiveSeasons,
               selected: selectedSeason,
               onSelect: (s) => ctrl.selectedSeason.value = s,
             ),
@@ -69,11 +67,6 @@ class PartyTvBody extends StatelessWidget {
     return set.toList()..sort();
   }
 
-  Widget _emptyState(String msg) => Center(
-        child: Text(msg,
-            style: const TextStyle(
-                color: EColors.textSecondary, fontSize: ESizes.fontMd)),
-      );
 }
 
 // ---------------------------------------------------------------------------
@@ -93,6 +86,14 @@ class PartyMovieBody extends StatelessWidget {
             child: CircularProgressIndicator(color: EColors.primary));
       }
       final members = ctrl.progressByParty[partyId] ?? [];
+
+      if (members.isEmpty) {
+        return const Center(
+          child: Text('No members yet',
+              style: TextStyle(
+                  color: EColors.textSecondary, fontSize: ESizes.fontMd)),
+        );
+      }
 
       return RefreshIndicator(
         onRefresh: () => ctrl.openParty(partyId),

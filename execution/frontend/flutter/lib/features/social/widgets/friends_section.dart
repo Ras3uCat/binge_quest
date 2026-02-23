@@ -34,7 +34,7 @@ class FriendsSection extends StatelessWidget {
                   const Icon(Icons.people, color: EColors.primary, size: 20),
                   const SizedBox(width: ESizes.sm),
                   const Text(
-                    'Friends',
+                    'Friends & Watch Parties',
                     style: TextStyle(
                       fontSize: ESizes.fontMd,
                       fontWeight: FontWeight.bold,

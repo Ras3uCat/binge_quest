@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import '../../../core/constants/e_colors.dart';
 import '../../../core/constants/e_sizes.dart';
@@ -95,51 +93,50 @@ class PartyProgressRow extends StatelessWidget {
       );
     }
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: eps.map((ep) => _buildEpisodeCircle(ep)).toList(),
-      ),
+    // Find the current episode: first unwatched, or last if all watched.
+    final current = eps.firstWhere(
+      (e) => !e.isComplete,
+      orElse: () => eps.last,
     );
-  }
+    final watched = eps.where((e) => e.isComplete).length;
+    final pct = (watched / eps.length * 100).round();
 
-  Widget _buildEpisodeCircle(EpisodeProgress ep) {
-    final Widget indicator;
-
-    if (ep.isComplete) {
-      indicator = const Icon(Icons.circle, color: EColors.success, size: 14);
-    } else if (ep.isPartial) {
-      indicator = const SizedBox(
-        width: 14,
-        height: 14,
-        child: CustomPaint(painter: HalfCirclePainter()),
-      );
-    } else {
-      indicator = const Icon(
-        Icons.radio_button_unchecked,
-        color: EColors.textTertiary,
-        size: 14,
-      );
-    }
-
-    return Tooltip(
-      message: 'Ep ${ep.episodeNumber}',
-      child: Padding(
-        padding: const EdgeInsets.only(right: 4),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
           children: [
-            indicator,
             Text(
-              '${ep.episodeNumber}',
+              'S$selectedSeason E${current.episodeNumber}',
               style: const TextStyle(
-                color: EColors.textTertiary,
+                color: EColors.textPrimary,
+                fontSize: ESizes.fontSm,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const Spacer(),
+            Text(
+              '$watched/${eps.length} eps',
+              style: const TextStyle(
+                color: EColors.textSecondary,
                 fontSize: ESizes.fontXs,
               ),
             ),
           ],
         ),
-      ),
+        const SizedBox(height: 4),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(ESizes.radiusSm),
+          child: LinearProgressIndicator(
+            value: pct / 100.0,
+            backgroundColor: EColors.surfaceLight,
+            valueColor: AlwaysStoppedAnimation<Color>(
+              pct == 100 ? EColors.success : EColors.primary,
+            ),
+            minHeight: 4,
+          ),
+        ),
+      ],
     );
   }
 
@@ -197,33 +194,3 @@ class PartyProgressRow extends StatelessWidget {
 }
 
 enum _Variant { tv, movie }
-
-// ---------------------------------------------------------------------------
-// HalfCirclePainter — left half filled (primary), right half empty (border)
-// ---------------------------------------------------------------------------
-class HalfCirclePainter extends CustomPainter {
-  const HalfCirclePainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2;
-
-    // Right half (empty) — outline only.
-    final emptyPaint = Paint()
-      ..color = EColors.border
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5;
-    canvas.drawCircle(center, radius - 0.75, emptyPaint);
-
-    // Left half — filled arc.
-    final fillPaint = Paint()
-      ..color = EColors.primary
-      ..style = PaintingStyle.fill;
-    final rect = Rect.fromCircle(center: center, radius: radius);
-    canvas.drawArc(rect, math.pi / 2, math.pi, true, fillPaint);
-  }
-
-  @override
-  bool shouldRepaint(HalfCirclePainter oldDelegate) => false;
-}

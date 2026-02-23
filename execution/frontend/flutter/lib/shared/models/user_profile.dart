@@ -19,9 +19,9 @@ class UserProfile {
     this.createdAt,
   });
 
-  /// Display-friendly name: displayName > username > 'User'.
+  /// Display-friendly name: username > displayName > 'User'.
   String get displayLabel =>
-      displayName ?? (username != null ? '@$username' : 'User');
+      username != null ? '@$username' : (displayName ?? 'User');
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
     return UserProfile(

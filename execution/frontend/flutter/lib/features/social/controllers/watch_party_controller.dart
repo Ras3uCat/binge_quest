@@ -27,6 +27,8 @@ class WatchPartyController extends GetxController with WatchPartyRealtimeMixin {
   @override
   final progressByParty = <String, List<WatchPartyMemberProgress>>{}.obs;
 
+  final membersByParty = <String, List<WatchPartyMember>>{}.obs;
+
   final selectedSeason = 1.obs;
   final isLoading = false.obs;
 
@@ -94,8 +96,12 @@ class WatchPartyController extends GetxController with WatchPartyRealtimeMixin {
 
     try {
       isLoading.value = true;
-      final progress = await _repository.fetchProgress(partyId);
-      progressByParty[partyId] = progress;
+      final results = await Future.wait([
+        _repository.fetchProgress(partyId),
+        _repository.fetchPartyMembers(partyId),
+      ]);
+      progressByParty[partyId] = results[0] as List<WatchPartyMemberProgress>;
+      membersByParty[partyId] = results[1] as List<WatchPartyMember>;
     } catch (e) {
       debugPrint('WatchPartyController.openParty fetch error: $e');
     } finally {

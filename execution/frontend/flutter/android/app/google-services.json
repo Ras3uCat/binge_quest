@@ -30,6 +30,14 @@
           }
         },
         {
+          "client_id": "58540891155-glq8lflnuj5o2lr1v7h3f28drhda9jdk.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.ras3ucat.binge_quest",
+            "certificate_hash": "0a4be6c657ee4ed1d41b248902fdce1f30abcb51"
+          }
+        },
+        {
           "client_id": "58540891155-pcj46caefias3og8349fkouv6on173os.apps.googleusercontent.com",
           "client_type": 3
         }

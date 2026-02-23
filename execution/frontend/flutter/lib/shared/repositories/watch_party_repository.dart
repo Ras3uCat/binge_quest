@@ -154,6 +154,43 @@ class WatchPartyRepository {
   }
 
   // ---------------------------------------------------------------------------
+  // Members
+  // ---------------------------------------------------------------------------
+
+  /// Fetch all active + pending members for a party, with display names.
+  Future<List<WatchPartyMember>> fetchPartyMembers(String partyId) async {
+    final rows = await _supabase
+        .from('watch_party_members')
+        .select()
+        .eq('party_id', partyId)
+        .inFilter('status', ['active', 'pending']);
+    final members =
+        (rows as List).map((r) => WatchPartyMember.fromJson(r)).toList();
+
+    final userIds = members.map((m) => m.userId).toList();
+    if (userIds.isEmpty) return members;
+
+    final profileRows = await _supabase
+        .from('users')
+        .select('id, display_name, avatar_url, username')
+        .inFilter('id', userIds);
+
+    final profileMap = <String, UserProfile>{};
+    for (final p in profileRows as List) {
+      final profile = UserProfile.fromJson(p);
+      profileMap[profile.id] = profile;
+    }
+
+    return members.map((m) {
+      final profile = profileMap[m.userId];
+      return m.copyWith(
+        displayName: profile?.displayLabel ?? 'Member',
+        avatarUrl: profile?.avatarUrl,
+      );
+    }).toList();
+  }
+
+  // ---------------------------------------------------------------------------
   // Progress
   // ---------------------------------------------------------------------------
 
