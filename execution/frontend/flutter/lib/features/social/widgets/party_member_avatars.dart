@@ -90,6 +90,21 @@ class PartyMemberAvatars extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 4),
+          SizedBox(
+            width: 56,
+            child: Text(
+              member.displayName ?? 'Member',
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: EColors.textPrimary,
+                fontSize: ESizes.fontXs,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          const SizedBox(height: 2),
           Text(
             label,
             style: TextStyle(

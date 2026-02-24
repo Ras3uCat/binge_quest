@@ -63,17 +63,20 @@ class QueueEfficiency {
     required int stale,
     required int recentCompletions,
     int excluded = 0,
+    int neverStarted = 0,
   }) {
-    // Calculate completion rate — empty queue = 100%
+    // Completion rate — display stat only, no longer drives the score.
     final completionRate = total > 0
         ? (completed / total) * 100
         : 100.0;
 
-    // Calculate efficiency score (0-100)
-    // Base: completion rate
-    // Penalty: -2 points per stale item
-    // Bonus: +5 points per recent completion (max 25 points)
-    final score = (completionRate - (stale * 2) + (recentCompletions * 5).clamp(0, 25))
+    // Score: ratio-based so adding new wishlist items never lowers the score.
+    // started = items with any watch activity (excludes never-touched wishlist items)
+    // staleRatio = stale / max(started, 1)
+    // score = 100 − (staleRatio × 60) + min(recent × 8, 30)
+    final started = (total - completed - neverStarted).clamp(0, total);
+    final staleRatio = started > 0 ? stale / started : 0.0;
+    final score = (100 - (staleRatio * 80) + (recentCompletions * 8).clamp(0, 30))
         .clamp(0, 100)
         .round();
 

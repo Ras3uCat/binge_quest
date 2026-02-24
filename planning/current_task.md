@@ -1,82 +1,87 @@
-# Current Task: Watch Party Sync
+# Current Task: User Archetypes
 
-**Status**: COMPLETE
+**Status**: IN PROGRESS
 **Mode**: STUDIO
 **Priority**: High
-**Started**: 2026-02-22
-**Specs**: `STUDIO_PLAN.md`, `planning/features/watch_party_sync.md`
+**Started**: 2026-02-23
+**Specs**: `STUDIO_PLAN.md`, `planning/features/user_archetypes.md`
 
 ---
 
 ## Overview
 
-Each user adds content to their own watchlist and marks progress normally. The watch party view collects every active member's progress in real-time and displays it together. The screen is read-only — "View in Watchlist" deep-links to the user's own watchlist item to update progress. Progress percent is derived by the DB trigger from `minutes_watched / runtime_minutes` using `content_cache` and `content_cache_episodes` — no new columns on `watch_progress`, no write path changes.
+Classify each user into one of 12 viewer archetypes based on their real watching behavior. The active archetype lives on the user's profile as a badge-like identity label, computed periodically from a rolling 90-day activity window. Supports dual archetypes (tie within 0.05), user-pinned archetypes, archetype history, and push notification on archetype change.
+
+All 12 archetypes are derived exclusively from existing columns — no new source data columns required.
 
 ---
 
 ## Task Board
 
-### Track A — Backend (Migration 036)
+### Track A — Backend (Migrations 050–051 + Edge Function)
 
 | # | Task | Status | Owner |
 |---|------|--------|-------|
-| A1 | Create `watch_parties` table with constraints and indexes | **DONE** | Backend |
-| A2 | Create `watch_party_members` table with UNIQUE constraint, indexes, and member cap trigger (`enforce_party_member_cap`) | **DONE** | Backend |
-| A3 | Create `watch_party_progress` table (denormalized Realtime relay) with UNIQUE constraint and indexes | **DONE** | Backend |
-| A4 | Create `sync_watch_party_progress()` SECURITY DEFINER trigger on `watch_progress` — computes `progress_percent` from `minutes_watched / runtime_minutes` (TV: `content_cache_episodes.runtime_minutes` via `episode_cache_id`; Movie: `content_cache.total_runtime_minutes`) | **DONE** | Backend |
-| A5 | RLS on all 3 tables (see STUDIO_PLAN.md — note: decline = DELETE member row, different from leave = status flip) | **DONE** | Backend |
-| A6 | `ALTER PUBLICATION supabase_realtime ADD TABLE watch_party_progress` | **DONE** | Backend |
+| A1 | Migration 050: `archetypes` reference table + 12 seed rows + `user_archetypes` table + `users` columns (`primary_archetype`, `secondary_archetype`, `archetype_updated_at`) + RLS + indexes | **TODO** | Backend |
+| A2 | Migration 051: `compute_user_archetype(p_user_id uuid)` SECURITY DEFINER function (all 12 scoring CTEs, 90-day window, dual archetype logic, min activity threshold) | **TODO** | Backend |
+| A3 | Migration 051 (cont): `on_watch_progress_archetype_check()` trigger — AFTER INSERT on `watch_progress`, counts completions since last computation, calls `compute_user_archetype` on every 5th | **TODO** | Backend |
+| A4 | Edge Function `compute-archetypes`: nightly cron batch + single-user HTTP entrypoint (service_role only) | **TODO** | Backend |
+| A5 | Archetype change notification: inside `compute_user_archetype`, call `send-notification` when `primary_archetype` changes | **TODO** | Backend |
 
 ### Track B — Frontend (New Files)
 
 | # | Task | Status | Owner |
 |---|------|--------|-------|
-| B1 | `lib/shared/models/watch_party.dart` — `WatchParty`, `WatchPartyMember`, `WatchPartyMemberProgress`, `EpisodeProgress` models | **DONE** | Flutter |
-| B2 | `lib/shared/repositories/watch_party_repository.dart` — CRUD, invite/accept/decline(DELETE)/leave/delete, `fetchProgress`, `subscribeToProgress`, `unsubscribeFromProgress` | **DONE** | Flutter |
-| B3 | `lib/features/social/controllers/watch_party_controller.dart` — GetX state, `openParty` (snapshot + subscribe), `closeParty` (unsubscribe), Realtime merge handler, season tab state | **DONE** | Flutter |
-| B4 | `lib/features/social/screens/create_party_sheet.dart` — Bottom sheet: party name + friend picker + confirm | **DONE** | Flutter |
-| B5 | `lib/features/social/screens/watch_party_screen.dart` — Read-only: TV season tabs + episode grid; Movie progress bars; "View in Watchlist" button | **DONE** | Flutter |
-| B6 | `lib/features/social/widgets/party_progress_row.dart` — TV: ●/◐/○ episode circles; Movie: LinearProgressIndicator | **DONE** | Flutter |
-| B7 | `lib/features/social/widgets/party_list_section.dart` — Pending invites (Accept/Decline) + active parties list for Social tab | **DONE** | Flutter |
+| B1 | `lib/shared/models/archetype.dart` — `Archetype`, `UserArchetype` models with `fromJson` | **TODO** | Flutter |
+| B2 | `lib/shared/repositories/archetype_repository.dart` — `fetchAllArchetypes`, `fetchUserArchetype`, `fetchArchetypeScores`, `fetchArchetypeHistory`, `pinArchetype` | **TODO** | Flutter |
+| B3 | `lib/features/profile/controllers/archetype_controller.dart` — GetX `lazyPut(fenix: true)`: `currentArchetype`, `secondaryArchetype`, `allScores`, `isPinned`, `history` observables | **TODO** | Flutter |
+| B4 | `lib/features/profile/widgets/archetype_badge.dart` — compact badge (icon + name + tagline); dual "+" display; "Still Exploring..." placeholder | **TODO** | Flutter |
+| B5 | `lib/features/profile/widgets/archetype_detail_sheet.dart` — bottom sheet: description + radar chart + history timeline + pin toggle | **TODO** | Flutter |
+| B6 | `lib/features/profile/widgets/archetype_radar_chart.dart` — spider chart of all 12 scores via `CustomPainter` | **TODO** | Flutter |
+| B7 | `lib/features/profile/widgets/archetype_history_timeline.dart` — scrollable list of past archetype rows | **TODO** | Flutter |
 
 ### Track C — Integration (Modified Files)
 
 | # | Task | Status | Owner |
 |---|------|--------|-------|
-| C1 | Watchlist item page: add "Create Watch Party" button — opens `CreatePartySheet` with `tmdbId` + `mediaType` pre-populated | **DONE** | Flutter |
-| C2 | Social/Friends tab: add `PartyListSection` widget | **DONE** | Flutter |
-| C3 | Notification center: party invite card with Accept/Decline actions | **DONE** | Flutter |
-| C4 | Push notifications: client-side `send-notification` calls for invite sent, accepted, episode complete, party deleted | **DONE** | Flutter |
+| C1 | Profile screen: add `ArchetypeBadge` below display name; tap → `ArchetypeDetailSheet` (own profile + friend profile views) | **TODO** | Flutter |
+| C2 | Friend list items + friend profile cards: compact `ArchetypeBadge` (icon + name only, no tagline) | **TODO** | Flutter |
 
 ---
 
 ## Execution Order
 
 ```
-A1 → A2, A3 (members + progress depend on watch_parties)
-A4, A5, A6 — after A1–A3
+A1 → A2 → A3 (trigger depends on function)
+A4, A5 — after A2 (edge function calls DB function)
 
-B1 → B2 → B3 → B4, B5, B6, B7 (sequential dependency)
+B1 → B2 → B3 → B4, B5, B6, B7 (sequential model → repo → controller → widgets)
 
-C1, C2, C3, C4 — after B3 controller available
+C1, C2 — after B3 controller available
 ```
 
 ---
 
 ## Key Decisions
 
-- **`watch_party_progress` is the Realtime relay** — written exclusively by trigger, never by client
-- **`progress_percent` computed in trigger** from `minutes_watched / runtime_minutes` — no `watch_progress` schema change, no write path changes
-- **`watched = true` forces 100%** in trigger regardless of `minutes_watched`
-- **Watch party screen is read-only** — "View in Watchlist" is the only path to update progress
-- **Realtime:** subscribe to `watch_party_progress` filtered by `party_id`; re-fetch full snapshot on reconnect
-- **Decline = DELETE row** (re-invite = new row); **Leave = status `→ left`** (rejoin = reuse row)
-- **Push notifications client-side** — same pattern as friend requests
+- **Scoring window:** Rolling 90-day `watched_at` lookback — stale history doesn't dominate
+- **Minimum threshold:** >= 5 completed titles AND >= 20 episodes watched; below = `null` archetype ("Still Exploring...")
+- **Dual archetype:** If top two scores within 0.05 of each other → show both with "+" connector (max 2)
+- **Tie-breaking connector:** "+" (not "&" or "x")
+- **Recompute trigger:** Every 5th episode completion per user (counted from `watch_progress` INSERT where `watched = true`)
+- **Fallback:** Nightly cron via `compute-archetypes` Edge Function covers inactive users
+- **Pin:** User can lock their displayed archetype; `is_pinned = true` prevents auto-update of display but computation still runs
+- **Push notification:** Sent when `primary_archetype` column on `users` actually changes value (not on every recompute)
+- **`user_archetypes` is write-only for service_role** — no INSERT/UPDATE/DELETE from client
+- **Archetype visibility:** Friends only (via existing `users` SELECT policy + `are_friends()` for `user_archetypes`)
+- **Quiz (Viewing Style Quiz):** SKIPPED for v1 — all archetypes are fully data-driven
+- **Social visibility:** Compact badge on friend profiles (icon + name); full detail only on own profile
 
 ---
 
 ## Previous Tasks
 
+- Watch Party Sync — **Complete**
 - Advanced Stats Dashboard v1.1 Bug Fixes & Backfill Integrity — **Complete**
 - Advanced Stats Dashboard v1.0 — **Complete**
 - Pre-Launch Hardening (Tracks A, B, C) — **Complete**
@@ -84,7 +89,6 @@ C1, C2, C3, C4 — after B3 controller available
 - Search + Provider Filter Integration — **Complete**
 - Friends Watching Content Indicator — **Complete**
 - Mood Guide — **Complete**
-- Watch Party Sync — **Complete**
 - Social Features Suite (Friend System, Watchlist Co-Curators) — **In Progress** (Shareable Playlists remaining)
 - Follow Talent (Actors & Directors) — **Complete**
 - Streaming Availability Alerts — **Complete**

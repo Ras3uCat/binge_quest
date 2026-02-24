@@ -5,6 +5,7 @@ import '../../../core/constants/e_sizes.dart';
 import '../../../shared/models/watch_party.dart';
 import '../controllers/watch_party_controller.dart';
 import '../screens/watch_party_screen.dart';
+import '../../watchlist/screens/watchlist_screen.dart';
 
 /// Watch Party sections for the Friends tab.
 /// Renders two sub-sections: Pending Invites + Active Parties.
@@ -19,7 +20,15 @@ class PartyListSection extends StatelessWidget {
       final pending = ctrl.pendingParties;
       final active = ctrl.activeParties;
 
-      if (pending.isEmpty && active.isEmpty) return const SizedBox.shrink();
+      if (pending.isEmpty && active.isEmpty) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _sectionHeader('Watch Parties'),
+            _emptyState(),
+          ],
+        );
+      }
 
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -42,6 +51,38 @@ class PartyListSection extends StatelessWidget {
         ],
       );
     });
+  }
+
+  Widget _emptyState() {
+    return GestureDetector(
+      onTap: () => Get.to(() => const WatchlistScreen()),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(ESizes.md),
+        decoration: BoxDecoration(
+          color: EColors.surface,
+          borderRadius: BorderRadius.circular(ESizes.md),
+          border: Border.all(color: EColors.border),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.groups_outlined,
+                color: EColors.textTertiary, size: 28),
+            const SizedBox(width: ESizes.md),
+            const Expanded(
+              child: Text(
+                'No active watch parties\nCreate one from any watchlist item',
+                style: TextStyle(
+                  color: EColors.textSecondary,
+                  fontSize: ESizes.fontSm,
+                ),
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: EColors.textTertiary),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _sectionHeader(String title) {

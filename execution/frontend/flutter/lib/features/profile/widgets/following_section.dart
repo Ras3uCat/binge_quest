@@ -4,230 +4,111 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/constants/e_colors.dart';
 import '../../../core/constants/e_sizes.dart';
 import '../../../core/constants/e_images.dart';
-import '../../search/controllers/search_controller.dart';
-import '../../../shared/models/followed_talent.dart';
-import '../../search/widgets/person_detail_sheet.dart';
 import '../controllers/followed_talent_controller.dart';
+import '../screens/following_list_screen.dart';
 
-/// Displays the list of followed talent on the profile screen.
+/// Compact following card for the profile screen.
+/// Shows talent count, avatars, and navigates to full list on tap.
 class FollowingSection extends StatelessWidget {
   const FollowingSection({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Ensure controller is available
     if (!Get.isRegistered<FollowedTalentController>()) {
       Get.put(FollowedTalentController());
     }
 
-    return Container(
-      padding: const EdgeInsets.all(ESizes.lg),
-      decoration: BoxDecoration(
-        color: EColors.surface,
-        borderRadius: BorderRadius.circular(ESizes.radiusMd),
-        border: Border.all(color: EColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildHeader(),
-          const SizedBox(height: ESizes.md),
-          _buildContent(),
-        ],
-      ),
-    );
-  }
+    return Obx(() {
+      final ctrl = FollowedTalentController.to;
+      final count = ctrl.followedTalent.length;
 
-  Widget _buildHeader() {
-    return const Row(
-      children: [
-        Icon(Icons.people_alt, color: EColors.secondary, size: 20),
-        SizedBox(width: ESizes.sm),
-        Text(
-          'Following',
-          style: TextStyle(
-            fontSize: ESizes.fontLg,
-            fontWeight: FontWeight.bold,
-            color: EColors.textPrimary,
+      return GestureDetector(
+        onTap: () => Get.to(() => const FollowingListScreen()),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(ESizes.lg),
+          decoration: BoxDecoration(
+            color: EColors.surface,
+            borderRadius: BorderRadius.circular(ESizes.md),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.people_alt, color: EColors.secondary,
+                      size: 20),
+                  const SizedBox(width: ESizes.sm),
+                  const Text(
+                    'Following',
+                    style: TextStyle(
+                      fontSize: ESizes.fontLg,
+                      fontWeight: FontWeight.bold,
+                      color: EColors.textPrimary,
+                    ),
+                  ),
+                  const Spacer(),
+                  const Icon(Icons.chevron_right,
+                      color: EColors.textTertiary),
+                ],
+              ),
+              const SizedBox(height: ESizes.sm),
+              if (ctrl.isLoading.value)
+                const SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              else if (count == 0)
+                const Text(
+                  'Not following anyone yet',
+                  style: TextStyle(
+                    color: EColors.textSecondary,
+                    fontSize: ESizes.fontSm,
+                  ),
+                )
+              else
+                _buildTalentAvatars(ctrl),
+            ],
           ),
         ),
-      ],
-    );
-  }
-
-  Widget _buildContent() {
-    return Obx(() {
-      final controller = FollowedTalentController.to;
-
-      if (controller.isLoading.value) {
-        return const Center(
-          child: Padding(
-            padding: EdgeInsets.all(ESizes.md),
-            child: CircularProgressIndicator(color: EColors.primary),
-          ),
-        );
-      }
-
-      if (controller.followedTalent.isEmpty) {
-        return _buildEmptyState();
-      }
-
-      return Column(
-        children: controller.followedTalent
-            .map((talent) => _FollowedTalentTile(talent: talent))
-            .toList(),
       );
     });
   }
 
-  Widget _buildEmptyState() {
-    return const Padding(
-      padding: EdgeInsets.symmetric(vertical: ESizes.lg),
-      child: Center(
-        child: Column(
-          children: [
-            Icon(Icons.person_search, size: 40, color: EColors.textTertiary),
-            SizedBox(height: ESizes.sm),
-            Text(
-              'Not following anyone yet',
-              style: TextStyle(
-                fontSize: ESizes.fontMd,
-                color: EColors.textSecondary,
-              ),
-            ),
-            SizedBox(height: ESizes.xs),
-            Text(
-              'Follow actors and directors to get notified\nabout their new releases',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: ESizes.fontSm,
-                color: EColors.textTertiary,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
+  Widget _buildTalentAvatars(FollowedTalentController ctrl) {
+    final display = ctrl.followedTalent.take(5).toList();
+    final total = ctrl.followedTalent.length;
+    final remaining = total - display.length;
 
-/// A single talent tile in the following list.
-class _FollowedTalentTile extends StatelessWidget {
-  final FollowedTalent talent;
-
-  const _FollowedTalentTile({required this.talent});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: ESizes.sm),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () => _navigateToPersonDetail(),
-          borderRadius: BorderRadius.circular(ESizes.radiusMd),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              vertical: ESizes.sm,
-              horizontal: ESizes.xs,
-            ),
-            child: Row(
-              children: [
-                _buildAvatar(),
-                const SizedBox(width: ESizes.md),
-                Expanded(child: _buildInfo()),
-                _buildUnfollowButton(),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAvatar() {
-    return CircleAvatar(
-      radius: 24,
-      backgroundColor: EColors.surfaceLight,
-      backgroundImage: talent.profilePath != null
-          ? CachedNetworkImageProvider(EImages.tmdbProfile(talent.profilePath))
-          : null,
-      child: talent.profilePath == null
-          ? const Icon(Icons.person, color: EColors.textTertiary)
-          : null,
-    );
-  }
-
-  Widget _buildInfo() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Row(
       children: [
+        ...display.map((t) {
+          return Padding(
+            padding: const EdgeInsets.only(right: 4),
+            child: CircleAvatar(
+              radius: 16,
+              backgroundColor: EColors.surfaceLight,
+              backgroundImage: t.profilePath != null
+                  ? CachedNetworkImageProvider(
+                      EImages.tmdbProfile(t.profilePath))
+                  : null,
+              child: t.profilePath == null
+                  ? const Icon(Icons.person, size: 16,
+                      color: EColors.textSecondary)
+                  : null,
+            ),
+          );
+        }),
+        const SizedBox(width: ESizes.xs),
         Text(
-          talent.personName,
+          '$total following${remaining > 0 ? ' (+$remaining more)' : ''}',
           style: const TextStyle(
-            fontSize: ESizes.fontMd,
-            fontWeight: FontWeight.w500,
-            color: EColors.textPrimary,
+            color: EColors.textSecondary,
+            fontSize: ESizes.fontSm,
           ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
         ),
-        const SizedBox(height: ESizes.xs),
-        _buildTypeBadge(),
       ],
-    );
-  }
-
-  Widget _buildTypeBadge() {
-    final isActor = talent.isActor;
-    final color = isActor ? EColors.primary : EColors.accent;
-    final label = isActor ? 'Actor' : 'Director';
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: ESizes.sm, vertical: 2),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.2),
-        borderRadius: BorderRadius.circular(ESizes.radiusSm),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: ESizes.fontXs,
-          color: color,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildUnfollowButton() {
-    return IconButton(
-      onPressed: _handleUnfollow,
-      icon: const Icon(Icons.favorite, color: EColors.secondary, size: 20),
-      tooltip: 'Unfollow ${talent.personName}',
-    );
-  }
-
-  void _navigateToPersonDetail() {
-    // Ensure ContentSearchController is available for the sheet and subsequent navigation
-    if (!Get.isRegistered<ContentSearchController>()) {
-      Get.put(ContentSearchController());
-    }
-
-    Get.bottomSheet(
-      PersonDetailSheet(personId: talent.tmdbPersonId),
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-    );
-  }
-
-  void _handleUnfollow() {
-    final controller = FollowedTalentController.to;
-    controller.toggleFollow(
-      tmdbPersonId: talent.tmdbPersonId,
-      personName: talent.personName,
-      personType: talent.personType,
-      profilePath: talent.profilePath,
     );
   }
 }

@@ -17,26 +17,19 @@ class BadgesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: EColors.background,
-      appBar: AppBar(
-        backgroundColor: EColors.background,
-        title: const Text('Badges'),
-        actions: [
-          Obx(() => Padding(
-                padding: const EdgeInsets.only(right: ESizes.md),
-                child: Center(
-                  child: Text(
-                    '${BadgeController.to.earnedCount}/${BadgeController.to.totalCount}',
-                    style: TextStyle(
-                      color: EColors.textSecondary,
-                      fontSize: ESizes.fontMd,
-                    ),
-                  ),
-                ),
-              )),
-        ],
-      ),
-      body: Obx(() {
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [EColors.backgroundSecondary, EColors.background],
+          ),
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              _buildHeader(),
+              Expanded(child: Obx(() {
         final controller = BadgeController.to;
 
         if (controller.isLoading) {
@@ -84,7 +77,43 @@ class BadgesScreen extends StatelessWidget {
             ],
           ),
         );
-      }),
+      })),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Padding(
+      padding: const EdgeInsets.all(ESizes.lg),
+      child: Row(
+        children: [
+          IconButton(
+            onPressed: () => Get.back(),
+            icon: const Icon(Icons.arrow_back),
+            color: EColors.textPrimary,
+          ),
+          const SizedBox(width: ESizes.sm),
+          const Text(
+            'Badges',
+            style: TextStyle(
+              fontSize: ESizes.fontXxl,
+              fontWeight: FontWeight.bold,
+              color: EColors.textPrimary,
+            ),
+          ),
+          const Spacer(),
+          Obx(() => Text(
+                '${BadgeController.to.earnedCount}/${BadgeController.to.totalCount}',
+                style: const TextStyle(
+                  color: EColors.textSecondary,
+                  fontSize: ESizes.fontMd,
+                ),
+              )),
+        ],
+      ),
     );
   }
 

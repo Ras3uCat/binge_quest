@@ -19,38 +19,76 @@ class FriendListScreen extends StatelessWidget {
     return DefaultTabController(
       length: 3,
       child: Scaffold(
-        backgroundColor: EColors.background,
-        appBar: AppBar(
-          title: const Text('Friends'),
-          backgroundColor: EColors.backgroundSecondary,
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.person_add),
-              tooltip: 'Find Friends',
-              onPressed: () async {
-                await Get.to(() => const FriendSearchScreen());
-                FriendController.to.refresh();
-              },
+        body: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [EColors.backgroundSecondary, EColors.background],
             ),
-          ],
-          bottom: const TabBar(
-            indicatorColor: EColors.primary,
-            labelColor: EColors.textPrimary,
-            unselectedLabelColor: EColors.textSecondary,
-            tabs: [
-              Tab(text: 'Friends'),
-              Tab(text: 'Requests'),
-              Tab(text: 'Blocked'),
-            ],
+          ),
+          child: SafeArea(
+            child: Column(
+              children: [
+                _buildHeader(),
+                const TabBar(
+                  indicatorColor: EColors.primary,
+                  labelColor: EColors.textPrimary,
+                  unselectedLabelColor: EColors.textSecondary,
+                  tabs: [
+                    Tab(text: 'Parties & Friends'),
+                    Tab(text: 'Requests'),
+                    Tab(text: 'Blocked'),
+                  ],
+                ),
+                const Expanded(
+                  child: TabBarView(
+                    children: [
+                      _FriendsTab(),
+                      FriendRequestsTab(),
+                      FriendBlockedTab(),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-        body: const TabBarView(
-          children: [
-            _FriendsTab(),
-            FriendRequestsTab(),
-            FriendBlockedTab(),
-          ],
-        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Padding(
+      padding: const EdgeInsets.all(ESizes.lg),
+      child: Row(
+        children: [
+          IconButton(
+            onPressed: () => Get.back(),
+            icon: const Icon(Icons.arrow_back),
+            color: EColors.textPrimary,
+          ),
+          const SizedBox(width: ESizes.sm),
+          const Expanded(
+            child: Text(
+              'Friends & Watch Parties',
+              style: TextStyle(
+                fontSize: ESizes.fontXxl,
+                fontWeight: FontWeight.bold,
+                color: EColors.textPrimary,
+              ),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.person_add),
+            tooltip: 'Find Friends',
+            color: EColors.textPrimary,
+            onPressed: () async {
+              await Get.to(() => const FriendSearchScreen());
+              FriendController.to.refresh();
+            },
+          ),
+        ],
       ),
     );
   }

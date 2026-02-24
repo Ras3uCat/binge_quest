@@ -83,22 +83,28 @@ class QueueEfficiencyGuideSheet extends StatelessWidget {
                   _buildSectionHeader('How Scoring Works'),
                   const SizedBox(height: 12),
                   _buildScoreItem(
-                    'Base Score',
-                    'Your Completion Rate % (Completed / Total)',
-                    Icons.pie_chart,
+                    'Start at 100',
+                    'Everyone starts perfect. Your score only changes based on what you\'ve started watching.',
+                    Icons.star,
                     EColors.primary,
                   ),
                   _buildScoreItem(
-                    'Penalties',
-                    '-2 points for every "Stale" item (inactive > 30 days)',
+                    'Abandonment Penalty',
+                    'Up to -80 points based on how many of your started items have gone stale. The more you abandon, the bigger the hit.',
                     Icons.arrow_downward,
                     EColors.error,
                   ),
                   _buildScoreItem(
-                    'Bonuses',
-                    '+5 points for every item completed recently (max +25)',
+                    'Momentum Bonus',
+                    '+8 points for each item finished this week (max +30). Finishing things fast brings your score right back up.',
                     Icons.arrow_upward,
                     EColors.success,
+                  ),
+                  _buildScoreItem(
+                    'Wishlist is free',
+                    'Adding titles you haven\'t started yet never lowers your score. Build your list freely.',
+                    Icons.playlist_add,
+                    EColors.textSecondary,
                   ),
 
                   const SizedBox(height: 24),
@@ -107,17 +113,17 @@ class QueueEfficiencyGuideSheet extends StatelessWidget {
                   const SizedBox(height: 12),
                   _buildStatusItem(
                     'Active',
-                    'Updated in last 14 days',
+                    'Watched recently (last 7 days) or not yet started',
                     EColors.success,
                   ),
                   _buildStatusItem(
                     'Idle',
-                    'No updates in 14-30 days',
+                    'Started but no activity in 7–30 days',
                     EColors.warning,
                   ),
                   _buildStatusItem(
                     'Stale',
-                    'No updates for 30+ days',
+                    'Started but abandoned for 30+ days',
                     EColors.error,
                   ),
 
