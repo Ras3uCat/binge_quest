@@ -22,6 +22,7 @@ import 'features/social/controllers/watch_party_controller.dart';
 import 'features/watchlist/controllers/watchlist_controller.dart';
 import 'features/watchlist/controllers/watchlist_member_controller.dart';
 import 'features/notifications/controllers/notification_controller.dart';
+import 'features/profile/controllers/archetype_controller.dart';
 import 'features/auth/screens/splash_screen.dart';
 
 Future<void> main() async {
@@ -78,6 +79,7 @@ Future<void> main() async {
   Get.lazyPut(() => WatchlistController(), fenix: true);
   Get.lazyPut(() => WatchlistMemberController(), fenix: true);
   Get.lazyPut(() => NotificationController(), fenix: true);
+  Get.lazyPut(() => ArchetypeController(), fenix: true);
 
   runApp(const BingeQuestApp());
 }

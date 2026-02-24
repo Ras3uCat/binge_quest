@@ -8,7 +8,10 @@ import '../../settings/screens/settings_screen.dart';
 import '../../social/controllers/friend_controller.dart';
 import '../../social/widgets/friends_section.dart';
 import '../../social/widgets/username_claim_sheet.dart';
+import '../controllers/archetype_controller.dart';
 import '../controllers/profile_controller.dart';
+import '../widgets/archetype_badge.dart';
+import '../widgets/archetype_detail_sheet.dart';
 import '../widgets/badges_section.dart';
 import '../widgets/following_section.dart';
 import '../widgets/profile_stats_section.dart';
@@ -135,6 +138,20 @@ class ProfileScreen extends StatelessWidget {
                 ),
               )),
           Obx(() {
+            final archCtrl = ArchetypeController.to;
+            return Padding(
+              padding: const EdgeInsets.only(top: ESizes.sm),
+              child: ArchetypeBadge(
+                primary: archCtrl.primary,
+                secondary: archCtrl.secondary,
+                showTagline: true,
+                onTap: archCtrl.primary != null
+                    ? () => _showArchetypeSheet(archCtrl)
+                    : null,
+              ),
+            );
+          }),
+          Obx(() {
             final uname = Get.isRegistered<FriendController>()
                 ? FriendController.to.username.value
                 : null;
@@ -228,6 +245,18 @@ class ProfileScreen extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  static void _showArchetypeSheet(ArchetypeController ctrl) {
+    Get.bottomSheet(
+      ArchetypeDetailSheet(
+        primary: ctrl.primary,
+        secondary: ctrl.secondary,
+        allScores: ctrl.allScores.toList(),
+        history: ctrl.history.toList(),
+        allArchetypes: ctrl.allArchetypes.toList(),
       ),
     );
   }

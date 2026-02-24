@@ -25,27 +25,27 @@ All 12 archetypes are derived exclusively from existing columns — no new sourc
 | A1 | Migration 050: `archetypes` reference table + 12 seed rows + `user_archetypes` table + `users` columns (`primary_archetype`, `secondary_archetype`, `archetype_updated_at`) + RLS + indexes | **TODO** | Backend |
 | A2 | Migration 051: `compute_user_archetype(p_user_id uuid)` SECURITY DEFINER function (all 12 scoring CTEs, 90-day window, dual archetype logic, min activity threshold) | **TODO** | Backend |
 | A3 | Migration 051 (cont): `on_watch_progress_archetype_check()` trigger — AFTER INSERT on `watch_progress`, counts completions since last computation, calls `compute_user_archetype` on every 5th | **TODO** | Backend |
-| A4 | Edge Function `compute-archetypes`: nightly cron batch + single-user HTTP entrypoint (service_role only) | **TODO** | Backend |
-| A5 | Archetype change notification: inside `compute_user_archetype`, call `send-notification` when `primary_archetype` changes | **TODO** | Backend |
+| A4 | Edge Function `compute-archetypes`: nightly cron batch + single-user HTTP entrypoint (service_role only) | **DONE** | Backend |
+| A5 | Archetype change notification: Edge Function calls `send-notification` when `new_archetype != prev_archetype` (both non-null) | **DONE** | Backend |
 
 ### Track B — Frontend (New Files)
 
 | # | Task | Status | Owner |
 |---|------|--------|-------|
-| B1 | `lib/shared/models/archetype.dart` — `Archetype`, `UserArchetype` models with `fromJson` | **TODO** | Flutter |
-| B2 | `lib/shared/repositories/archetype_repository.dart` — `fetchAllArchetypes`, `fetchUserArchetype`, `fetchArchetypeScores`, `fetchArchetypeHistory`, `pinArchetype` | **TODO** | Flutter |
-| B3 | `lib/features/profile/controllers/archetype_controller.dart` — GetX `lazyPut(fenix: true)`: `currentArchetype`, `secondaryArchetype`, `allScores`, `isPinned`, `history` observables | **TODO** | Flutter |
-| B4 | `lib/features/profile/widgets/archetype_badge.dart` — compact badge (icon + name + tagline); dual "+" display; "Still Exploring..." placeholder | **TODO** | Flutter |
-| B5 | `lib/features/profile/widgets/archetype_detail_sheet.dart` — bottom sheet: description + radar chart + history timeline + pin toggle | **TODO** | Flutter |
-| B6 | `lib/features/profile/widgets/archetype_radar_chart.dart` — spider chart of all 12 scores via `CustomPainter` | **TODO** | Flutter |
-| B7 | `lib/features/profile/widgets/archetype_history_timeline.dart` — scrollable list of past archetype rows | **TODO** | Flutter |
+| B1 | `lib/shared/models/archetype.dart` — `Archetype`, `UserArchetype` models with `fromJson` | **DONE** | Flutter |
+| B2 | `lib/shared/repositories/archetype_repository.dart` — `fetchAllArchetypes`, `fetchUserCurrentScores`, `fetchArchetypeHistory` | **DONE** | Flutter |
+| B3 | `lib/features/profile/controllers/archetype_controller.dart` — GetX `lazyPut(fenix: true)`: `allScores`, `history`, `allArchetypes`, `primary`/`secondary` getters, `archetypeById()` | **DONE** | Flutter |
+| B4 | `lib/features/profile/widgets/archetype_badge.dart` — compact badge (icon + name + tagline); dual "+" display; "Still Exploring..." placeholder | **DONE** | Flutter |
+| B5 | `lib/features/profile/widgets/archetype_detail_sheet.dart` — bottom sheet: description + radar chart + history timeline | **DONE** | Flutter |
+| B6 | `lib/features/profile/widgets/archetype_radar_chart.dart` — fl_chart RadarChart with phantom scale dataset | **DONE** | Flutter |
+| B7 | `lib/features/profile/widgets/archetype_history_timeline.dart` — scrollable list of past archetype rows | **DONE** | Flutter |
 
 ### Track C — Integration (Modified Files)
 
 | # | Task | Status | Owner |
 |---|------|--------|-------|
-| C1 | Profile screen: add `ArchetypeBadge` below display name; tap → `ArchetypeDetailSheet` (own profile + friend profile views) | **TODO** | Flutter |
-| C2 | Friend list items + friend profile cards: compact `ArchetypeBadge` (icon + name only, no tagline) | **TODO** | Flutter |
+| C1 | Profile screen: add `ArchetypeBadge` below display name; tap → `ArchetypeDetailSheet` (own profile + friend profile views) | **DONE** | Flutter |
+| C2 | Friend list items + friend profile cards: compact `ArchetypeBadge` (icon + name only, no tagline) | **DONE** | Flutter |
 
 ---
 
@@ -70,7 +70,6 @@ C1, C2 — after B3 controller available
 - **Tie-breaking connector:** "+" (not "&" or "x")
 - **Recompute trigger:** Every 5th episode completion per user (counted from `watch_progress` INSERT where `watched = true`)
 - **Fallback:** Nightly cron via `compute-archetypes` Edge Function covers inactive users
-- **Pin:** User can lock their displayed archetype; `is_pinned = true` prevents auto-update of display but computation still runs
 - **Push notification:** Sent when `primary_archetype` column on `users` actually changes value (not on every recompute)
 - **`user_archetypes` is write-only for service_role** — no INSERT/UPDATE/DELETE from client
 - **Archetype visibility:** Friends only (via existing `users` SELECT policy + `are_friends()` for `user_archetypes`)

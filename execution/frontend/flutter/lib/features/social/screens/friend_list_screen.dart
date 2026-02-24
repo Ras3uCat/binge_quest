@@ -6,6 +6,10 @@ import '../../../shared/widgets/e_confirm_dialog.dart';
 import '../../../shared/models/friendship.dart';
 import '../controllers/friend_controller.dart';
 import '../controllers/watch_party_controller.dart';
+import '../../../features/profile/controllers/archetype_controller.dart';
+import '../../../features/profile/widgets/archetype_badge.dart';
+import '../../../shared/models/archetype.dart';
+import '../../../shared/models/user_profile.dart';
 import '../widgets/friend_tab_sections.dart';
 import '../widgets/party_list_section.dart';
 import 'friend_search_screen.dart';
@@ -222,6 +226,11 @@ class _FriendTile extends StatelessWidget {
                       fontSize: ESizes.fontSm,
                     ),
                   ),
+                if (friend?.primaryArchetype != null)
+                  Obx(() => Padding(
+                        padding: const EdgeInsets.only(top: ESizes.xs),
+                        child: _buildCompactArchetypeBadge(friend!),
+                      )),
               ],
             ),
           ),
@@ -252,6 +261,18 @@ class _FriendTile extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildCompactArchetypeBadge(UserProfile friend) {
+    final archetype =
+        ArchetypeController.to.archetypeById(friend.primaryArchetype!);
+    if (archetype == null) return const SizedBox.shrink();
+    return ArchetypeBadge(
+      primary: UserArchetype.displayOnly(
+        userId: friend.id,
+        archetype: archetype,
       ),
     );
   }

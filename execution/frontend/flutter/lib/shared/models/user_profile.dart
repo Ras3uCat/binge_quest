@@ -8,6 +8,8 @@ class UserProfile {
   final String? username;
   final bool isPremium;
   final DateTime? createdAt;
+  final String? primaryArchetype;
+  final String? secondaryArchetype;
 
   const UserProfile({
     required this.id,
@@ -17,6 +19,8 @@ class UserProfile {
     this.username,
     this.isPremium = false,
     this.createdAt,
+    this.primaryArchetype,
+    this.secondaryArchetype,
   });
 
   /// Display-friendly name: username > displayName > 'User'.
@@ -34,6 +38,8 @@ class UserProfile {
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'] as String)
           : null,
+      primaryArchetype: json['primary_archetype'] as String?,
+      secondaryArchetype: json['secondary_archetype'] as String?,
     );
   }
 
