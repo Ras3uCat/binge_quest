@@ -53,7 +53,6 @@ Deno.serve(async (req) => {
         const payload: NotificationPayload = await req.json();
 
         // 1. Check user preferences
-        // We assume the table is 'notification_preferences'
         const { data: prefs, error: prefsError } = await supabase
             .from('notification_preferences')
             .select('*')
@@ -62,7 +61,6 @@ Deno.serve(async (req) => {
 
         if (prefsError) {
             console.error('Error fetching preferences:', prefsError);
-            // Fallback: Proceed if error? Or fail? Let's log and proceed assuming defaults if not found.
         }
 
         // Check specific category preference
@@ -74,18 +72,7 @@ Deno.serve(async (req) => {
             });
         }
 
-        // 2. Check quiet hours
-        if (prefs?.quiet_hours_start && prefs?.quiet_hours_end) {
-            // Basic time comparison logic (UTC vs Local is tricky without user timezone)
-            // Ideally, we store quiet hours in UTC or store user's timezone.
-            // For MVP, we will skip complex timezone logic here unless provided in payload context.
-            // But let's implement the basic check assuming server time or rough heuristic if needed.
-            // NOTE: This implementation assumes the times are stored without timezone and we act on UTC or ignore for now
-            // to avoid blocking messages incorrectly.
-            // TODO: Implement time-zone aware quiet hours.
-        }
-
-        // 3. Store in-app notification
+        // 2. Store in-app notification
         const { error: insertError } = await supabase.from('notifications').insert({
             user_id: payload.user_id,
             category: payload.category,
@@ -100,7 +87,7 @@ Deno.serve(async (req) => {
             return new Response(JSON.stringify({ error: 'Failed to store notification' }), { status: 500 });
         }
 
-        // 4. Get user's device tokens
+        // 3. Get user's device tokens
         const { data: tokens, error: tokenError } = await supabase
             .from('user_device_tokens')
             .select('fcm_token')
@@ -119,26 +106,32 @@ Deno.serve(async (req) => {
             });
         }
 
-        // 5. Send FCM push to all devices
+        // 4. Send FCM push to all devices
         const messages = tokens.map((t) => ({
             token: t.fcm_token,
             notification: {
                 title: payload.title,
                 body: payload.body,
-                // image: payload.image_url, // 'image' is supported in some SDKs, passed in data usually or apns/android config
+                ...(payload.image_url ? { imageUrl: payload.image_url } : {}),
             },
-            ...(payload.data ? { data: payload.data } : {}), // Custom data payload
+            ...(payload.data ? { data: payload.data } : {}),
             android: {
+                priority: 'high' as const,
                 notification: {
+                    channelId: 'high_importance_channel',
+                    sound: 'default',
                     ...(payload.image_url ? { imageUrl: payload.image_url } : {}),
                 }
             },
             apns: {
+                headers: {
+                    'apns-priority': '10',
+                },
                 payload: {
                     aps: {
-                        'mutable-content': 1, // Required for image on iOS
+                        sound: 'default',
+                        badge: 1,
                     },
-                    ...(payload.image_url ? { image: payload.image_url } : {}) // Not standard APNs, handled by extension usually
                 },
                 fcmOptions: {
                     ...(payload.image_url ? { image: payload.image_url } : {}),
@@ -146,16 +139,41 @@ Deno.serve(async (req) => {
             }
         }));
 
-        // Batch send is 'sendEach' in v1
         const batchResponse = await admin.messaging().sendEach(messages as any);
 
-        console.log('FCM Batch Response:', JSON.stringify(batchResponse));
+        // Collect stale tokens to delete
+        const staleTokens: string[] = [];
+        batchResponse.responses.forEach((resp, i) => {
+            if (!resp.success) {
+                const code = resp.error?.code ?? '';
+                console.error(`FCM send failed for token ${i}: ${code}`);
+                if (
+                    code === 'messaging/registration-token-not-registered' ||
+                    code === 'messaging/invalid-registration-token'
+                ) {
+                    staleTokens.push(tokens[i].fcm_token);
+                }
+            }
+        });
+
+        // Delete stale tokens so they don't accumulate
+        if (staleTokens.length > 0) {
+            const { error: deleteError } = await supabase
+                .from('user_device_tokens')
+                .delete()
+                .in('fcm_token', staleTokens);
+            if (deleteError) {
+                console.error('Failed to delete stale tokens:', deleteError);
+            } else {
+                console.log(`Deleted ${staleTokens.length} stale token(s)`);
+            }
+        }
 
         return new Response(JSON.stringify({
             success: true,
             sent_count: batchResponse.successCount,
             failure_count: batchResponse.failureCount,
-            results: batchResponse.responses
+            stale_tokens_removed: staleTokens.length,
         }), {
             status: 200,
             headers: { 'Content-Type': 'application/json' },

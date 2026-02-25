@@ -545,6 +545,15 @@ class SettingsScreen extends StatelessWidget {
               ),
               const Divider(height: 1, color: EColors.border),
               _buildSwitchTile(
+                label: 'Watch Parties',
+                subtitle: 'Invites, progress updates & party activity',
+                value: prefs.watchParty,
+                onChanged: (val) => controller.updatePreferences(
+                  prefs.copyWith(watchParty: val),
+                ),
+              ),
+              const Divider(height: 1, color: EColors.border),
+              _buildSwitchTile(
                 label: 'Features & Updates',
                 value: prefs.marketing,
                 onChanged: (val) => controller.updatePreferences(

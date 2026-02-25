@@ -1137,15 +1137,18 @@ class WatchlistController extends GetxController {
       // Exclude completed items
       if (item.isCompleted) return false;
 
-      // For TV shows: check next episode has time (excludes unreleased seasons)
-      if (item.mediaType == MediaType.tv) {
+      // For TV shows: check next episode has time (excludes unreleased seasons).
+      // Skip this check in recent mode — a recently watched show belongs here
+      // regardless of whether the next episode's runtime is known yet.
+      if (item.mediaType == MediaType.tv &&
+          _recommendationMode.value != RecommendationMode.recent) {
         final episodeRemaining =
             item.nextEpisodeRemaining ??
             item.nextEpisodeRuntime ??
             item.episodeRuntime;
         // Exclude if next episode is 0m (unreleased) or no episode data
         if (episodeRemaining == null || episodeRemaining <= 0) return false;
-      } else {
+      } else if (item.mediaType == MediaType.movie) {
         // For movies: check total remaining time
         final remaining = item.minutesRemaining ?? item.totalRuntimeMinutes;
         if (remaining <= 0) return false;

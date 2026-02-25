@@ -5,6 +5,7 @@ import '../../../core/constants/e_colors.dart';
 import '../../../core/constants/e_sizes.dart';
 import '../../../shared/models/app_notification.dart';
 import '../../social/controllers/watch_party_controller.dart';
+import '../../social/screens/friend_list_screen.dart';
 import '../controllers/notification_controller.dart';
 
 /// Notification card for Watch Party events.
@@ -107,7 +108,7 @@ class WatchPartyNotificationCard extends StatelessWidget {
           ),
         ),
         const Spacer(),
-        if (_isInvite && !notification.isRead && _partyId.isNotEmpty)
+        if (_isInvite && _partyId.isNotEmpty)
           _buildInviteActions(),
       ],
     );
@@ -181,6 +182,9 @@ class WatchPartyNotificationCard extends StatelessWidget {
   void _handleTap() {
     if (!notification.isRead) {
       Get.find<NotificationController>().markAsRead(notification.id);
+    }
+    if (_isInvite) {
+      Get.to(() => const FriendListScreen(initialTab: 1));
     }
   }
 

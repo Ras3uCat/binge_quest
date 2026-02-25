@@ -4,6 +4,7 @@ class NotificationPreferences {
   final bool talentReleases;
   final bool newEpisodes;
   final bool social;
+  final bool watchParty;
   final bool marketing;
   final bool quietHoursEnabled;
   final String quietHoursStart; // HH:mm (24h)
@@ -16,6 +17,7 @@ class NotificationPreferences {
     this.talentReleases = true,
     this.newEpisodes = true,
     this.social = true,
+    this.watchParty = true,
     this.marketing = false,
     this.quietHoursEnabled = false,
     this.quietHoursStart = '22:00',
@@ -33,6 +35,7 @@ class NotificationPreferences {
     bool? talentReleases,
     bool? newEpisodes,
     bool? social,
+    bool? watchParty,
     bool? marketing,
     bool? quietHoursEnabled,
     String? quietHoursStart,
@@ -45,6 +48,7 @@ class NotificationPreferences {
       talentReleases: talentReleases ?? this.talentReleases,
       newEpisodes: newEpisodes ?? this.newEpisodes,
       social: social ?? this.social,
+      watchParty: watchParty ?? this.watchParty,
       marketing: marketing ?? this.marketing,
       quietHoursEnabled: quietHoursEnabled ?? this.quietHoursEnabled,
       quietHoursStart: quietHoursStart ?? this.quietHoursStart,
@@ -60,6 +64,7 @@ class NotificationPreferences {
       talentReleases: json['talent_releases'] ?? true,
       newEpisodes: json['new_episodes'] ?? true,
       social: json['social'] ?? true,
+      watchParty: json['watch_party'] ?? true,
       marketing: json['marketing'] ?? false,
       quietHoursEnabled: json['quiet_hours_enabled'] ?? false,
       quietHoursStart: json['quiet_hours_start'] ?? '22:00',
@@ -75,6 +80,7 @@ class NotificationPreferences {
       'talent_releases': talentReleases,
       'new_episodes': newEpisodes,
       'social': social,
+      'watch_party': watchParty,
       'marketing': marketing,
       'quiet_hours_enabled': quietHoursEnabled,
       'quiet_hours_start': quietHoursStart,

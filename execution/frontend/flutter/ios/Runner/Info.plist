@@ -74,5 +74,7 @@
 		<string>https</string>
 		<string>http</string>
 	</array>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 </dict>
 </plist>

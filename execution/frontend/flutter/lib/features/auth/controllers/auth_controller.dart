@@ -8,6 +8,7 @@ import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/services/analytics_service.dart';
 import '../../../core/services/error_service.dart';
+import '../../../core/services/notification_service.dart';
 import '../../../core/services/supabase_service.dart';
 import '../../badges/controllers/badge_controller.dart';
 import '../../dashboard/controllers/queue_health_controller.dart';
@@ -163,6 +164,8 @@ class AuthController extends GetxController {
     try {
       _isLoading.value = true;
       AnalyticsService.logSignOut();
+      // Remove FCM token from DB and delete local token before signing out
+      await Get.find<NotificationService>().logout();
       await GoogleSignIn().signOut();
       await SupabaseService.auth.signOut();
       _user.value = null;

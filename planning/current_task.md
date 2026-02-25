@@ -1,85 +1,68 @@
-# Current Task: User Archetypes
+# Current Task: New Episode Notifications + Episode Cache Refresh
 
 **Status**: IN PROGRESS
 **Mode**: STUDIO
-**Priority**: High
-**Started**: 2026-02-23
-**Specs**: `STUDIO_PLAN.md`, `planning/features/user_archetypes.md`
+**Priority**: High (active bug — Paradise S2 aired 2026-02-23, stale cache + no notifications)
+**Started**: 2026-02-24
+**Specs**: `STUDIO_PLAN.md`, `planning/features/new_episode_notifications.md`
 
 ---
 
 ## Overview
 
-Classify each user into one of 12 viewer archetypes based on their real watching behavior. The active archetype lives on the user's profile as a badge-like identity label, computed periodically from a rolling 90-day activity window. Supports dual archetypes (tie within 0.05), user-pinned archetypes, archetype history, and push notification on archetype change.
+Two tightly coupled bugs fixed together:
 
-All 12 archetypes are derived exclusively from existing columns — no new source data columns required.
+1. **Stale episode cache** — `content_cache_episodes` written once when a show is added; season placeholder names ("Episode 1") never refreshed when TMDB populates real data close to air date.
+2. **Missing episode notifications** — `new_episode_events` + `user_episode_notifications` tables exist but nothing populates them. No Edge Function polls TMDB for newly aired episodes.
+
+Fix: `check-new-episodes` Edge Function (nightly cron) that (a) re-upserts episode metadata from TMDB and (b) detects + notifies new aired episodes.
 
 ---
 
 ## Task Board
 
-### Track A — Backend (Migrations 050–051 + Edge Function)
+### Track A — Backend
 
 | # | Task | Status | Owner |
 |---|------|--------|-------|
-| A1 | Migration 050: `archetypes` reference table + 12 seed rows + `user_archetypes` table + `users` columns (`primary_archetype`, `secondary_archetype`, `archetype_updated_at`) + RLS + indexes | **TODO** | Backend |
-| A2 | Migration 051: `compute_user_archetype(p_user_id uuid)` SECURITY DEFINER function (all 12 scoring CTEs, 90-day window, dual archetype logic, min activity threshold) | **TODO** | Backend |
-| A3 | Migration 051 (cont): `on_watch_progress_archetype_check()` trigger — AFTER INSERT on `watch_progress`, counts completions since last computation, calls `compute_user_archetype` on every 5th | **TODO** | Backend |
-| A4 | Edge Function `compute-archetypes`: nightly cron batch + single-user HTTP entrypoint (service_role only) | **DONE** | Backend |
-| A5 | Archetype change notification: Edge Function calls `send-notification` when `new_archetype != prev_archetype` (both non-null) | **DONE** | Backend |
+| M1 | Migration 053: `get_tv_shows_for_episode_check` RPC + ensure `notification_preferences.new_episodes` column | **DONE** | Backend |
+| E1 | Edge Function `check-new-episodes`: TMDB fetch, episode cache upsert, new-aired detection, insert `new_episode_events`, notify users via `send-notification`, insert `user_episode_notifications` | **DONE** | Backend |
+| E2 | Register nightly pg_cron for `check-new-episodes` (same schedule as `check-streaming-changes`) | **DONE** | Backend |
 
-### Track B — Frontend (New Files)
+### Track B — Frontend
 
 | # | Task | Status | Owner |
 |---|------|--------|-------|
-| B1 | `lib/shared/models/archetype.dart` — `Archetype`, `UserArchetype` models with `fromJson` | **DONE** | Flutter |
-| B2 | `lib/shared/repositories/archetype_repository.dart` — `fetchAllArchetypes`, `fetchUserCurrentScores`, `fetchArchetypeHistory` | **DONE** | Flutter |
-| B3 | `lib/features/profile/controllers/archetype_controller.dart` — GetX `lazyPut(fenix: true)`: `allScores`, `history`, `allArchetypes`, `primary`/`secondary` getters, `archetypeById()` | **DONE** | Flutter |
-| B4 | `lib/features/profile/widgets/archetype_badge.dart` — compact badge (icon + name + tagline); dual "+" display; "Still Exploring..." placeholder | **DONE** | Flutter |
-| B5 | `lib/features/profile/widgets/archetype_detail_sheet.dart` — bottom sheet: description + radar chart + history timeline | **DONE** | Flutter |
-| B6 | `lib/features/profile/widgets/archetype_radar_chart.dart` — fl_chart RadarChart with phantom scale dataset | **DONE** | Flutter |
-| B7 | `lib/features/profile/widgets/archetype_history_timeline.dart` — scrollable list of past archetype rows | **DONE** | Flutter |
-
-### Track C — Integration (Modified Files)
-
-| # | Task | Status | Owner |
-|---|------|--------|-------|
-| C1 | Profile screen: add `ArchetypeBadge` below display name; tap → `ArchetypeDetailSheet` (own profile + friend profile views) | **DONE** | Flutter |
-| C2 | Friend list items + friend profile cards: compact `ArchetypeBadge` (icon + name only, no tagline) | **DONE** | Flutter |
+| F1 | Add `new_episode` case to notification deep-link router (route to show detail/progress screen) | **DONE** | Flutter |
+| F2 | (Optional) Client-side stale refresh: if `episode_name` matches `/^Episode \d+$/` and `updated_at > 7d`, re-fetch from TMDB on show open | **TODO** | Flutter |
 
 ---
 
 ## Execution Order
 
 ```
-A1 → A2 → A3 (trigger depends on function)
-A4, A5 — after A2 (edge function calls DB function)
-
-B1 → B2 → B3 → B4, B5, B6, B7 (sequential model → repo → controller → widgets)
-
-C1, C2 — after B3 controller available
+M1 → E1 → E2   (sequential: RPC must exist before Edge Function is deployed)
+F1              (independent, can run in parallel with backend track)
+F2              (optional, after F1)
 ```
 
 ---
 
 ## Key Decisions
 
-- **Scoring window:** Rolling 90-day `watched_at` lookback — stale history doesn't dominate
-- **Minimum threshold:** >= 5 completed titles AND >= 20 episodes watched; below = `null` archetype ("Still Exploring...")
-- **Dual archetype:** If top two scores within 0.05 of each other → show both with "+" connector (max 2)
-- **Tie-breaking connector:** "+" (not "&" or "x")
-- **Recompute trigger:** Every 5th episode completion per user (counted from `watch_progress` INSERT where `watched = true`)
-- **Fallback:** Nightly cron via `compute-archetypes` Edge Function covers inactive users
-- **Push notification:** Sent when `primary_archetype` column on `users` actually changes value (not on every recompute)
-- **`user_archetypes` is write-only for service_role** — no INSERT/UPDATE/DELETE from client
-- **Archetype visibility:** Friends only (via existing `users` SELECT policy + `are_friends()` for `user_archetypes`)
-- **Quiz (Viewing Style Quiz):** SKIPPED for v1 — all archetypes are fully data-driven
-- **Social visibility:** Compact badge on friend profiles (icon + name); full detail only on own profile
+- **Dedup guard:** `new_episode_events` is only inserted when `airedCount > lastDetectedCount`. Second cron run produces no duplicate events.
+- **Notification copy:** Premiere with multi-episode drop → "Season N just dropped X episodes."; single weekly drop → "Season N Episode X is now available."
+- **Cache refresh:** Every TMDB season fetch is upserted with `ignoreDuplicates: false` — real names/overviews always overwrite stale placeholders.
+- **Show selection:** `get_tv_shows_for_episode_check` joins `watchlist_items` → `content_cache_episodes` to find seasons with air_date in [-90d, +14d] window; ordered by `watchlist_user_count DESC`; cap 50.
+- **Rate limit:** 250ms delay between TMDB calls (same as existing edge functions).
+- **Auth pattern:** `verify_jwt: false` + in-function token check (service_role key OR user JWT) — same pattern as `check-streaming-changes`.
+- **Opt-out:** Respects `notification_preferences.new_episodes = false`.
 
 ---
 
 ## Previous Tasks
 
+- User Archetypes — **Complete**
 - Watch Party Sync — **Complete**
 - Advanced Stats Dashboard v1.1 Bug Fixes & Backfill Integrity — **Complete**
 - Advanced Stats Dashboard v1.0 — **Complete**

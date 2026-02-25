@@ -3,6 +3,9 @@ import 'package:get/get.dart';
 import '../../../core/constants/e_colors.dart';
 import '../../../core/constants/e_sizes.dart';
 import '../controllers/friend_controller.dart';
+import '../controllers/watch_party_controller.dart';
+import '../screens/watch_party_screen.dart';
+import '../../../shared/models/watch_party.dart';
 import 'friend_request_card.dart';
 
 // ---------------------------------------------------------------------------
@@ -46,17 +49,30 @@ Widget friendEmptyState({
 // Requests Tab
 // ---------------------------------------------------------------------------
 
-class FriendRequestsTab extends StatelessWidget {
+class FriendRequestsTab extends StatefulWidget {
   const FriendRequestsTab({super.key});
+
+  @override
+  State<FriendRequestsTab> createState() => _FriendRequestsTabState();
+}
+
+class _FriendRequestsTabState extends State<FriendRequestsTab> {
+  @override
+  void initState() {
+    super.initState();
+    FriendController.to.refresh();
+    WatchPartyController.to.loadParties();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Obx(() {
-      final ctrl = FriendController.to;
-      final received = ctrl.pendingReceived;
-      final sent = ctrl.pendingSent;
+      final friendCtrl = FriendController.to;
+      final received = friendCtrl.pendingReceived;
+      final sent = friendCtrl.pendingSent;
+      final partyInvites = WatchPartyController.to.pendingParties;
 
-      if (received.isEmpty && sent.isEmpty) {
+      if (received.isEmpty && sent.isEmpty && partyInvites.isEmpty) {
         return friendEmptyState(
           icon: Icons.mail_outline,
           message: 'No pending requests',
@@ -66,14 +82,23 @@ class FriendRequestsTab extends StatelessWidget {
       return ListView(
         padding: const EdgeInsets.all(ESizes.md),
         children: [
+          if (partyInvites.isNotEmpty) ...[
+            _sectionHeader('Watch Party Invites (${partyInvites.length})'),
+            ...partyInvites.map((p) => Padding(
+                  padding: const EdgeInsets.only(bottom: ESizes.xs),
+                  child: _WatchPartyInviteCard(party: p),
+                )),
+            if (received.isNotEmpty || sent.isNotEmpty)
+              const SizedBox(height: ESizes.md),
+          ],
           if (received.isNotEmpty) ...[
             _sectionHeader('Received (${received.length})'),
             ...received.map((f) => Padding(
                   padding: const EdgeInsets.only(bottom: ESizes.xs),
                   child: FriendRequestCard(
                     friendship: f,
-                    onAccept: () => ctrl.acceptRequest(f),
-                    onDecline: () => ctrl.declineRequest(f),
+                    onAccept: () => friendCtrl.acceptRequest(f),
+                    onDecline: () => friendCtrl.declineRequest(f),
                   ),
                 )),
           ],
@@ -84,7 +109,7 @@ class FriendRequestsTab extends StatelessWidget {
                   padding: const EdgeInsets.only(bottom: ESizes.xs),
                   child: FriendRequestCard(
                     friendship: f,
-                    onCancel: () => ctrl.cancelRequest(f),
+                    onCancel: () => friendCtrl.cancelRequest(f),
                   ),
                 )),
           ],
@@ -103,6 +128,101 @@ class FriendRequestsTab extends StatelessWidget {
           fontWeight: FontWeight.w600,
           fontSize: ESizes.fontSm,
         ),
+      ),
+    );
+  }
+}
+
+class _WatchPartyInviteCard extends StatelessWidget {
+  final WatchParty party;
+  const _WatchPartyInviteCard({required this.party});
+
+  @override
+  Widget build(BuildContext context) {
+    final ctrl = WatchPartyController.to;
+    return Container(
+      padding: const EdgeInsets.all(ESizes.md),
+      decoration: BoxDecoration(
+        color: EColors.surface,
+        borderRadius: BorderRadius.circular(ESizes.md),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: EColors.surfaceLight,
+              borderRadius: BorderRadius.circular(ESizes.radiusSm),
+            ),
+            child: const Icon(
+              Icons.groups,
+              color: EColors.primary,
+              size: ESizes.iconMd,
+            ),
+          ),
+          const SizedBox(width: ESizes.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  party.name,
+                  style: const TextStyle(
+                    color: EColors.textPrimary,
+                    fontWeight: FontWeight.w600,
+                    fontSize: ESizes.fontMd,
+                  ),
+                ),
+                const SizedBox(height: ESizes.xs),
+                Text(
+                  party.creatorUsername != null
+                      ? '${party.creatorUsername} invited you'
+                      : 'Invited you to watch together',
+                  style: const TextStyle(
+                    color: EColors.textSecondary,
+                    fontSize: ESizes.fontSm,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: ESizes.sm),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            onPressed: () async {
+              await ctrl.acceptInvite(party.id);
+              await Get.to(
+                () => WatchPartyScreen(
+                  partyId: party.id,
+                  tmdbId: party.tmdbId,
+                  mediaType: party.mediaType,
+                  partyName: party.name,
+                ),
+              );
+            },
+            child: const Text(
+              'Accept',
+              style: TextStyle(color: EColors.primary, fontSize: ESizes.fontSm),
+            ),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: ESizes.sm),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            onPressed: () => ctrl.declineInvite(party.id),
+            child: const Text(
+              'Decline',
+              style: TextStyle(
+                  color: EColors.textSecondary, fontSize: ESizes.fontSm),
+            ),
+          ),
+        ],
       ),
     );
   }

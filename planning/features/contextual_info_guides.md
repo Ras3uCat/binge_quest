@@ -33,16 +33,15 @@ Extend the existing info icon + bottom sheet pattern (currently used on Queue He
 
 ### 2. Recommendation Modes Guide
 **Priority:** High
-**Location:** Dashboard recommendations section, next to the mode selector chips (Smart / New Arrivals / Popular / Top Rated)
+**Location:** Dashboard recommendations section, next to the mode selector chips
 **Widget to create:** `lib/shared/widgets/recommendation_modes_guide_sheet.dart`
 **Settings entry:** "Recommendation Modes"
 
 **Content to cover:**
-- **Smart** — personalised picks from your watchlist based on mood, genre history, and what you're close to finishing
-- **New Arrivals** — recently added to streaming in your region
-- **Popular** — trending across BingeQuest users this week
-- **Top Rated** — highest TMDB scores filtered to what's available on your streaming services
-- Note: Smart mode uses your current mood filter if one is selected
+- **Recent Activity (Recent Progress)** — surfaces items from your watchlist that you've been actively watching recently
+- **Popularity (Viral Hits)** — trending content pulled from TMDB popularity data (not based on BingeQuest user activity)
+- **Time Left (Finish Fast)** — prioritises items on your watchlist that are closest to completion
+- **Release Date (Fresh First)** — shows the most recently released content first
 
 ---
 
@@ -100,10 +99,27 @@ Extend the existing info icon + bottom sheet pattern (currently used on Queue He
 **Settings entry:** "Streaming Breakdown"
 
 **Content to cover:**
-- Percentage is calculated by number of items completed per service, not by hours watched
-- A title is attributed to whichever streaming provider was listed first in its metadata at time of completion
-- Only completed items are counted (in-progress items not included)
-- Items with no streaming provider data show as "Other"
+- Shows a total count of watchlist items per streaming platform, across all your watchlists
+- Does not track watch progress or completion — it's purely a count of what's on your list
+- Only major/popular streaming platforms are shown; obscure or lesser-known providers may not appear
+- Use it to see which platforms have the most content you're interested in watching
+
+---
+
+### 7. User Archetypes Guide
+**Priority:** Medium
+**Location:** Profile screen, next to the archetype badge (below display name)
+**Widget to create:** `lib/shared/widgets/archetype_guide_sheet.dart`
+**Settings entry:** "Viewer Archetypes"
+
+**Content to cover:**
+- What archetypes are — a personality classification based on your real watching behaviour, not a quiz
+- 12 possible archetypes (e.g. Weekend Warrior, Season Slayer, Deep Cut Explorer) each derived from a different behavioural signal
+- Scores are computed over a rolling 90-day activity window; old habits don't dominate forever
+- Minimum activity threshold: 5 completed titles + 20 episodes watched; below this you'll see "Still Exploring…"
+- Dual archetypes: if two archetypes score within 5% of each other both are shown (e.g. "Midnight Drifter + Completionist")
+- Auto-updates every 5th episode completion and nightly; 
+- Tap your archetype badge to see the full score breakdown across all 12 types
 
 ---
 
@@ -121,6 +137,7 @@ Add all new guide entries to the Help section in `settings_screen.dart`, followi
 | Watch Parties 🔲 | `WatchPartyGuideSheet` |
 | Stats & Analytics 🔲 | `StatsGuideSheet` |
 | Streaming Breakdown 🔲 | `StreamingBreakdownGuideSheet` |
+| Viewer Archetypes 🔲 | `ArchetypeGuideSheet` |
 
 ---
 

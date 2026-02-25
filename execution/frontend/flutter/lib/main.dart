@@ -1,8 +1,9 @@
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
-import 'firebase_options.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:get/get.dart';
+import 'firebase_options.dart';
 import 'core/config/env.dart';
 import 'core/theme/app_theme.dart';
 import 'core/constants/e_colors.dart';
@@ -24,6 +25,15 @@ import 'features/watchlist/controllers/watchlist_member_controller.dart';
 import 'features/notifications/controllers/notification_controller.dart';
 import 'features/profile/controllers/archetype_controller.dart';
 import 'features/auth/screens/splash_screen.dart';
+
+/// Top-level background message handler required by firebase_messaging.
+/// Must be a top-level function (not a class method).
+/// Notification messages are displayed by the OS automatically;
+/// this handler exists so the plugin can properly route background messages.
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  // No-op: notification display is handled by the OS for notification messages.
+}
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -49,6 +59,7 @@ Future<void> main() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   } catch (e) {
     debugPrint('Firebase initialization failed: $e');
   }

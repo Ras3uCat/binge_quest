@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 import '../../../core/services/notification_service.dart';
 import '../../../shared/models/app_notification.dart';
@@ -5,7 +6,7 @@ import '../../../shared/models/notification_preferences.dart';
 import '../../../shared/repositories/notification_repository.dart';
 import '../../auth/controllers/auth_controller.dart';
 
-class NotificationController extends GetxController {
+class NotificationController extends GetxController with WidgetsBindingObserver {
   final NotificationRepository _repository = NotificationRepository();
   final AuthController _authController = Get.find<AuthController>();
 
@@ -20,6 +21,7 @@ class NotificationController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    WidgetsBinding.instance.addObserver(this);
 
     // Listen to foreground messages from service
     // We use lazy retrieval or ensure service is init
@@ -140,5 +142,18 @@ class NotificationController extends GetxController {
     } catch (e) {
       Get.snackbar('Error', 'Failed to invoke test notification: $e');
     }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      loadNotifications();
+    }
+  }
+
+  @override
+  void onClose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.onClose();
   }
 }

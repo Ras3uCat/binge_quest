@@ -258,20 +258,21 @@ class _EpisodeTile extends StatelessWidget {
             ),
           ),
           children: [
-            Padding(
-              padding: const EdgeInsets.only(left: ESizes.xl + 28 + ESizes.md, right: ESizes.md, bottom: ESizes.sm),
-              child: ProgressSlider(
-                totalMinutes: episode.runtimeMinutes,
-                minutesWatched: episode.watched
-                    ? episode.runtimeMinutes
-                    : episode.minutesWatched,
-                isWatched: episode.watched,
-                compact: true,
-                onChanged: (_) {},
-                onChangeEnd: (minutes) =>
-                    controller.setEpisodeProgress(episode.id, minutes),
+            if (episode.runtimeMinutes > 0)
+              Padding(
+                padding: const EdgeInsets.only(left: ESizes.xl + 28 + ESizes.md, right: ESizes.md, bottom: ESizes.sm),
+                child: ProgressSlider(
+                  totalMinutes: episode.runtimeMinutes,
+                  minutesWatched: episode.watched
+                      ? episode.runtimeMinutes
+                      : episode.minutesWatched,
+                  isWatched: episode.watched,
+                  compact: true,
+                  onChanged: (_) {},
+                  onChangeEnd: (minutes) =>
+                      controller.setEpisodeProgress(episode.id, minutes),
+                ),
               ),
-            ),
             if (hasDescription)
               Padding(
                 padding: const EdgeInsets.only(left: ESizes.xl + 28 + ESizes.md, right: ESizes.md, bottom: ESizes.md),

@@ -16,12 +16,14 @@ import 'friend_search_screen.dart';
 
 /// Main friends screen with tabs: Friends, Requests, Blocked.
 class FriendListScreen extends StatelessWidget {
-  const FriendListScreen({super.key});
+  final int initialTab;
+  const FriendListScreen({super.key, this.initialTab = 0});
 
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
       length: 3,
+      initialIndex: initialTab,
       child: Scaffold(
         body: Container(
           decoration: const BoxDecoration(

@@ -90,7 +90,11 @@ mixin WatchPartyNotificationsMixin {
         category: 'watch_party_invite',
         title: '${party.name} Watch Party',
         body: '$_currentUserLabel invited you to a watch party',
-        data: {'party_id': party.id, 'party_name': party.name},
+        data: {
+          'type': 'watch_party_invite',
+          'party_id': party.id,
+          'party_name': party.name,
+        },
       );
     } catch (e) {
       debugPrint('WatchPartyNotificationsMixin.inviteAndNotify error: $e');

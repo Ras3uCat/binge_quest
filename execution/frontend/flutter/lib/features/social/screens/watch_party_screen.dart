@@ -5,7 +5,9 @@ import '../../../core/constants/e_sizes.dart';
 import '../../../core/services/supabase_service.dart';
 import '../../../shared/models/watchlist_item.dart';
 import '../../../shared/repositories/watchlist_repository.dart';
+import '../../search/widgets/watchlist_selector_sheet.dart';
 import '../../watchlist/screens/item_detail_screen.dart';
+import '../../watchlist/controllers/watchlist_controller.dart';
 import '../controllers/watch_party_controller.dart';
 import '../widgets/party_member_avatars.dart';
 import '../widgets/party_screen_helpers.dart';
@@ -34,6 +36,7 @@ class WatchPartyScreen extends StatefulWidget {
 
 class _WatchPartyScreenState extends State<WatchPartyScreen> {
   late final WatchPartyController _ctrl;
+  bool _isInWatchlist = true; // optimistic default; updated async
 
   @override
   void initState() {
@@ -41,7 +44,17 @@ class _WatchPartyScreenState extends State<WatchPartyScreen> {
     _ctrl = WatchPartyController.to;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _ctrl.openParty(widget.partyId);
+      _refreshWatchlistStatus();
     });
+  }
+
+  Future<void> _refreshWatchlistStatus() async {
+    final mediaType = widget.mediaType == 'tv' ? MediaType.tv : MediaType.movie;
+    final item = await WatchlistRepository.getItemByTmdbId(
+      tmdbId: widget.tmdbId,
+      mediaType: mediaType,
+    );
+    if (mounted) setState(() => _isInWatchlist = item != null);
   }
 
   @override
@@ -65,15 +78,75 @@ class _WatchPartyScreenState extends State<WatchPartyScreen> {
   Future<void> _openWatchlistItem() async {
     final mediaType =
         widget.mediaType == 'tv' ? MediaType.tv : MediaType.movie;
+
     final item = await WatchlistRepository.getItemByTmdbId(
       tmdbId: widget.tmdbId,
       mediaType: mediaType,
     );
+
     if (item != null) {
       await Get.to(() => ItemDetailScreen(item: item));
-    } else {
-      Get.snackbar(
-          'Not in Watchlist', 'Add this title to your watchlist first');
+      return;
+    }
+
+    // Not in any watchlist — fetch title from content_cache then show picker.
+    if (!mounted) return;
+    final row = await SupabaseService.client
+        .from('content_cache')
+        .select('title')
+        .eq('tmdb_id', widget.tmdbId)
+        .eq('media_type', widget.mediaType)
+        .maybeSingle();
+    final contentTitle = (row?['title'] as String?) ?? widget.partyName;
+
+    if (!mounted) return;
+    await WatchlistSelectorSheet.show(
+      context: context,
+      tmdbId: widget.tmdbId,
+      mediaType: mediaType,
+      title: contentTitle,
+      onConfirm: (watchlistIds) async {
+        final items = await WatchlistRepository.addItemToMultipleWatchlists(
+          watchlistIds: watchlistIds,
+          tmdbId: widget.tmdbId,
+          mediaType: mediaType,
+        );
+
+        // For TV shows, seed watch_progress rows from content_cache_episodes
+        // (already populated by the party creator's add flow).
+        if (mediaType == MediaType.tv && items.isNotEmpty) {
+          final episodes = await SupabaseService.client
+              .from('content_cache_episodes')
+              .select('id')
+              .eq('tmdb_id', widget.tmdbId);
+
+          for (final item in items) {
+            for (final ep in (episodes as List<dynamic>)) {
+              await WatchlistRepository.createWatchProgress(
+                watchlistItemId: item.id,
+                episodeCacheId: ep['id'] as String,
+                isBackfill: true,
+              );
+            }
+          }
+        }
+
+        // Refresh the watchlist controller so item counts are up to date.
+        try {
+          await WatchlistController.to.refresh();
+        } catch (_) {}
+      },
+    );
+
+    // After the sheet closes, navigate to the item detail if it was added.
+    if (!mounted) return;
+    final addedItem = await WatchlistRepository.getItemByTmdbId(
+      tmdbId: widget.tmdbId,
+      mediaType: mediaType,
+    );
+    if (addedItem != null && mounted) {
+      setState(() => _isInWatchlist = true);
+      await Get.to(() => ItemDetailScreen(item: addedItem));
     }
   }
 
@@ -144,17 +217,15 @@ class _WatchPartyScreenState extends State<WatchPartyScreen> {
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.all(ESizes.md),
-        child: OutlinedButton(
-          onPressed: _openWatchlistItem,
-          style: OutlinedButton.styleFrom(
-            foregroundColor: EColors.primary,
-            side: const BorderSide(color: EColors.primary),
-            padding: const EdgeInsets.symmetric(vertical: ESizes.md),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(ESizes.radiusSm),
-            ),
+        child: SizedBox(
+          width: double.infinity,
+          height: ESizes.buttonHeightLg,
+          child: ElevatedButton.icon(
+            onPressed: _openWatchlistItem,
+            icon: Icon(_isInWatchlist ? Icons.visibility : Icons.add),
+            label: Text(
+                _isInWatchlist ? 'View in Watchlist' : 'Add to Watchlist'),
           ),
-          child: const Text('View in Watchlist'),
         ),
       ),
     );
