@@ -12,6 +12,7 @@ import '../controllers/archetype_controller.dart';
 import '../controllers/profile_controller.dart';
 import '../widgets/archetype_badge.dart';
 import '../widgets/archetype_detail_sheet.dart';
+import '../../../shared/widgets/archetype_guide_sheet.dart';
 import '../widgets/badges_section.dart';
 import '../widgets/following_section.dart';
 import '../widgets/profile_stats_section.dart';
@@ -141,13 +142,29 @@ class ProfileScreen extends StatelessWidget {
             final archCtrl = ArchetypeController.to;
             return Padding(
               padding: const EdgeInsets.only(top: ESizes.sm),
-              child: ArchetypeBadge(
-                primary: archCtrl.primary,
-                secondary: archCtrl.secondary,
-                showTagline: true,
-                onTap: archCtrl.primary != null
-                    ? () => _showArchetypeSheet(archCtrl)
-                    : null,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ArchetypeBadge(
+                    primary: archCtrl.primary,
+                    secondary: archCtrl.secondary,
+                    showTagline: true,
+                    onTap: archCtrl.primary != null
+                        ? () => _showArchetypeSheet(archCtrl)
+                        : null,
+                  ),
+                  InkWell(
+                    onTap: ArchetypeGuideSheet.show,
+                    child: Padding(
+                      padding: const EdgeInsets.all(4.0),
+                      child: Icon(
+                        Icons.info_outline,
+                        size: 16,
+                        color: EColors.textOnPrimary.withValues(alpha: 0.6),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             );
           }),

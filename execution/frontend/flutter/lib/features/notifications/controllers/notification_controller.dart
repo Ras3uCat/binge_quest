@@ -135,6 +135,43 @@ class NotificationController extends GetxController with WidgetsBindingObserver 
     }
   }
 
+  Future<void> removeNotification(String id) async {
+    final index = notifications.indexWhere((n) => n.id == id);
+    if (index == -1) return;
+
+    final removed = notifications[index];
+    notifications.removeAt(index);
+    if (!removed.isRead) {
+      unreadCount.value = (unreadCount.value - 1).clamp(0, 999);
+    }
+
+    try {
+      await _repository.deleteById(id);
+    } catch (e) {
+      notifications.insert(index, removed);
+      if (!removed.isRead) unreadCount.value = unreadCount.value + 1;
+      Get.snackbar('Error', 'Failed to remove notification');
+    }
+  }
+
+  Future<void> clearAllNotifications() async {
+    final userId = _authController.userRx.value?.id;
+    if (userId == null) return;
+
+    final snapshot = List<AppNotification>.from(notifications);
+    final unreadSnapshot = unreadCount.value;
+    notifications.clear();
+    unreadCount.value = 0;
+
+    try {
+      await _repository.deleteAll(userId);
+    } catch (e) {
+      notifications.assignAll(snapshot);
+      unreadCount.value = unreadSnapshot;
+      Get.snackbar('Error', 'Failed to clear notifications');
+    }
+  }
+
   Future<void> sendTestNotification() async {
     try {
       final service = Get.find<NotificationService>();

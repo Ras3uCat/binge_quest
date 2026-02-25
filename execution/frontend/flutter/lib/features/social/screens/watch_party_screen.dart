@@ -11,6 +11,7 @@ import '../../watchlist/controllers/watchlist_controller.dart';
 import '../controllers/watch_party_controller.dart';
 import '../widgets/party_member_avatars.dart';
 import '../widgets/party_screen_helpers.dart';
+import '../../../shared/widgets/watch_party_guide_sheet.dart';
 
 /// Full-screen view for a single Watch Party.
 /// Shows member progress (TV: season tabs via PartyTvBody,
@@ -190,6 +191,11 @@ class _WatchPartyScreenState extends State<WatchPartyScreen> {
       ),
       iconTheme: const IconThemeData(color: EColors.textPrimary),
       actions: [
+        IconButton(
+          icon: const Icon(Icons.info_outline, color: EColors.textSecondary),
+          iconSize: 20,
+          onPressed: WatchPartyGuideSheet.show,
+        ),
         PopupMenuButton<String>(
           color: EColors.surface,
           icon: const Icon(Icons.more_vert, color: EColors.textSecondary),

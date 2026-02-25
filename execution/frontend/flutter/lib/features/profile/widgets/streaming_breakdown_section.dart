@@ -5,6 +5,7 @@ import '../../../core/constants/e_colors.dart';
 import '../../../core/constants/e_sizes.dart';
 import '../../../shared/models/streaming_breakdown.dart';
 import '../controllers/profile_controller.dart';
+import '../../../shared/widgets/streaming_breakdown_guide_sheet.dart';
 
 /// Displays streaming provider breakdown on user profile.
 class StreamingBreakdownSection extends StatelessWidget {
@@ -24,16 +25,28 @@ class StreamingBreakdownSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.subscriptions, color: EColors.primary, size: 20),
-              SizedBox(width: ESizes.sm),
-              Text(
+              const Icon(Icons.subscriptions, color: EColors.primary, size: 20),
+              const SizedBox(width: ESizes.sm),
+              const Text(
                 'Streaming Services',
                 style: TextStyle(
                   fontSize: ESizes.fontLg,
                   fontWeight: FontWeight.bold,
                   color: EColors.textPrimary,
+                ),
+              ),
+              const Spacer(),
+              InkWell(
+                onTap: StreamingBreakdownGuideSheet.show,
+                child: const Padding(
+                  padding: EdgeInsets.all(4.0),
+                  child: Icon(
+                    Icons.info_outline,
+                    size: 16,
+                    color: EColors.textSecondary,
+                  ),
                 ),
               ),
             ],

@@ -92,6 +92,20 @@ class NotificationRepository {
         .isFilter('read_at', null);
   }
 
+  Future<void> deleteById(String notificationId) async {
+    await _supabase
+        .from('notifications')
+        .delete()
+        .eq('id', notificationId);
+  }
+
+  Future<void> deleteAll(String userId) async {
+    await _supabase
+        .from('notifications')
+        .delete()
+        .eq('user_id', userId);
+  }
+
   Future<void> sendTestNotification({required String userId}) async {
     await _supabase.functions.invoke(
       'send-notification',

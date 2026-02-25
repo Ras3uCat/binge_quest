@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../../shared/models/top_content.dart';
 import '../../../../shared/repositories/top_content_repository.dart';
 import '../../../../shared/widgets/skeleton_loaders.dart';
+import '../../../../shared/widgets/top10_guide_sheet.dart';
 import '../../../../core/constants/e_colors.dart';
 import '../../../../core/constants/e_sizes.dart';
 import 'top10_item_card.dart';
@@ -55,7 +56,6 @@ class _BingeQuestTop10SectionState extends State<BingeQuestTop10Section> {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: ESizes.lg),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
                 'BingeQuest Top 10',
@@ -65,12 +65,17 @@ class _BingeQuestTop10SectionState extends State<BingeQuestTop10Section> {
                   color: EColors.textPrimary,
                 ),
               ),
-              if (!_isLoading && _items != null && _items!.isNotEmpty)
-                TextButton(
-                  onPressed: () {
-                  },
-                  child: const Text(''),
+              InkWell(
+                onTap: Top10GuideSheet.show,
+                child: const Padding(
+                  padding: EdgeInsets.all(4.0),
+                  child: Icon(
+                    Icons.info_outline,
+                    size: 16,
+                    color: EColors.textSecondary,
+                  ),
                 ),
+              ),
             ],
           ),
         ),

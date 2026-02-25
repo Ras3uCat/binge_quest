@@ -9,6 +9,7 @@ import '../../../shared/widgets/animated_list_item.dart';
 import '../controllers/badge_controller.dart';
 import '../widgets/badge_card.dart';
 import '../../search/screens/search_screen.dart';
+import '../../../shared/widgets/badges_guide_sheet.dart';
 
 /// Screen displaying all badges organized by category.
 class BadgesScreen extends StatelessWidget {
@@ -112,6 +113,17 @@ class BadgesScreen extends StatelessWidget {
                   fontSize: ESizes.fontMd,
                 ),
               )),
+          InkWell(
+            onTap: BadgesGuideSheet.show,
+            child: const Padding(
+              padding: EdgeInsets.all(4.0),
+              child: Icon(
+                Icons.info_outline,
+                size: 20,
+                color: EColors.textSecondary,
+              ),
+            ),
+          ),
         ],
       ),
     );

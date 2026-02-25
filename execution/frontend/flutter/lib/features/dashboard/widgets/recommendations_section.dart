@@ -17,6 +17,7 @@ import 'filter_bar.dart';
 import 'mood_filter_chips.dart';
 import 'recommendation_mode_selector.dart';
 import '../../../shared/widgets/mood_guide_sheet.dart';
+import '../../../shared/widgets/recommendation_modes_guide_sheet.dart';
 
 class RecommendationsSection extends StatelessWidget {
   const RecommendationsSection({super.key});
@@ -33,13 +34,28 @@ class RecommendationsSection extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  mode.displayName,
-                  style: const TextStyle(
-                    fontSize: ESizes.fontXl,
-                    fontWeight: FontWeight.bold,
-                    color: EColors.textPrimary,
-                  ),
+                Row(
+                  children: [
+                    Text(
+                      mode.displayName,
+                      style: const TextStyle(
+                        fontSize: ESizes.fontXl,
+                        fontWeight: FontWeight.bold,
+                        color: EColors.textPrimary,
+                      ),
+                    ),
+                    InkWell(
+                      onTap: RecommendationModesGuideSheet.show,
+                      child: const Padding(
+                        padding: EdgeInsets.all(4.0),
+                        child: Icon(
+                          Icons.info_outline,
+                          size: 16,
+                          color: EColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 TextButton(
                   onPressed: () {
@@ -66,7 +82,6 @@ class RecommendationsSection extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: ESizes.lg),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
                 'Mood',

@@ -11,6 +11,8 @@ import '../widgets/stats_summary_row.dart';
 import '../widgets/streak_indicator.dart';
 import '../widgets/time_window_picker.dart';
 import '../widgets/watch_time_bar_chart.dart';
+import '../../../shared/widgets/stats_guide_sheet.dart';
+import '../../../shared/widgets/streak_guide_sheet.dart';
 
 /// Full stats dashboard screen.
 class StatsScreen extends StatelessWidget {
@@ -87,6 +89,12 @@ class StatsScreen extends StatelessWidget {
               color: EColors.textPrimary,
             ),
           ),
+          const Spacer(),
+          IconButton(
+            icon: const Icon(Icons.info_outline, color: EColors.textSecondary),
+            iconSize: 20,
+            onPressed: StatsGuideSheet.show,
+          ),
         ],
       ),
     );
@@ -103,7 +111,7 @@ class StatsScreen extends StatelessWidget {
         const SizedBox(height: ESizes.md),
         _SectionCard(title: 'Peak Hours', child: const PeakHoursChart()),
         const SizedBox(height: ESizes.md),
-        _SectionCard(title: 'Streaks', child: const StreakIndicator()),
+        _SectionCard(title: 'Streaks', child: const StreakIndicator(), onInfo: StreakGuideSheet.show),
         const SizedBox(height: ESizes.md),
         _SectionCard(title: 'Completion', child: const CompletionRing()),
       ],
@@ -165,8 +173,9 @@ class StatsScreen extends StatelessWidget {
 class _SectionCard extends StatelessWidget {
   final String title;
   final Widget child;
+  final VoidCallback? onInfo;
 
-  const _SectionCard({required this.title, required this.child});
+  const _SectionCard({required this.title, required this.child, this.onInfo});
 
   @override
   Widget build(BuildContext context) {
@@ -181,13 +190,31 @@ class _SectionCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: ESizes.fontLg,
-              fontWeight: FontWeight.bold,
-              color: EColors.textPrimary,
-            ),
+          Row(
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: ESizes.fontLg,
+                  fontWeight: FontWeight.bold,
+                  color: EColors.textPrimary,
+                ),
+              ),
+              if (onInfo != null) ...[
+                const SizedBox(width: 4),
+                InkWell(
+                  onTap: onInfo,
+                  child: const Padding(
+                    padding: EdgeInsets.all(4.0),
+                    child: Icon(
+                      Icons.info_outline,
+                      size: 16,
+                      color: EColors.textSecondary,
+                    ),
+                  ),
+                ),
+              ],
+            ],
           ),
           const SizedBox(height: ESizes.md),
           child,

@@ -16,8 +16,16 @@ import '../../social/controllers/friend_controller.dart';
 import 'privacy_policy_screen.dart';
 import 'streaming_services_screen.dart';
 import 'terms_of_service_screen.dart';
+import '../../../shared/widgets/archetype_guide_sheet.dart';
+import '../../../shared/widgets/badges_guide_sheet.dart';
 import '../../../shared/widgets/mood_guide_sheet.dart';
 import '../../../shared/widgets/queue_efficiency_guide_sheet.dart';
+import '../../../shared/widgets/recommendation_modes_guide_sheet.dart';
+import '../../../shared/widgets/stats_guide_sheet.dart';
+import '../../../shared/widgets/streak_guide_sheet.dart';
+import '../../../shared/widgets/streaming_breakdown_guide_sheet.dart';
+import '../../../shared/widgets/top10_guide_sheet.dart';
+import '../../../shared/widgets/watch_party_guide_sheet.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -51,6 +59,11 @@ class SettingsScreen extends StatelessWidget {
                         title: 'Help',
                         children: [
                           _buildSettingsTile(
+                            icon: Icons.format_list_numbered_outlined,
+                            label: 'BingeQuest Top 10',
+                            onTap: () => Top10GuideSheet.show(),
+                          ),
+                          _buildSettingsTile(
                             icon: Icons.help_outline,
                             label: 'Mood Guide',
                             onTap: () => MoodGuideSheet.show(),
@@ -59,6 +72,41 @@ class SettingsScreen extends StatelessWidget {
                             icon: Icons.insights,
                             label: 'Queue Health Score',
                             onTap: () => QueueEfficiencyGuideSheet.show(),
+                          ),
+                          _buildSettingsTile(
+                            icon: Icons.local_fire_department_outlined,
+                            label: 'Streak & Activity',
+                            onTap: () => StreakGuideSheet.show(),
+                          ),
+                          _buildSettingsTile(
+                            icon: Icons.tune_outlined,
+                            label: 'Recommendation Modes',
+                            onTap: () => RecommendationModesGuideSheet.show(),
+                          ),
+                          _buildSettingsTile(
+                            icon: Icons.emoji_events_outlined,
+                            label: 'Badges & Achievements',
+                            onTap: () => BadgesGuideSheet.show(),
+                          ),
+                          _buildSettingsTile(
+                            icon: Icons.people_outline,
+                            label: 'Watch Parties',
+                            onTap: () => WatchPartyGuideSheet.show(),
+                          ),
+                          _buildSettingsTile(
+                            icon: Icons.bar_chart,
+                            label: 'Stats & Analytics',
+                            onTap: () => StatsGuideSheet.show(),
+                          ),
+                          _buildSettingsTile(
+                            icon: Icons.subscriptions_outlined,
+                            label: 'Streaming Breakdown',
+                            onTap: () => StreamingBreakdownGuideSheet.show(),
+                          ),
+                          _buildSettingsTile(
+                            icon: Icons.grid_view_outlined,
+                            label: 'Viewer Archetypes',
+                            onTap: () => ArchetypeGuideSheet.show(),
                           ),
                         ],
                       ),

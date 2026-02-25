@@ -9,6 +9,7 @@ import '../../../../core/constants/e_colors.dart';
 import '../../../../shared/models/app_notification.dart';
 import '../../../../shared/models/watchlist_item.dart';
 import '../../../../shared/repositories/watchlist_repository.dart';
+import '../../../../shared/widgets/e_confirm_dialog.dart';
 import '../../watchlist/screens/item_detail_screen.dart';
 import '../../search/screens/person_detail_screen.dart';
 
@@ -22,6 +23,16 @@ class NotificationsScreen extends GetView<NotificationController> {
       appBar: AppBar(
         title: const Text('Notifications'),
         actions: [
+          Obx(() {
+            if (controller.notifications.isEmpty) return const SizedBox.shrink();
+            return TextButton(
+              onPressed: _confirmClearAll,
+              child: const Text(
+                'Clear All',
+                style: TextStyle(color: EColors.error),
+              ),
+            );
+          }),
           IconButton(
             icon: const Icon(Icons.done_all),
             tooltip: 'Mark all as read',
@@ -64,23 +75,53 @@ class NotificationsScreen extends GetView<NotificationController> {
             separatorBuilder: (context, index) => const SizedBox(height: 8),
             itemBuilder: (context, index) {
               final notification = controller.notifications[index];
+              final Widget card;
 
-              // Use specialized cards per notification type
               if (notification.type == NotificationType.talentReleases) {
-                return TalentNotificationCard(notification: notification);
-              }
-              if (notification.type == NotificationType.social) {
-                return SocialNotificationCard(notification: notification);
-              }
-              if (notification.type.isWatchParty) {
-                return WatchPartyNotificationCard(notification: notification);
+                card = TalentNotificationCard(notification: notification);
+              } else if (notification.type == NotificationType.social) {
+                card = SocialNotificationCard(notification: notification);
+              } else if (notification.type.isWatchParty) {
+                card = WatchPartyNotificationCard(notification: notification);
+              } else {
+                card = _buildDefaultCard(notification);
               }
 
-              return _buildDefaultCard(notification);
+              return _buildDismissible(notification, card);
             },
           ),
         );
       }),
+    );
+  }
+
+  Widget _buildDismissible(AppNotification notification, Widget child) {
+    return Dismissible(
+      key: ValueKey(notification.id),
+      direction: DismissDirection.endToStart,
+      onDismissed: (_) => controller.removeNotification(notification.id),
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        decoration: BoxDecoration(
+          color: EColors.error.withOpacity(0.15),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: const Icon(Icons.delete_outline, color: EColors.error),
+      ),
+      child: child,
+    );
+  }
+
+  void _confirmClearAll() {
+    final count = controller.notifications.length;
+    EConfirmDialog.show(
+      title: 'Clear all notifications?',
+      message:
+          'This will permanently remove all $count notification${count == 1 ? '' : 's'}.',
+      confirmLabel: 'Clear All',
+      isDestructive: true,
+      onConfirm: () => controller.clearAllNotifications(),
     );
   }
 
@@ -104,9 +145,8 @@ class NotificationsScreen extends GetView<NotificationController> {
         title: Text(
           notification.title,
           style: Get.textTheme.titleMedium?.copyWith(
-            fontWeight: notification.isRead
-                ? FontWeight.normal
-                : FontWeight.bold,
+            fontWeight:
+                notification.isRead ? FontWeight.normal : FontWeight.bold,
           ),
         ),
         subtitle: Column(
