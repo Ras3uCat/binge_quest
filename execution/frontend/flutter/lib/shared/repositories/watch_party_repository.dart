@@ -42,6 +42,9 @@ class WatchPartyRepository {
       'joined_at': DateTime.now().toIso8601String(),
     });
 
+    // Seed the creator's existing watch history into party progress.
+    await _syncProgressFromWatchlist(party.id, userId);
+
     return party;
   }
 
@@ -67,6 +70,9 @@ class WatchPartyRepository {
         .eq('party_id', partyId)
         .eq('user_id', userId)
         .eq('status', 'pending');
+
+    // Seed the joiner's existing watch history into party progress.
+    await _syncProgressFromWatchlist(partyId, userId);
   }
 
   /// Decline a pending invite — DELETE own member row.
@@ -194,6 +200,18 @@ class WatchPartyRepository {
   // Progress
   // ---------------------------------------------------------------------------
 
+  /// Syncs the current user's watch history into watch_party_progress.
+  /// Fire-and-forget safe — errors are silently ignored.
+  Future<void> _syncProgressFromWatchlist(
+      String partyId, String userId) async {
+    try {
+      await _supabase.rpc('sync_party_progress_from_watchlist', params: {
+        'p_party_id': partyId,
+        'p_user_id': userId,
+      });
+    } catch (_) {}
+  }
+
   /// Fetch full progress snapshot for a party, grouped by member.
   /// Always returns one entry per active member; members with no progress
   /// rows are included with an empty episodes list (renders as "Not started").
@@ -210,6 +228,11 @@ class WatchPartyRepository {
         .toList();
 
     if (allMemberIds.isEmpty) return [];
+
+    // Sync the current user's watch history before reading rows so that
+    // episodes watched outside this screen are reflected immediately.
+    final uid = _currentUserId;
+    if (uid != null) await _syncProgressFromWatchlist(partyId, uid);
 
     // Step 2: existing progress rows.
     final progressRows = await _supabase

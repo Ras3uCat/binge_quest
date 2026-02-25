@@ -156,9 +156,10 @@ String resolveSaying(String template, String name) =>
     template.replaceAll('{name}', name);
 
 /// True when member at [index] has the same score as an adjacent neighbour.
+/// Negative scores (-1 = no progress) are included so that two members who
+/// have both not started are correctly detected as tied.
 bool isTiedAt(int index, List<int> scores) {
   final score = scores[index];
-  if (score < 0) return false;
   final prevTied = index > 0 && scores[index - 1] == score;
   final nextTied = index < scores.length - 1 && scores[index + 1] == score;
   return prevTied || nextTied;
