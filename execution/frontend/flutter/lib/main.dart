@@ -56,9 +56,11 @@ Future<void> main() async {
 
   // Initialize Firebase + Crashlytics first so all subsequent errors are caught
   try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
+    if (Firebase.apps.isEmpty) {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+    }
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
     await ErrorService.initialize();
   } catch (e) {

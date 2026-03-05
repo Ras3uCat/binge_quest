@@ -109,6 +109,9 @@ workflows:
           }
           EOF
 
+      - name: Remove residual GoogleService-Info.plist
+        script: rm -f ios/Runner/GoogleService-Info.plist
+
       - name: Get Flutter packages
         script: flutter pub get
 
