@@ -60,9 +60,18 @@ Future<void> main() async {
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
       );
+    } else {
+      debugPrint('Firebase already initialized via native configuration');
     }
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
     await ErrorService.initialize();
+  } on FirebaseException catch (e) {
+    if (e.code == 'duplicate-app') {
+      debugPrint('Firebase already configured (duplicate-app catch-all)');
+      await ErrorService.initialize();
+    } else {
+      debugPrint('Firebase initialization failed: ${e.code} - ${e.message}');
+    }
   } catch (e) {
     debugPrint('Firebase/Crashlytics initialization failed: $e');
   }
