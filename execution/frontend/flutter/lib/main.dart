@@ -54,24 +54,26 @@ Future<void> main() async {
     ),
   );
 
-  // Initialize Firebase
+  // Initialize Firebase + Crashlytics first so all subsequent errors are caught
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+    await ErrorService.initialize();
   } catch (e) {
-    debugPrint('Firebase initialization failed: $e');
+    debugPrint('Firebase/Crashlytics initialization failed: $e');
   }
 
-  // Initialize error handling + Crashlytics (must be after Firebase init)
-  await ErrorService.initialize();
-
   // Initialize Supabase
-  await SupabaseService.initialize(
-    supabaseUrl: Env.supabaseUrl,
-    supabaseAnonKey: Env.supabaseAnonKey,
-  );
+  try {
+    await SupabaseService.initialize(
+      supabaseUrl: Env.supabaseUrl,
+      supabaseAnonKey: Env.supabaseAnonKey,
+    );
+  } catch (e) {
+    debugPrint('Supabase initialization failed: $e');
+  }
 
   // Initialize TMDB
   TmdbService.initialize(apiKey: Env.tmdbApiKey);
@@ -81,7 +83,11 @@ Future<void> main() async {
     ConnectivityService(),
   ); // Initialize immediately for network monitoring
   Get.lazyPut(() => AuthController(), fenix: true);
-  Get.put(NotificationService()); // Initialize Notification Service
+  try {
+    Get.put(NotificationService()); // Initialize Notification Service
+  } catch (e) {
+    debugPrint('NotificationService initialization failed: $e');
+  }
   Get.put(ShareService()); // Register share service
   Get.lazyPut(() => BadgeController(), fenix: true);
   Get.lazyPut(() => QueueHealthController(), fenix: true);
