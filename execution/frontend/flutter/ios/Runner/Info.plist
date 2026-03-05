@@ -57,14 +57,6 @@
 			<string>Editor</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>com.googleusercontent.apps.315193779894-92ddcpuemons8mhlnkp3b1jdi37dn76k</string>
-			</array>
-		</dict>
-		<dict>
-			<key>CFBundleTypeRole</key>
-			<string>Editor</string>
-			<key>CFBundleURLSchemes</key>
-			<array>
 				<string>io.supabase.bingequest</string>
 			</array>
 		</dict>
@@ -75,6 +67,8 @@
 		<string>http</string>
 	</array>
 	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<key>FirebaseAppDelegateProxyEnabled</key>
 	<false/>
 </dict>
 </plist>

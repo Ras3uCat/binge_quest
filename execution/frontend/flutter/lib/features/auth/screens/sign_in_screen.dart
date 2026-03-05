@@ -122,15 +122,16 @@ class SignInScreen extends StatelessWidget {
             ),
             const SizedBox(height: ESizes.md),
           ],
-          // Google Sign-In
-          SocialSignInButton(
-            label: EText.continueWithGoogle,
-            icon: Icons.g_mobiledata,
-            iconColor: Colors.red,
-            onPressed: isLoading ? null : authController.signInWithGoogle,
-            isLoading: isLoading,
-          ),
-          const SizedBox(height: ESizes.md),
+          // Google Sign-In (Android only)
+          if (kIsWeb || !Platform.isIOS)
+            SocialSignInButton(
+              label: EText.continueWithGoogle,
+              icon: Icons.g_mobiledata,
+              iconColor: Colors.red,
+              onPressed: isLoading ? null : authController.signInWithGoogle,
+              isLoading: isLoading,
+            ),
+          if (kIsWeb || !Platform.isIOS) const SizedBox(height: ESizes.md),
           // Apple Sign-In (only on iOS/macOS or web)
           if (!kIsWeb && Platform.isIOS ||
               !kIsWeb && Platform.isMacOS ||

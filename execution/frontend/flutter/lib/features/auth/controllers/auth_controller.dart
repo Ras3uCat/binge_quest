@@ -24,12 +24,8 @@ class AuthController extends GetxController {
 
   static const _webClientId =
       '58540891155-pcj46caefias3og8349fkouv6on173os.apps.googleusercontent.com';
-  static const _iosClientId =
-      '315193779894-92ddcpuemons8mhlnkp3b1jdi37dn76k.apps.googleusercontent.com';
 
   GoogleSignIn get _googleSignIn => GoogleSignIn(
-        clientId:
-            defaultTargetPlatform == TargetPlatform.iOS ? _iosClientId : null,
         serverClientId: _webClientId,
       );
 
