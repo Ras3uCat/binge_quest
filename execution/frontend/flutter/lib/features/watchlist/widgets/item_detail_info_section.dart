@@ -51,6 +51,12 @@ class ItemDetailInfoSection extends StatelessWidget {
                       width: 100,
                       height: 150,
                       fit: BoxFit.cover,
+                      errorWidget: (_, __, ___) => Container(
+                        width: 100,
+                        height: 150,
+                        color: EColors.surfaceLight,
+                        child: const Icon(Icons.movie, size: 40),
+                      ),
                     )
                   : Container(
                       width: 100,
