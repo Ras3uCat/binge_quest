@@ -109,6 +109,10 @@ workflows:
           }
           EOF
 
+      - name: Generate GoogleService-Info.plist
+        script: |
+          echo $GOOGLE_SERVICE_INFO_PLIST | base64 --decode > ios/Runner/GoogleService-Info.plist
+
       - name: Get Flutter packages
         script: flutter pub get
 
