@@ -35,7 +35,12 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   // No-op: notification display is handled by the OS for notification messages.
 }
 
+bool _isMainInitialized = false;
+
 Future<void> main() async {
+  if (_isMainInitialized) return;
+  _isMainInitialized = true;
+
   WidgetsFlutterBinding.ensureInitialized();
 
   // Set preferred orientations

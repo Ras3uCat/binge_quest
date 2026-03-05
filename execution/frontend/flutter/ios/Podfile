@@ -41,17 +41,29 @@ post_install do |installer|
     flutter_additional_ios_build_settings(target)
   end
 
-  # Patch FLTFirebaseCorePlugin to skip configureWithName:options: when the
-  # app is already configured. Prevents EXC_CRASH (FIRApp.m:307) when another
-  # Firebase SDK (e.g. firebase_crashlytics) initialises Firebase before the
-  # Dart plugin's initializeApp() call arrives on the platform channel.
-  Dir.glob("#{installer.sandbox.root}/**/FLTFirebaseCorePlugin.m") do |file|
+  # Strengthened patch for FLTFirebaseCorePlugin to skip configureWithName:options:
+  # when the app is already configured. This prevents EXC_CRASH (FIRApp.m:307).
+  bq_found = false
+  Dir.glob("#{installer.sandbox.root}/**/FLTFirebaseCorePlugin.{m,mm}") do |file|
+    bq_found = true
+    puts "[BQ] Found FLTFirebaseCorePlugin at: #{file}"
     content = File.read(file)
-    next if content.include?('FIRAppAlreadyConfiguredGuard')
+    if content.include?('FIRAppAlreadyConfiguredGuard')
+      puts "[BQ] Already patched — skipping."
+      next
+    end
+    # More flexible regex that handles different app name and options variables
     patched = content.gsub(
-      /(\[FIRApp configureWithName:(\w+) options:(\w+)\];)/,
+      /(\[FIRApp\s+configureWithName:(.*?)\s+options:(.*?)\];)/,
       "// FIRAppAlreadyConfiguredGuard\n    if ([FIRApp appNamed:\\2] == nil) { \\1 }"
     )
-    File.write(file, patched) if patched != content
+    if patched != content
+      File.write(file, patched)
+      puts "[BQ] Patched FLTFirebaseCorePlugin successfully."
+    else
+      puts "[BQ] REGEX DID NOT MATCH. Dumping FIRApp/configure lines:"
+      content.each_line { |l| puts "  >> #{l.rstrip}" if l.include?('FIRApp') || l.include?('configure') }
+    end
   end
+  puts "[BQ] FLTFirebaseCorePlugin found: #{bq_found}"
 end
