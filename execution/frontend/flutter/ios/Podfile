@@ -40,4 +40,18 @@ post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
   end
+
+  # Patch FLTFirebaseCorePlugin to skip configureWithName:options: when the
+  # app is already configured. Prevents EXC_CRASH (FIRApp.m:307) when another
+  # Firebase SDK (e.g. firebase_crashlytics) initialises Firebase before the
+  # Dart plugin's initializeApp() call arrives on the platform channel.
+  Dir.glob("#{installer.sandbox.root}/**/FLTFirebaseCorePlugin.m") do |file|
+    content = File.read(file)
+    next if content.include?('FIRAppAlreadyConfiguredGuard')
+    patched = content.gsub(
+      /(\[FIRApp configureWithName:(\w+) options:(\w+)\];)/,
+      "// FIRAppAlreadyConfiguredGuard\n    if ([FIRApp appNamed:\\2] == nil) { \\1 }"
+    )
+    File.write(file, patched) if patched != content
+  end
 end
