@@ -41,29 +41,35 @@ post_install do |installer|
     flutter_additional_ios_build_settings(target)
   end
 
-  # Strengthened patch for FLTFirebaseCorePlugin to skip configureWithName:options:
-  # when the app is already configured. This prevents EXC_CRASH (FIRApp.m:307).
-  bq_found = false
-  Dir.glob("#{installer.sandbox.root}/**/FLTFirebaseCorePlugin.{m,mm}") do |file|
-    bq_found = true
-    puts "[BQ] Found FLTFirebaseCorePlugin at: #{file}"
-    content = File.read(file)
-    if content.include?('FIRAppAlreadyConfiguredGuard')
-      puts "[BQ] Already patched — skipping."
-      next
-    end
-    # More flexible regex that handles different app name and options variables
-    patched = content.gsub(
-      /(\[FIRApp\s+configureWithName:(.*?)\s+options:(.*?)\];)/,
-      "// FIRAppAlreadyConfiguredGuard\n    if ([FIRApp appNamed:\\2] == nil) { \\1 }"
-    )
-    if patched != content
-      File.write(file, patched)
-      puts "[BQ] Patched FLTFirebaseCorePlugin successfully."
+  # Inject FirebaseInitGuard.m into the Runner Xcode target.
+  # This file swizzles +[FIRApp configureWithName:options:] to be idempotent,
+  # preventing EXC_CRASH (FIRApp.m:307) from duplicate Firebase initialization.
+  require 'xcodeproj'
+  guard_name = 'FirebaseInitGuard.m'
+  guard_path = File.join(File.dirname(__FILE__), 'Runner', guard_name)
+  proj_path  = File.join(File.dirname(__FILE__), 'Runner.xcodeproj')
+
+  if File.exist?(guard_path) && File.exist?(proj_path)
+    project      = Xcodeproj::Project.open(proj_path)
+    runner_target = project.targets.find { |t| t.name == 'Runner' }
+    runner_group  = project.main_group.find_subpath('Runner', false)
+
+    if runner_target && runner_group
+      already_added = runner_target.source_build_phase.files.any? do |f|
+        f.file_ref&.path == guard_name
+      end
+      unless already_added
+        file_ref = runner_group.new_file(guard_name)
+        runner_target.source_build_phase.add_file_reference(file_ref)
+        project.save
+        puts "[BQ] Injected #{guard_name} into Runner compile sources."
+      else
+        puts "[BQ] #{guard_name} already in Runner compile sources."
+      end
     else
-      puts "[BQ] REGEX DID NOT MATCH. Dumping FIRApp/configure lines:"
-      content.each_line { |l| puts "  >> #{l.rstrip}" if l.include?('FIRApp') || l.include?('configure') }
+      puts "[BQ] ERROR: Could not find Runner target or group in Xcode project."
     end
+  else
+    puts "[BQ] SKIP: #{guard_name} not found at ios/Runner/#{guard_name}"
   end
-  puts "[BQ] FLTFirebaseCorePlugin found: #{bq_found}"
 end
