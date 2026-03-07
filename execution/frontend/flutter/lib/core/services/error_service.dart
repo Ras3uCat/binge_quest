@@ -22,15 +22,34 @@ class ErrorService {
     await FirebaseCrashlytics.instance
         .setCrashlyticsCollectionEnabled(!kDebugMode);
 
-    // Catch Flutter framework errors
-    FlutterError.onError =
-        FirebaseCrashlytics.instance.recordFlutterFatalError;
+    // Catch Flutter framework errors — transient network failures are non-fatal
+    FlutterError.onError = (FlutterErrorDetails details) {
+      if (_isTransientNetworkError(details.exception)) {
+        FirebaseCrashlytics.instance.recordFlutterError(details);
+      } else {
+        FirebaseCrashlytics.instance.recordFlutterFatalError(details);
+      }
+    };
 
     // Catch errors outside of Flutter framework
     PlatformDispatcher.instance.onError = (error, stack) {
-      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+      final fatal = !_isTransientNetworkError(error);
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: fatal);
       return true;
     };
+  }
+
+  /// Returns true for transient network errors that should not be fatal.
+  static bool _isTransientNetworkError(Object error) {
+    final msg = error.toString();
+    return msg.contains('ClientException') ||
+        msg.contains('HttpException') ||
+        msg.contains('SocketException') ||
+        msg.contains('NetworkImageLoadException') ||
+        msg.contains('Software caused connection abort') ||
+        msg.contains('Connection reset by peer') ||
+        msg.contains('Connection refused') ||
+        msg.contains('Failed host lookup');
   }
 
   /// Set the user identifier for crash reports.

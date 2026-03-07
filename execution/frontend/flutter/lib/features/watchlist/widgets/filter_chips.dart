@@ -165,6 +165,14 @@ class StreamingProviderChip extends StatelessWidget {
           width: 24,
           height: 24,
           fit: BoxFit.cover,
+          errorWidget: (_, __, ___) => Container(
+            width: 24,
+            height: 24,
+            decoration: BoxDecoration(
+              color: EColors.surface,
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
         ),
       );
     }

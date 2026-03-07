@@ -61,6 +61,12 @@ class WatchlistItemCard extends StatelessWidget {
                     width: 80,
                     height: 120,
                     fit: BoxFit.cover,
+                    errorWidget: (_, __, ___) => Container(
+                      width: 80,
+                      height: 120,
+                      color: EColors.surfaceLight,
+                      child: const Icon(Icons.movie, size: 32),
+                    ),
                   )
                 : Container(
                     width: 80,

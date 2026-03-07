@@ -328,6 +328,12 @@ class _TimeBlockSheetState extends State<TimeBlockSheet> {
                       width: 50,
                       height: 75,
                       fit: BoxFit.cover,
+                      errorWidget: (_, __, ___) => Container(
+                        width: 50,
+                        height: 75,
+                        color: EColors.surface,
+                        child: const Icon(Icons.movie, size: 24),
+                      ),
                     )
                   : Container(
                       width: 50,
