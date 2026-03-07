@@ -404,15 +404,6 @@ class EfficiencyDetailSheet extends StatelessWidget {
                     width: 45,
                     height: 65,
                     fit: BoxFit.cover,
-                    errorWidget: (_, __, ___) => Container(
-                      width: 45,
-                      height: 65,
-                      color: EColors.surfaceLight,
-                      child: const Icon(
-                        Icons.movie,
-                        color: EColors.textTertiary,
-                      ),
-                    ),
                   )
                 : Container(
                     width: 45,
