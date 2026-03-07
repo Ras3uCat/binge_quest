@@ -1,6 +1,5 @@
 # Environment configuration (contains secrets)
 lib/core/config/env.dart
-lib/firebase_options.dart
 
 # Miscellaneous
 *.class
