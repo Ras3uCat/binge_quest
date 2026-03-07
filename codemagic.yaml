@@ -9,7 +9,7 @@ workflows:
 
     environment:
       flutter: stable
-      xcode: "16"
+      xcode: latest
       groups:
         - secure
       ios_signing:
