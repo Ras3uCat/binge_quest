@@ -8,6 +8,7 @@ import '../widgets/search_results_grid.dart';
 import '../widgets/person_results_grid.dart';
 import '../widgets/provider_filter_panel.dart';
 import '../widgets/search_suggestions.dart';
+import '../widgets/all_mode_people_strip.dart';
 import '../widgets/content_detail_sheet.dart';
 import '../../../shared/models/tmdb_content.dart';
 
@@ -27,10 +28,7 @@ class SearchScreen extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              EColors.backgroundSecondary,
-              EColors.background,
-            ],
+            colors: [EColors.backgroundSecondary, EColors.background],
           ),
         ),
         child: SafeArea(
@@ -40,14 +38,15 @@ class SearchScreen extends StatelessWidget {
               _buildSearchBar(),
               _buildFilterChips(),
               const ProviderFilterPanel(),
-              Obx(() => ContentSearchController.to.isProviderFilterActive
-                  ? const SizedBox(height: ESizes.sm)
-                  : const SizedBox.shrink()),
+              Obx(
+                () => ContentSearchController.to.isProviderFilterActive
+                    ? const SizedBox(height: ESizes.sm)
+                    : const SizedBox.shrink(),
+              ),
               Expanded(
                 child: Obx(() {
                   final controller = ContentSearchController.to;
 
-                  // Show suggestions when no search query and no provider filter
                   if (controller.showSuggestions && !controller.isPeopleSearch) {
                     return const SearchSuggestions();
                   }
@@ -55,6 +54,16 @@ class SearchScreen extends StatelessWidget {
                   if (controller.isPeopleSearch) {
                     return const PersonResultsGrid();
                   }
+
+                  if (controller.filter == SearchFilter.all) {
+                    return const Column(
+                      children: [
+                        AllModePeopleStrip(),
+                        Expanded(child: SearchResultsGrid()),
+                      ],
+                    );
+                  }
+
                   return const SearchResultsGrid();
                 }),
               ),
@@ -66,25 +75,24 @@ class SearchScreen extends StatelessWidget {
   }
 
   Widget _buildHeader() {
-    return Padding(
-      padding: const EdgeInsets.all(ESizes.lg),
-      child: Row(
-        children: [
-          IconButton(
-            onPressed: () => Get.back(),
-            icon: const Icon(Icons.arrow_back),
-            color: EColors.textPrimary,
-          ),
-          const SizedBox(width: ESizes.sm),
-          const Text(
-            EText.search,
-            style: TextStyle(
-              fontSize: ESizes.fontXxl,
-              fontWeight: FontWeight.bold,
-              color: EColors.textPrimary,
+    return const Padding(
+      padding: EdgeInsets.all(ESizes.lg),
+      child: SizedBox(
+        height: 48,
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                EText.search,
+                style: TextStyle(
+                  fontSize: ESizes.fontXxl,
+                  fontWeight: FontWeight.bold,
+                  color: EColors.textPrimary,
+                ),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -199,16 +207,11 @@ class SearchScreen extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(
-          horizontal: ESizes.md,
-          vertical: ESizes.sm,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: ESizes.md, vertical: ESizes.sm),
         decoration: BoxDecoration(
           color: isSelected ? EColors.primary : EColors.surface,
           borderRadius: BorderRadius.circular(ESizes.radiusRound),
-          border: Border.all(
-            color: isSelected ? EColors.primary : EColors.border,
-          ),
+          border: Border.all(color: isSelected ? EColors.primary : EColors.border),
         ),
         child: Text(
           label,

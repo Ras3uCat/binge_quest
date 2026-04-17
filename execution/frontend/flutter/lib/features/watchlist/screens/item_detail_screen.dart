@@ -1,24 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../../core/constants/e_colors.dart';
 import '../../../core/constants/e_sizes.dart';
 import '../../../core/constants/e_text.dart';
 import '../../../shared/models/watchlist_item.dart';
 import '../../../shared/models/tmdb_content.dart';
-import '../../../shared/widgets/e_confirm_dialog.dart';
-import '../controllers/progress_controller.dart';
-import '../controllers/watchlist_controller.dart';
 import '../../search/controllers/search_controller.dart';
 import '../../search/widgets/content_detail_sheet.dart';
 import '../../search/widgets/review_form_sheet.dart';
 import '../../social/controllers/watch_party_controller.dart';
 import '../../social/screens/create_party_sheet.dart';
-import '../../social/screens/watch_party_screen.dart';
-import '../widgets/move_item_sheet.dart';
+import '../controllers/progress_controller.dart';
+import '../controllers/watchlist_controller.dart';
 import '../widgets/completed_rating_card.dart';
+import '../widgets/item_detail_info_section.dart';
+import '../widgets/move_item_sheet.dart';
 import '../widgets/movie_progress_section.dart';
 import '../widgets/tv_progress_section.dart';
-import '../widgets/item_detail_info_section.dart';
+import '../widgets/watch_party_badge.dart';
 
 class ItemDetailScreen extends StatelessWidget {
   final WatchlistItem item;
@@ -45,9 +45,7 @@ class ItemDetailScreen extends StatelessWidget {
               Expanded(
                 child: Obx(() {
                   if (controller.isLoading) {
-                    return const Center(
-                      child: CircularProgressIndicator(color: EColors.primary),
-                    );
+                    return const Center(child: CircularProgressIndicator(color: EColors.primary));
                   }
                   return RefreshIndicator(
                     onRefresh: controller.loadProgress,
@@ -63,15 +61,12 @@ class ItemDetailScreen extends StatelessWidget {
                             controller: controller,
                             onPosterTap: _showTmdbInfo,
                           ),
-                          _buildWatchPartyBadge(),
+                          WatchPartyBadge(item: item),
                           const SizedBox(height: ESizes.lg),
                           _buildProgressCard(controller),
                           const SizedBox(height: ESizes.lg),
                           if (controller.isMovie)
-                            MovieProgressSection(
-                              controller: controller,
-                              itemTitle: item.title,
-                            )
+                            MovieProgressSection(controller: controller, itemTitle: item.title)
                           else
                             TvProgressSection(controller: controller),
                           const SizedBox(height: ESizes.xl),
@@ -117,31 +112,43 @@ class ItemDetailScreen extends StatelessWidget {
             itemBuilder: (_) => [
               const PopupMenuItem(
                 value: 'party',
-                child: Row(children: [
-                  Icon(Icons.groups, color: EColors.primary, size: 20),
-                  SizedBox(width: ESizes.sm),
-                  Text('Create Watch Party',
-                      style: TextStyle(color: EColors.textPrimary)),
-                ]),
+                child: Row(
+                  children: [
+                    Icon(Icons.groups, color: EColors.primary, size: 20),
+                    SizedBox(width: ESizes.sm),
+                    Text('Create Watch Party', style: TextStyle(color: EColors.textPrimary)),
+                  ],
+                ),
               ),
               const PopupMenuItem(
                 value: 'move',
-                child: Row(children: [
-                  Icon(Icons.drive_file_move_outlined,
-                      color: EColors.textPrimary, size: 20),
-                  SizedBox(width: ESizes.sm),
-                  Text(EText.moveTo,
-                      style: TextStyle(color: EColors.textPrimary)),
-                ]),
+                child: Row(
+                  children: [
+                    Icon(Icons.drive_file_move_outlined, color: EColors.textPrimary, size: 20),
+                    SizedBox(width: ESizes.sm),
+                    Text(EText.moveTo, style: TextStyle(color: EColors.textPrimary)),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'share',
+                child: Row(
+                  children: [
+                    Icon(Icons.share, color: EColors.textPrimary, size: 20),
+                    SizedBox(width: ESizes.sm),
+                    Text('Share', style: TextStyle(color: EColors.textPrimary)),
+                  ],
+                ),
               ),
               const PopupMenuItem(
                 value: 'remove',
-                child: Row(children: [
-                  Icon(Icons.delete, color: EColors.error, size: 20),
-                  SizedBox(width: ESizes.sm),
-                  Text('Remove from Watchlist',
-                      style: TextStyle(color: EColors.error)),
-                ]),
+                child: Row(
+                  children: [
+                    Icon(Icons.delete, color: EColors.error, size: 20),
+                    SizedBox(width: ESizes.sm),
+                    Text('Remove from Watchlist', style: TextStyle(color: EColors.error)),
+                  ],
+                ),
               ),
             ],
             onSelected: (value) {
@@ -149,6 +156,11 @@ class ItemDetailScreen extends StatelessWidget {
                 _showCreatePartySheet();
               } else if (value == 'move') {
                 _showMoveSheet(context);
+              } else if (value == 'share') {
+                final type = item.mediaType.name;
+                Share.share(
+                  'Check out ${item.title} on BingeQuest!\nhttps://www.themoviedb.org/$type/${item.tmdbId}',
+                );
               } else if (value == 'remove') {
                 _confirmRemove();
               }
@@ -160,72 +172,14 @@ class ItemDetailScreen extends StatelessWidget {
   }
 
   void _showCreatePartySheet() {
-    _ensurePartyController();
+    if (!Get.isRegistered<WatchPartyController>()) {
+      Get.lazyPut(() => WatchPartyController(), fenix: true);
+    }
     CreatePartySheet.show(
       tmdbId: item.tmdbId,
       mediaType: item.mediaType.name,
       contentTitle: item.title,
     );
-  }
-
-  WatchPartyController _ensurePartyController() {
-    if (!Get.isRegistered<WatchPartyController>()) {
-      Get.lazyPut(() => WatchPartyController(), fenix: true);
-    }
-    final ctrl = WatchPartyController.to;
-    if (ctrl.activeParties.isEmpty && !ctrl.isLoading.value) {
-      ctrl.loadParties();
-    }
-    return ctrl;
-  }
-
-  Widget _buildWatchPartyBadge() {
-    final ctrl = _ensurePartyController();
-    return Obx(() {
-      final party = ctrl.activeParties.firstWhereOrNull(
-        (p) => p.tmdbId == item.tmdbId && p.mediaType == item.mediaType.name,
-      );
-      if (party == null) return const SizedBox.shrink();
-
-      return Padding(
-        padding: const EdgeInsets.only(top: ESizes.sm),
-        child: GestureDetector(
-          onTap: () => Get.to(() => WatchPartyScreen(
-                partyId: party.id,
-                tmdbId: party.tmdbId,
-                mediaType: party.mediaType,
-                partyName: party.name,
-              )),
-          child: Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: ESizes.md,
-              vertical: ESizes.sm,
-            ),
-            decoration: BoxDecoration(
-              color: EColors.primary.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(ESizes.radiusSm),
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.groups, color: EColors.primary, size: 18),
-                SizedBox(width: ESizes.xs),
-                Text(
-                  'Watch Party',
-                  style: TextStyle(
-                    color: EColors.primary,
-                    fontSize: ESizes.fontSm,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                SizedBox(width: ESizes.xs),
-                Icon(Icons.chevron_right, color: EColors.primary, size: 18),
-              ],
-            ),
-          ),
-        ),
-      );
-    });
   }
 
   Widget _buildProgressCard(ProgressController controller) {
@@ -264,10 +218,8 @@ class ItemDetailScreen extends StatelessWidget {
       name: !isMovie ? item.title : null,
       posterPath: item.posterPath,
       overview: null,
-      releaseDate:
-          isMovie ? item.releaseDate?.toIso8601String().split('T').first : null,
-      firstAirDate:
-          !isMovie ? item.releaseDate?.toIso8601String().split('T').first : null,
+      releaseDate: isMovie ? item.releaseDate?.toIso8601String().split('T').first : null,
+      firstAirDate: !isMovie ? item.releaseDate?.toIso8601String().split('T').first : null,
       voteAverage: 0,
     );
     if (!Get.isRegistered<ContentSearchController>()) {
@@ -285,8 +237,7 @@ class ItemDetailScreen extends StatelessWidget {
       context: context,
       item: item,
       currentWatchlistId: item.watchlistId,
-      currentWatchlistName:
-          WatchlistController.to.currentWatchlist?.name ?? 'Watchlist',
+      currentWatchlistName: WatchlistController.to.currentWatchlist?.name ?? 'Watchlist',
     );
   }
 
@@ -294,13 +245,13 @@ class ItemDetailScreen extends StatelessWidget {
     Get.dialog(
       AlertDialog(
         backgroundColor: EColors.surface,
-        title: const Text(EText.removeFromWatchlist,
-            style: TextStyle(color: EColors.textPrimary)),
-        content: Text('Remove "${item.title}" from your watchlist?',
-            style: const TextStyle(color: EColors.textSecondary)),
+        title: const Text(EText.removeFromWatchlist, style: TextStyle(color: EColors.textPrimary)),
+        content: Text(
+          'Remove "${item.title}" from your watchlist?',
+          style: const TextStyle(color: EColors.textSecondary),
+        ),
         actions: [
-          TextButton(
-              onPressed: () => Get.back(), child: const Text(EText.cancel)),
+          TextButton(onPressed: () => Get.back(), child: const Text(EText.cancel)),
           ElevatedButton(
             onPressed: () async {
               Get.back();

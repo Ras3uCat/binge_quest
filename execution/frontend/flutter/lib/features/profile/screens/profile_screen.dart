@@ -3,20 +3,19 @@ import 'package:get/get.dart';
 import '../../../core/constants/e_colors.dart';
 import '../../../core/constants/e_sizes.dart';
 import '../../../core/constants/e_text.dart';
-import '../../../shared/widgets/e_confirm_dialog.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../settings/screens/settings_screen.dart';
 import '../../social/controllers/friend_controller.dart';
-import '../../social/widgets/friends_section.dart';
 import '../../social/widgets/username_claim_sheet.dart';
+import '../../../core/services/supabase_service.dart';
 import '../controllers/archetype_controller.dart';
 import '../controllers/profile_controller.dart';
 import '../widgets/archetype_badge.dart';
-import '../widgets/archetype_detail_sheet.dart';
-import '../../../shared/widgets/archetype_guide_sheet.dart';
+import '../widgets/archetype_section.dart';
 import '../widgets/badges_section.dart';
-import '../widgets/following_section.dart';
+import '../widgets/profile_actions_section.dart';
 import '../widgets/profile_stats_section.dart';
-import '../widgets/streaming_breakdown_section.dart';
+import '../screens/archetype_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -32,10 +31,7 @@ class ProfileScreen extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              EColors.backgroundSecondary,
-              EColors.background,
-            ],
+            colors: [EColors.backgroundSecondary, EColors.background],
           ),
         ),
         child: SafeArea(
@@ -51,15 +47,11 @@ class ProfileScreen extends StatelessWidget {
                       const SizedBox(height: ESizes.lg),
                       const ProfileStatsSection(),
                       const SizedBox(height: ESizes.lg),
-                      const StreamingBreakdownSection(),
+                      const ArchetypeSection(),
                       const SizedBox(height: ESizes.lg),
                       const BadgesSection(),
                       const SizedBox(height: ESizes.lg),
-                      const FriendsSection(),
-                      const SizedBox(height: ESizes.lg),
-                      const FollowingSection(),
-                      const SizedBox(height: ESizes.lg),
-                      _buildActionsSection(),
+                      const ProfileActionsSection(),
                     ],
                   ),
                 ),
@@ -73,22 +65,35 @@ class ProfileScreen extends StatelessWidget {
 
   Widget _buildHeader() {
     return Padding(
-      padding: const EdgeInsets.all(ESizes.lg),
+      padding: const EdgeInsets.symmetric(horizontal: ESizes.md, vertical: ESizes.lg),
       child: Row(
         children: [
           IconButton(
-            onPressed: () => Get.back(),
             icon: const Icon(Icons.arrow_back),
             color: EColors.textPrimary,
+            onPressed: () => Get.back(),
           ),
-          const SizedBox(width: ESizes.sm),
-          const Text(
-            EText.profile,
-            style: TextStyle(
-              fontSize: ESizes.fontXxl,
-              fontWeight: FontWeight.bold,
-              color: EColors.textPrimary,
+          const Expanded(
+            child: Text(
+              EText.profile,
+              style: TextStyle(
+                fontSize: ESizes.fontXxl,
+                fontWeight: FontWeight.bold,
+                color: EColors.textPrimary,
+              ),
             ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.share_outlined),
+            color: EColors.textPrimary,
+            tooltip: 'Share Profile',
+            onPressed: _shareProfile,
+          ),
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            color: EColors.textPrimary,
+            tooltip: 'Settings',
+            onPressed: () => Get.to(() => const SettingsScreen()),
           ),
         ],
       ),
@@ -122,49 +127,31 @@ class ProfileScreen extends StatelessWidget {
                 color: EColors.surface,
                 borderRadius: BorderRadius.circular(50),
               ),
-              child: const Icon(
-                Icons.person,
-                size: 50,
-                color: EColors.textSecondary,
-              ),
+              child: const Icon(Icons.person, size: 50, color: EColors.textSecondary),
             );
           }),
           const SizedBox(height: ESizes.md),
-          Obx(() => Text(
-                controller.displayName,
-                style: const TextStyle(
-                  fontSize: ESizes.fontXxl,
-                  fontWeight: FontWeight.bold,
-                  color: EColors.textOnPrimary,
-                ),
-              )),
+          Obx(
+            () => Text(
+              controller.displayName,
+              style: const TextStyle(
+                fontSize: ESizes.fontXxl,
+                fontWeight: FontWeight.bold,
+                color: EColors.textOnPrimary,
+              ),
+            ),
+          ),
           Obx(() {
             final archCtrl = ArchetypeController.to;
             return Padding(
               padding: const EdgeInsets.only(top: ESizes.sm),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ArchetypeBadge(
-                    primary: archCtrl.primary,
-                    secondary: archCtrl.secondary,
-                    showTagline: true,
-                    onTap: archCtrl.primary != null
-                        ? () => _showArchetypeSheet(archCtrl)
-                        : null,
-                  ),
-                  InkWell(
-                    onTap: ArchetypeGuideSheet.show,
-                    child: Padding(
-                      padding: const EdgeInsets.all(4.0),
-                      child: Icon(
-                        Icons.info_outline,
-                        size: 16,
-                        color: EColors.textOnPrimary.withValues(alpha: 0.6),
-                      ),
-                    ),
-                  ),
-                ],
+              child: ArchetypeBadge(
+                primary: archCtrl.primary,
+                secondary: archCtrl.secondary,
+                showTagline: true,
+                onTap: archCtrl.primary != null
+                    ? () => Get.to(() => const ArchetypeScreen())
+                    : null,
               ),
             );
           }),
@@ -190,101 +177,28 @@ class ProfileScreen extends StatelessWidget {
             );
           }),
           const SizedBox(height: ESizes.xs),
-          Obx(() => Text(
-                controller.email,
-                style: TextStyle(
-                  fontSize: ESizes.fontMd,
-                  color: EColors.textOnPrimary.withValues(alpha: 0.8),
-                ),
-              )),
+          Obx(
+            () => Text(
+              controller.email,
+              style: TextStyle(
+                fontSize: ESizes.fontMd,
+                color: EColors.textOnPrimary.withValues(alpha: 0.8),
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildActionsSection() {
-    return Column(
-      children: [
-        _buildActionTile(
-          icon: Icons.settings,
-          label: EText.settings,
-          onTap: () => Get.to(() => const SettingsScreen()),
-        ),
-        const SizedBox(height: ESizes.sm),
-        _buildActionTile(
-          icon: Icons.logout,
-          label: EText.signOut,
-          onTap: () => _confirmSignOut(),
-          isDestructive: true,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildActionTile({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-    bool isDestructive = false,
-  }) {
-    final color = isDestructive ? EColors.error : EColors.textPrimary;
-
-    return Material(
-      color: EColors.surface,
-      borderRadius: BorderRadius.circular(ESizes.radiusMd),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(ESizes.radiusMd),
-        child: Container(
-          padding: const EdgeInsets.all(ESizes.md),
-          decoration: BoxDecoration(
-            border: Border.all(
-              color: isDestructive
-                  ? EColors.error.withValues(alpha: 0.3)
-                  : EColors.border,
-            ),
-            borderRadius: BorderRadius.circular(ESizes.radiusMd),
-          ),
-          child: Row(
-            children: [
-              Icon(icon, color: color),
-              const SizedBox(width: ESizes.md),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: ESizes.fontMd,
-                  fontWeight: FontWeight.w500,
-                  color: color,
-                ),
-              ),
-              const Spacer(),
-              Icon(Icons.chevron_right, color: color.withValues(alpha: 0.5)),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  static void _showArchetypeSheet(ArchetypeController ctrl) {
-    Get.bottomSheet(
-      ArchetypeDetailSheet(
-        primary: ctrl.primary,
-        secondary: ctrl.secondary,
-        allScores: ctrl.allScores.toList(),
-        history: ctrl.history.toList(),
-        allArchetypes: ctrl.allArchetypes.toList(),
-      ),
-    );
-  }
-
-  void _confirmSignOut() {
-    EConfirmDialog.show(
-      title: EText.signOut,
-      message: EText.signOutConfirm,
-      confirmLabel: EText.signOut,
-      isDestructive: true,
-      onConfirm: () => ProfileController.to.signOut(),
-    );
+  static void _shareProfile() {
+    final username = Get.isRegistered<FriendController>()
+        ? FriendController.to.username.value
+        : null;
+    final userId = SupabaseService.currentUserId;
+    final link = username != null
+        ? 'https://raspucat.com/bingequest/profile?u=$username'
+        : 'https://raspucat.com/bingequest/profile?id=$userId';
+    Share.share('Find me on BingeQuest! $link');
   }
 }

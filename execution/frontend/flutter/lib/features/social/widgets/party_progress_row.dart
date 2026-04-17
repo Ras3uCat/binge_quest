@@ -16,6 +16,7 @@ class PartyProgressRow extends StatelessWidget {
 
   // Nudge fields
   final bool canNudge;
+  final Duration? nudgeTimeRemaining;
   final VoidCallback? onNudge;
 
   const PartyProgressRow.tv({
@@ -25,6 +26,7 @@ class PartyProgressRow extends StatelessWidget {
     this.sayingColor,
     this.isSelf = false,
     this.canNudge = false,
+    this.nudgeTimeRemaining,
     this.onNudge,
   }) : _variant = _Variant.tv;
 
@@ -35,6 +37,7 @@ class PartyProgressRow extends StatelessWidget {
     this.sayingColor,
     this.isSelf = false,
     this.canNudge = false,
+    this.nudgeTimeRemaining,
     this.onNudge,
   }) : _variant = _Variant.movie;
 
@@ -42,10 +45,7 @@ class PartyProgressRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: ESizes.sm),
-      padding: const EdgeInsets.symmetric(
-        horizontal: ESizes.md,
-        vertical: ESizes.sm,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: ESizes.md, vertical: ESizes.sm),
       decoration: BoxDecoration(
         color: EColors.surface,
         borderRadius: BorderRadius.circular(ESizes.radiusSm),
@@ -61,8 +61,7 @@ class PartyProgressRow extends StatelessWidget {
               const SizedBox(width: ESizes.sm),
               Expanded(child: _buildProgress()),
               if (member.isAllWatched) _buildCompletedBadge(),
-              if (!isSelf && canNudge && onNudge != null &&
-                  !member.isAllWatched && member.hasStarted)
+              if (!isSelf && onNudge != null && !member.isAllWatched && member.hasStarted)
                 _buildNudgeButton(),
             ],
           ),
@@ -78,9 +77,7 @@ class PartyProgressRow extends StatelessWidget {
       radius: 16,
       backgroundColor: EColors.surfaceLight,
       backgroundImage: url != null ? NetworkImage(url) : null,
-      child: url == null
-          ? const Icon(Icons.person, size: 16, color: EColors.textSecondary)
-          : null,
+      child: url == null ? const Icon(Icons.person, size: 16, color: EColors.textSecondary) : null,
     );
   }
 
@@ -121,10 +118,7 @@ class PartyProgressRow extends StatelessWidget {
     // Current = first partial in progress, then last completed, then first overall.
     final current = sorted.firstWhere(
       (e) => e.isPartial,
-      orElse: () => sorted.lastWhere(
-        (e) => e.isComplete,
-        orElse: () => sorted.first,
-      ),
+      orElse: () => sorted.lastWhere((e) => e.isComplete, orElse: () => sorted.first),
     );
 
     final pct = current.displayPercent;
@@ -145,10 +139,7 @@ class PartyProgressRow extends StatelessWidget {
             const Spacer(),
             Text(
               '$pct%',
-              style: const TextStyle(
-                color: EColors.textSecondary,
-                fontSize: ESizes.fontXs,
-              ),
+              style: const TextStyle(color: EColors.textSecondary, fontSize: ESizes.fontXs),
             ),
           ],
         ),
@@ -188,10 +179,7 @@ class PartyProgressRow extends StatelessWidget {
         const SizedBox(width: ESizes.sm),
         Text(
           '$percent%',
-          style: const TextStyle(
-            color: EColors.textSecondary,
-            fontSize: ESizes.fontXs,
-          ),
+          style: const TextStyle(color: EColors.textSecondary, fontSize: ESizes.fontXs),
         ),
       ],
     );
@@ -200,10 +188,7 @@ class PartyProgressRow extends StatelessWidget {
   Widget _buildCompletedBadge() {
     return Container(
       margin: const EdgeInsets.only(left: ESizes.xs),
-      padding: const EdgeInsets.symmetric(
-        horizontal: ESizes.xs,
-        vertical: 2,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: ESizes.xs, vertical: 2),
       decoration: BoxDecoration(
         color: EColors.success.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(ESizes.radiusXs),
@@ -221,14 +206,23 @@ class PartyProgressRow extends StatelessWidget {
   }
 
   Widget _buildNudgeButton() {
-    return IconButton(
-      icon: const Icon(Icons.notifications_active_outlined, size: 16),
-      color: EColors.textTertiary,
-      onPressed: onNudge,
-      tooltip: 'Nudge',
+    final button = IconButton(
+      icon: Icon(canNudge ? Icons.notifications_active : Icons.notifications_outlined, size: 18),
+      color: canNudge ? EColors.primary : EColors.textTertiary,
+      onPressed: canNudge ? onNudge : null,
+      tooltip: canNudge ? 'Nudge' : null,
+      constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
       padding: EdgeInsets.zero,
-      constraints: const BoxConstraints(),
     );
+
+    if (!canNudge && nudgeTimeRemaining != null) {
+      final h = nudgeTimeRemaining!.inHours;
+      final m = nudgeTimeRemaining!.inMinutes % 60;
+      final label = h > 0 ? 'Available again in ${h}h' : 'Available again in ${m}m';
+      return Tooltip(message: label, child: button);
+    }
+
+    return button;
   }
 
   Widget _buildSaying() {

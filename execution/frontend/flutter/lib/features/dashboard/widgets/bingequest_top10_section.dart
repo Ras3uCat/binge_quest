@@ -17,7 +17,8 @@ class BingeQuestTop10Section extends StatefulWidget {
 class _BingeQuestTop10SectionState extends State<BingeQuestTop10Section> {
   List<TopContent>? _items;
   bool _isLoading = true;
-  bool _showMostWatched = true; // true = Most Watched, false = Top Rated
+  bool _showMostWatched = true;
+  bool _isFriendsMode = false;
 
   @override
   void initState() {
@@ -28,9 +29,16 @@ class _BingeQuestTop10SectionState extends State<BingeQuestTop10Section> {
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
 
-    final items = _showMostWatched
-        ? await TopContentRepository.getTop10ByUsers()
-        : await TopContentRepository.getTop10ByRating();
+    final List<TopContent> items;
+    if (_isFriendsMode) {
+      items = _showMostWatched
+          ? await TopContentRepository.getFriendsTop10ByUsers()
+          : await TopContentRepository.getFriendsTop10ByRating();
+    } else {
+      items = _showMostWatched
+          ? await TopContentRepository.getTop10ByUsers()
+          : await TopContentRepository.getTop10ByRating();
+    }
 
     if (mounted) {
       setState(() {
@@ -45,6 +53,11 @@ class _BingeQuestTop10SectionState extends State<BingeQuestTop10Section> {
       setState(() => _showMostWatched = mostWatched);
       _loadData();
     }
+  }
+
+  void _toggleFriends() {
+    setState(() => _isFriendsMode = !_isFriendsMode);
+    _loadData();
   }
 
   @override
@@ -69,18 +82,16 @@ class _BingeQuestTop10SectionState extends State<BingeQuestTop10Section> {
                 onTap: Top10GuideSheet.show,
                 child: const Padding(
                   padding: EdgeInsets.all(4.0),
-                  child: Icon(
-                    Icons.info_outline,
-                    size: 16,
-                    color: EColors.textSecondary,
-                  ),
+                  child: Icon(Icons.info_outline, size: 16, color: EColors.textSecondary),
                 ),
               ),
+              const Spacer(),
+              _FriendsTogglePill(isFriendsMode: _isFriendsMode, onToggle: _toggleFriends),
             ],
           ),
         ),
         const SizedBox(height: ESizes.sm),
-        // Sort toggle chips
+        // Sort chips
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           clipBehavior: Clip.none,
@@ -106,11 +117,13 @@ class _BingeQuestTop10SectionState extends State<BingeQuestTop10Section> {
         if (_isLoading)
           const PosterListSkeleton(count: 5, height: 220)
         else if (_items == null || _items!.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: ESizes.lg, vertical: 20),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: ESizes.lg, vertical: 20),
             child: Text(
-              'No data yet. Start adding content!',
-              style: TextStyle(color: EColors.textSecondary),
+              _isFriendsMode
+                  ? 'None of your friends have added this type of content yet.'
+                  : 'No data yet. Start adding content!',
+              style: const TextStyle(color: EColors.textSecondary),
             ),
           )
         else
@@ -118,12 +131,10 @@ class _BingeQuestTop10SectionState extends State<BingeQuestTop10Section> {
             height: 220,
             child: ListView.separated(
               padding: const EdgeInsets.symmetric(horizontal: ESizes.lg),
-              clipBehavior:
-                  Clip.none, // Allow badges to overflow slightly if needed
+              clipBehavior: Clip.none,
               scrollDirection: Axis.horizontal,
               itemCount: _items!.length,
-              separatorBuilder: (context, index) =>
-                  const SizedBox(width: ESizes.md),
+              separatorBuilder: (context, index) => const SizedBox(width: ESizes.md),
               itemBuilder: (context, index) => Top10ItemCard(
                 item: _items![index],
                 rank: index + 1,
@@ -136,16 +147,67 @@ class _BingeQuestTop10SectionState extends State<BingeQuestTop10Section> {
   }
 }
 
+class _FriendsTogglePill extends StatelessWidget {
+  final bool isFriendsMode;
+  final VoidCallback onToggle;
+
+  const _FriendsTogglePill({required this.isFriendsMode, required this.onToggle});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onToggle,
+      child: Container(
+        decoration: BoxDecoration(
+          color: EColors.surface,
+          borderRadius: BorderRadius.circular(ESizes.radiusRound),
+          border: Border.all(color: EColors.border),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _Segment(label: 'Global', isActive: !isFriendsMode),
+            _Segment(label: 'Friends', isActive: isFriendsMode),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Segment extends StatelessWidget {
+  final String label;
+  final bool isActive;
+
+  const _Segment({required this.label, required this.isActive});
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      padding: const EdgeInsets.symmetric(horizontal: ESizes.md, vertical: 4),
+      decoration: BoxDecoration(
+        color: isActive ? EColors.primary : Colors.transparent,
+        borderRadius: BorderRadius.circular(ESizes.radiusRound),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: isActive ? EColors.textOnPrimary : EColors.textSecondary,
+          fontWeight: FontWeight.w600,
+          fontSize: ESizes.fontSm,
+        ),
+      ),
+    );
+  }
+}
+
 class _FilterChip extends StatelessWidget {
   final String label;
   final bool isSelected;
   final VoidCallback onTap;
 
-  const _FilterChip({
-    required this.label,
-    required this.isSelected,
-    required this.onTap,
-  });
+  const _FilterChip({required this.label, required this.isSelected, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -153,16 +215,11 @@ class _FilterChip extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(
-          horizontal: ESizes.md,
-          vertical: ESizes.sm,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: ESizes.md, vertical: ESizes.sm),
         decoration: BoxDecoration(
           color: isSelected ? EColors.primary : EColors.surface,
           borderRadius: BorderRadius.circular(ESizes.radiusRound),
-          border: Border.all(
-            color: isSelected ? EColors.primary : EColors.border,
-          ),
+          border: Border.all(color: isSelected ? EColors.primary : EColors.border),
         ),
         child: Text(
           label,

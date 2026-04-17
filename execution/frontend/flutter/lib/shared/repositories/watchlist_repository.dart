@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../../core/services/supabase_service.dart';
+import '../../features/playlists/models/playlist.dart';
 import '../models/dashboard_data.dart';
 import '../models/watchlist.dart';
 import '../models/watchlist_item.dart';
@@ -71,9 +72,7 @@ class WatchlistRepository {
         .eq('user_id', userId)
         .eq('status', 'accepted');
 
-    final ownedLists = (owned as List)
-        .map((json) => Watchlist.fromJson(json))
-        .toList();
+    final ownedLists = (owned as List).map((json) => Watchlist.fromJson(json)).toList();
 
     final ownedIds = ownedLists.map((w) => w.id).toSet();
 
@@ -92,20 +91,14 @@ class WatchlistRepository {
         .inFilter('id', coOwnedIds)
         .order('created_at', ascending: true);
 
-    final coOwnedLists = (coOwned as List)
-        .map((json) => Watchlist.fromJson(json))
-        .toList();
+    final coOwnedLists = (coOwned as List).map((json) => Watchlist.fromJson(json)).toList();
 
     return [...ownedLists, ...coOwnedLists];
   }
 
   /// Get a single watchlist by ID.
   static Future<Watchlist?> getWatchlist(String id) async {
-    final response = await _client
-        .from('watchlists')
-        .select()
-        .eq('id', id)
-        .maybeSingle();
+    final response = await _client.from('watchlists').select().eq('id', id).maybeSingle();
 
     if (response == null) return null;
     return Watchlist.fromJson(response);
@@ -128,10 +121,7 @@ class WatchlistRepository {
   }
 
   /// Create a new watchlist.
-  static Future<Watchlist> createWatchlist({
-    required String name,
-    bool isDefault = false,
-  }) async {
+  static Future<Watchlist> createWatchlist({required String name, bool isDefault = false}) async {
     final userId = SupabaseService.currentUserId;
     if (userId == null) throw Exception('User not authenticated');
 
@@ -206,9 +196,7 @@ class WatchlistRepository {
 
   /// Get all items in a watchlist with computed progress fields.
   /// Joins with content_cache to get full content metadata.
-  static Future<List<WatchlistItem>> getWatchlistItems(
-    String watchlistId,
-  ) async {
+  static Future<List<WatchlistItem>> getWatchlistItems(String watchlistId) async {
     try {
       final response = await _client
           .from('watchlist_items')
@@ -216,9 +204,7 @@ class WatchlistRepository {
           .eq('watchlist_id', watchlistId)
           .order('added_at', ascending: false);
 
-      final items = (response as List)
-          .map((json) => WatchlistItem.fromJson(json))
-          .toList();
+      final items = (response as List).map((json) => WatchlistItem.fromJson(json)).toList();
 
       // Calculate progress for each item
       final itemsWithProgress = <WatchlistItem>[];
@@ -264,8 +250,7 @@ class WatchlistRepository {
           itemsWithProgress.add(
             item.copyWith(
               minutesRemaining: progress['minutes_remaining'] as int?,
-              completionPercentage:
-                  progress['completion_percentage'] as double?,
+              completionPercentage: progress['completion_percentage'] as double?,
               nextEpisodeRuntime: progress['next_episode_runtime'] as int?,
               lastActivityAt: progress['last_activity_at'] as DateTime?,
             ),
@@ -301,18 +286,13 @@ class WatchlistRepository {
   }
 
   /// Get items sorted by minutes remaining (Finish Fast algorithm).
-  static Future<List<WatchlistItem>> getFinishFastItems(
-    String watchlistId, {
-    int limit = 5,
-  }) async {
+  static Future<List<WatchlistItem>> getFinishFastItems(String watchlistId, {int limit = 5}) async {
     final items = await getWatchlistItems(watchlistId);
 
     // Filter to items in progress (not completed, has remaining time)
     final inProgress = items
         .where(
-          (item) =>
-              !item.isCompleted &&
-              (item.minutesRemaining ?? item.totalRuntimeMinutes) > 0,
+          (item) => !item.isCompleted && (item.minutesRemaining ?? item.totalRuntimeMinutes) > 0,
         )
         .toList();
 
@@ -336,12 +316,7 @@ class WatchlistRepository {
 
     // Filter to items with progress (started but not completed)
     final inProgress = items
-        .where(
-          (item) =>
-              !item.isCompleted &&
-              !item.isNotStarted &&
-              item.lastActivityAt != null,
-        )
+        .where((item) => !item.isCompleted && !item.isNotStarted && item.lastActivityAt != null)
         .toList();
 
     // Sort by last activity (descending - most recent first)
@@ -363,11 +338,7 @@ class WatchlistRepository {
   }) async {
     final response = await _client
         .from('watchlist_items')
-        .insert({
-          'watchlist_id': watchlistId,
-          'tmdb_id': tmdbId,
-          'media_type': mediaType.value,
-        })
+        .insert({'watchlist_id': watchlistId, 'tmdb_id': tmdbId, 'media_type': mediaType.value})
         .select(_itemSelectWithContent)
         .single();
 
@@ -411,10 +382,7 @@ class WatchlistRepository {
 
     // Move the item by updating its watchlist_id
     // All watch_progress entries are preserved (they reference watchlist_item_id)
-    await _client
-        .from('watchlist_items')
-        .update({'watchlist_id': toWatchlistId})
-        .eq('id', itemId);
+    await _client.from('watchlist_items').update({'watchlist_id': toWatchlistId}).eq('id', itemId);
 
     return true;
   }
@@ -441,9 +409,7 @@ class WatchlistRepository {
         .eq('tmdb_id', tmdbId)
         .eq('media_type', mediaType.value);
 
-    return (response as List)
-        .map((row) => row['watchlist_id'] as String)
-        .toSet();
+    return (response as List).map((row) => row['watchlist_id'] as String).toSet();
   }
 
   /// Get a watchlist item by TMDB ID and media type.
@@ -507,9 +473,7 @@ class WatchlistRepository {
         .insert(insertData)
         .select(_itemSelectWithContent);
 
-    return (response as List)
-        .map((json) => WatchlistItem.fromJson(json))
-        .toList();
+    return (response as List).map((json) => WatchlistItem.fromJson(json)).toList();
   }
 
   /// Remove an item from a watchlist.
@@ -532,18 +496,12 @@ class WatchlistRepository {
 
     final response = await _client.rpc(
       'get_friends_watching_content',
-      params: {
-        'p_tmdb_id': tmdbId,
-        'p_media_type': mediaType.value,
-        'p_friend_ids': friendIds,
-      },
+      params: {'p_tmdb_id': tmdbId, 'p_media_type': mediaType.value, 'p_friend_ids': friendIds},
     );
 
     if (response == null) return [];
 
-    return (response as List)
-        .map((json) => FriendWatching.fromJson(json))
-        .toList();
+    return (response as List).map((json) => FriendWatching.fromJson(json)).toList();
   }
 
   // ============================================
@@ -624,9 +582,7 @@ class WatchlistRepository {
 
   /// Get all progress entries for a watchlist item.
   /// Joins with content_cache_episodes for episode data.
-  static Future<List<Map<String, dynamic>>> getProgressEntries(
-    String watchlistItemId,
-  ) async {
+  static Future<List<Map<String, dynamic>>> getProgressEntries(String watchlistItemId) async {
     final response = await _client
         .from('watch_progress')
         .select('''
@@ -646,7 +602,8 @@ class WatchlistRepository {
             air_date
           )
         ''')
-        .eq('watchlist_item_id', watchlistItemId);
+        .eq('watchlist_item_id', watchlistItemId)
+        .limit(9999); // PostgREST default cap is 1000; SNL has 1000+ episodes
 
     // Sort by season/episode from the joined data
     final entries = (response as List).cast<Map<String, dynamic>>();
@@ -665,9 +622,7 @@ class WatchlistRepository {
       );
       if (seasonCompare != 0) return seasonCompare;
 
-      return (aEp['episode_number'] as int? ?? 0).compareTo(
-        bEp['episode_number'] as int? ?? 0,
-      );
+      return (aEp['episode_number'] as int? ?? 0).compareTo(bEp['episode_number'] as int? ?? 0);
     });
 
     return entries;
@@ -725,8 +680,7 @@ class WatchlistRepository {
 
     for (final entry in entries) {
       // Get runtime from episode cache or movie runtime
-      final episodeCache =
-          entry['content_cache_episodes'] as Map<String, dynamic>?;
+      final episodeCache = entry['content_cache_episodes'] as Map<String, dynamic>?;
 
       int runtime = 0;
       if (episodeCache != null) {
@@ -743,8 +697,7 @@ class WatchlistRepository {
       final watchedAtStr = entry['watched_at'] as String?;
       if (watchedAtStr != null) {
         final watchedAt = DateTime.tryParse(watchedAtStr);
-        if (watchedAt != null &&
-            (lastActivityAt == null || watchedAt.isAfter(lastActivityAt))) {
+        if (watchedAt != null && (lastActivityAt == null || watchedAt.isAfter(lastActivityAt))) {
           lastActivityAt = watchedAt;
         }
       }
@@ -771,9 +724,7 @@ class WatchlistRepository {
       'minutes_remaining': totalMinutes - watchedMinutes,
       // Calculate percentage based on minutes watched, not entry count
       // This correctly handles partial movie progress
-      'completion_percentage': totalMinutes > 0
-          ? (watchedMinutes / totalMinutes) * 100
-          : 0.0,
+      'completion_percentage': totalMinutes > 0 ? (watchedMinutes / totalMinutes) * 100 : 0.0,
       'next_episode_runtime': nextEpisodeRuntime,
       'next_episode_remaining': nextEpisodeRemaining,
       'last_activity_at': lastActivityAt,
@@ -785,9 +736,7 @@ class WatchlistRepository {
   // ============================================
 
   /// Get overall stats for a watchlist.
-  static Future<Map<String, dynamic>> getWatchlistStats(
-    String watchlistId,
-  ) async {
+  static Future<Map<String, dynamic>> getWatchlistStats(String watchlistId) async {
     final items = await getWatchlistItems(watchlistId);
 
     int totalMinutesRemaining = 0;
@@ -803,9 +752,7 @@ class WatchlistRepository {
     }
 
     final totalItems = items.length;
-    final overallPercentage = totalItems > 0
-        ? (completedCount / totalItems) * 100
-        : 0.0;
+    final overallPercentage = totalItems > 0 ? (completedCount / totalItems) * 100 : 0.0;
 
     return {
       'total_items': totalItems,
@@ -834,15 +781,11 @@ class WatchlistRepository {
       );
 
       stopwatch.stop();
-      debugPrint(
-        '[Dashboard RPC] Completed in ${stopwatch.elapsedMilliseconds}ms',
-      );
+      debugPrint('[Dashboard RPC] Completed in ${stopwatch.elapsedMilliseconds}ms');
 
       if (response != null && (response as List).isNotEmpty) {
         final data = response[0] as Map<String, dynamic>;
-        debugPrint(
-          '[Dashboard RPC] Got data with ${(data['items'] as List?)?.length ?? 0} items',
-        );
+        debugPrint('[Dashboard RPC] Got data with ${(data['items'] as List?)?.length ?? 0} items');
         return DashboardData.fromJson(data);
       }
       debugPrint('[Dashboard RPC] Empty response');
@@ -861,10 +804,7 @@ class WatchlistRepository {
 
     try {
       // Use optimized RPC (single query)
-      final response = await _client.rpc(
-        'get_user_stats',
-        params: {'p_user_id': userId},
-      );
+      final response = await _client.rpc('get_user_stats', params: {'p_user_id': userId});
 
       if (response != null && (response as List).isNotEmpty) {
         final data = response[0] as Map<String, dynamic>;
@@ -905,8 +845,7 @@ class WatchlistRepository {
         for (final entry in progressEntries) {
           if (entry['watched'] == true) {
             // Fix: Get runtime from nested content_cache_episodes
-            final episodeData =
-                entry['content_cache_episodes'] as Map<String, dynamic>?;
+            final episodeData = entry['content_cache_episodes'] as Map<String, dynamic>?;
             final runtime = (episodeData?['runtime_minutes'] as int?) ?? 0;
             totalMinutesWatched += runtime;
 
@@ -946,9 +885,7 @@ class WatchlistRepository {
   /// Get queue efficiency metrics for a specific watchlist or all watchlists.
   /// If [watchlistId] is provided, calculates for that watchlist only.
   /// Uses database function if available, falls back to local calculation.
-  static Future<QueueEfficiency> getQueueEfficiency({
-    String? watchlistId,
-  }) async {
+  static Future<QueueEfficiency> getQueueEfficiency({String? watchlistId}) async {
     final userId = SupabaseService.currentUserId;
     if (userId == null) throw Exception('User not authenticated');
 
@@ -977,9 +914,7 @@ class WatchlistRepository {
   }
 
   /// Calculate efficiency for a specific watchlist.
-  static Future<QueueEfficiency> _calculateEfficiencyForWatchlist(
-    String watchlistId,
-  ) async {
+  static Future<QueueEfficiency> _calculateEfficiencyForWatchlist(String watchlistId) async {
     final items = await getWatchlistItems(watchlistId);
     return _calculateEfficiencyFromItems(items);
   }
@@ -999,12 +934,7 @@ class WatchlistRepository {
 
   /// Returns true if an item is available to watch (not unreleased, has streaming).
   static bool _isItemAvailable(WatchlistItem item) {
-    const unreleasedStatuses = {
-      'In Production',
-      'Planned',
-      'Post Production',
-      'Rumored',
-    };
+    const unreleasedStatuses = {'In Production', 'Planned', 'Post Production', 'Rumored'};
 
     // Unreleased by date
     if (item.releaseDate != null && item.releaseDate!.isAfter(DateTime.now())) {
@@ -1012,8 +942,7 @@ class WatchlistRepository {
     }
 
     // Unreleased by status
-    if (item.content?.status != null &&
-        unreleasedStatuses.contains(item.content!.status)) {
+    if (item.content?.status != null && unreleasedStatuses.contains(item.content!.status)) {
       return false;
     }
 
@@ -1026,9 +955,7 @@ class WatchlistRepository {
   }
 
   /// Calculate efficiency from a list of items.
-  static QueueEfficiency _calculateEfficiencyFromItems(
-    List<WatchlistItem> items,
-  ) {
+  static QueueEfficiency _calculateEfficiencyFromItems(List<WatchlistItem> items) {
     // Separate available vs excluded items
     final available = <WatchlistItem>[];
     int excluded = 0;
@@ -1056,8 +983,7 @@ class WatchlistRepository {
         case ItemStatus.completed:
           completed++;
           // Check if completed recently
-          if (item.lastActivityAt != null &&
-              item.lastActivityAt!.isAfter(sevenDaysAgo)) {
+          if (item.lastActivityAt != null && item.lastActivityAt!.isAfter(sevenDaysAgo)) {
             recentCompletions++;
           }
           break;
@@ -1107,18 +1033,13 @@ class WatchlistRepository {
 
   /// Get stale items that need attention.
   /// If [watchlistId] is provided, only returns stale items from that watchlist.
-  static Future<List<WatchlistItem>> getStaleItems({
-    int limit = 10,
-    String? watchlistId,
-  }) async {
+  static Future<List<WatchlistItem>> getStaleItems({int limit = 10, String? watchlistId}) async {
     List<WatchlistItem> staleItems = [];
 
     if (watchlistId != null) {
       // Get items from specific watchlist
       final items = await getWatchlistItems(watchlistId);
-      staleItems = items
-          .where((item) => item.calculatedStatus == ItemStatus.stale)
-          .toList();
+      staleItems = items.where((item) => item.calculatedStatus == ItemStatus.stale).toList();
     } else {
       // Get from all watchlists
       final itemsByStatus = await getItemsByStatus();
@@ -1126,9 +1047,7 @@ class WatchlistRepository {
     }
 
     // Sort by days since activity (most stale first)
-    staleItems.sort(
-      (a, b) => b.daysSinceActivity.compareTo(a.daysSinceActivity),
-    );
+    staleItems.sort((a, b) => b.daysSinceActivity.compareTo(a.daysSinceActivity));
 
     return staleItems.take(limit).toList();
   }
@@ -1145,10 +1064,7 @@ class WatchlistRepository {
 
     try {
       // Use server-side RPC for efficient aggregation
-      final response = await _client.rpc(
-        'get_streaming_breakdown',
-        params: {'p_user_id': userId},
-      );
+      final response = await _client.rpc('get_streaming_breakdown', params: {'p_user_id': userId});
 
       if (response == null) return [];
 
@@ -1170,8 +1086,7 @@ class WatchlistRepository {
   static const _allowedProviderIds = {8, 9, 15, 337, 350, 386, 531, 1899};
 
   /// Fallback client-side aggregation if RPC unavailable.
-  static Future<List<StreamingBreakdownItem>>
-  _getStreamingBreakdownFallback() async {
+  static Future<List<StreamingBreakdownItem>> _getStreamingBreakdownFallback() async {
     try {
       final watchlists = await getWatchlists();
       final watchlistIds = watchlists.map((w) => w.id).toList();
@@ -1205,8 +1120,7 @@ class WatchlistRepository {
         }
       }
 
-      return providerCounts.values.toList()
-        ..sort((a, b) => b.itemCount.compareTo(a.itemCount));
+      return providerCounts.values.toList()..sort((a, b) => b.itemCount.compareTo(a.itemCount));
     } catch (e) {
       return [];
     }
@@ -1217,10 +1131,7 @@ class WatchlistRepository {
   // ============================================
 
   /// Get count of users who have this content in their watchlist.
-  static Future<int> getUserCount({
-    required int tmdbId,
-    required String mediaType,
-  }) async {
+  static Future<int> getUserCount({required int tmdbId, required String mediaType}) async {
     try {
       final response = await _client.rpc(
         'get_user_count_for_content',
@@ -1230,5 +1141,27 @@ class WatchlistRepository {
     } catch (e) {
       return 0;
     }
+  }
+
+  static Future<int> bulkAddFromPlaylist({
+    required List<PlaylistItem> items,
+    required String watchlistId,
+  }) async {
+    if (items.isEmpty) return 0;
+    final insertData = items
+        .map(
+          (item) => {
+            'watchlist_id': watchlistId,
+            'tmdb_id': item.tmdbId,
+            'media_type': item.mediaType,
+          },
+        )
+        .toList();
+
+    final response = await _client
+        .from('watchlist_items')
+        .upsert(insertData, onConflict: 'watchlist_id, tmdb_id, media_type', ignoreDuplicates: true)
+        .select('id');
+    return (response as List).length;
   }
 }

@@ -13,6 +13,7 @@ import '../../../shared/models/user_profile.dart';
 import '../widgets/friend_tab_sections.dart';
 import '../widgets/party_list_section.dart';
 import 'friend_search_screen.dart';
+import '../../../features/profile/screens/user_profile_screen.dart';
 
 /// Main friends screen with tabs: Friends, Requests, Blocked.
 class FriendListScreen extends StatelessWidget {
@@ -49,11 +50,7 @@ class FriendListScreen extends StatelessWidget {
                 ),
                 const Expanded(
                   child: TabBarView(
-                    children: [
-                      _FriendsTab(),
-                      FriendRequestsTab(),
-                      FriendBlockedTab(),
-                    ],
+                    children: [_FriendsTab(), FriendRequestsTab(), FriendBlockedTab()],
                   ),
                 ),
               ],
@@ -69,15 +66,9 @@ class FriendListScreen extends StatelessWidget {
       padding: const EdgeInsets.all(ESizes.lg),
       child: Row(
         children: [
-          IconButton(
-            onPressed: () => Get.back(),
-            icon: const Icon(Icons.arrow_back),
-            color: EColors.textPrimary,
-          ),
-          const SizedBox(width: ESizes.sm),
           const Expanded(
             child: Text(
-              'Friends & Watch Parties',
+              'Social',
               style: TextStyle(
                 fontSize: ESizes.fontXxl,
                 fontWeight: FontWeight.bold,
@@ -141,10 +132,7 @@ class _FriendsTabState extends State<_FriendsTab> {
       if (ctrl.friends.isEmpty) {
         return Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.all(ESizes.md),
-              child: const PartyListSection(),
-            ),
+            Padding(padding: const EdgeInsets.all(ESizes.md), child: const PartyListSection()),
             Expanded(
               child: friendEmptyState(
                 icon: Icons.people_outline,
@@ -166,10 +154,12 @@ class _FriendsTabState extends State<_FriendsTab> {
             const PartyListSection(),
             const SizedBox(height: ESizes.md),
             _friendsHeader(),
-            ...ctrl.friends.map((f) => Padding(
-                  padding: const EdgeInsets.only(bottom: ESizes.xs),
-                  child: _FriendTile(friendship: f, ctrl: ctrl),
-                )),
+            ...ctrl.friends.map(
+              (f) => Padding(
+                padding: const EdgeInsets.only(bottom: ESizes.xs),
+                child: _FriendTile(friendship: f, ctrl: ctrl),
+              ),
+            ),
           ],
         ),
       );
@@ -190,100 +180,91 @@ class _FriendTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final friend = friendship.friend;
-    return Container(
-      padding: const EdgeInsets.all(ESizes.md),
-      decoration: BoxDecoration(
-        color: EColors.surface,
-        borderRadius: BorderRadius.circular(ESizes.md),
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 22,
-            backgroundColor: EColors.surfaceLight,
-            backgroundImage: friend?.avatarUrl != null
-                ? NetworkImage(friend!.avatarUrl!)
-                : null,
-            child: friend?.avatarUrl == null
-                ? const Icon(Icons.person, color: EColors.textSecondary)
-                : null,
-          ),
-          const SizedBox(width: ESizes.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  friend?.displayName ?? 'User',
-                  style: const TextStyle(
-                    color: EColors.textPrimary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                if (friend?.username != null)
+    return InkWell(
+      borderRadius: BorderRadius.circular(ESizes.md),
+      onTap: friend != null ? () => Get.to(() => UserProfileScreen(userId: friend.id)) : null,
+      child: Container(
+        padding: const EdgeInsets.all(ESizes.md),
+        decoration: BoxDecoration(
+          color: EColors.surface,
+          borderRadius: BorderRadius.circular(ESizes.md),
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 22,
+              backgroundColor: EColors.surfaceLight,
+              backgroundImage: friend?.avatarUrl != null ? NetworkImage(friend!.avatarUrl!) : null,
+              child: friend?.avatarUrl == null
+                  ? const Icon(Icons.person, color: EColors.textSecondary)
+                  : null,
+            ),
+            const SizedBox(width: ESizes.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Text(
-                    '@${friend!.username}',
-                    style: const TextStyle(
-                      color: EColors.textSecondary,
-                      fontSize: ESizes.fontSm,
-                    ),
+                    friend?.displayLabel ?? 'User',
+                    style: const TextStyle(color: EColors.textPrimary, fontWeight: FontWeight.w600),
                   ),
-                if (friend?.primaryArchetype != null)
-                  Obx(() => Padding(
+                  if (friend?.username != null)
+                    Text(
+                      '@${friend!.username}',
+                      style: const TextStyle(color: EColors.textSecondary, fontSize: ESizes.fontSm),
+                    ),
+                  if (friend?.primaryArchetype != null)
+                    Obx(
+                      () => Padding(
                         padding: const EdgeInsets.only(top: ESizes.xs),
                         child: _buildCompactArchetypeBadge(friend!),
-                      )),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert, color: EColors.textSecondary),
+              color: EColors.surface,
+              onSelected: (value) {
+                if (value == 'remove') {
+                  _confirmRemove();
+                } else if (value == 'block') {
+                  ctrl.blockUser(
+                    friendship.friendId(ctrl.friends.first.requesterId),
+                    displayName: friend?.displayLabel,
+                  );
+                }
+              },
+              itemBuilder: (_) => [
+                const PopupMenuItem(
+                  value: 'remove',
+                  child: Text('Remove Friend', style: TextStyle(color: EColors.textPrimary)),
+                ),
+                const PopupMenuItem(
+                  value: 'block',
+                  child: Text('Block User', style: TextStyle(color: EColors.error)),
+                ),
               ],
             ),
-          ),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert, color: EColors.textSecondary),
-            color: EColors.surface,
-            onSelected: (value) {
-              if (value == 'remove') {
-                _confirmRemove();
-              } else if (value == 'block') {
-                ctrl.blockUser(
-                  friendship.friendId(ctrl.friends.first.requesterId),
-                  displayName: friend?.displayName,
-                );
-              }
-            },
-            itemBuilder: (_) => [
-              const PopupMenuItem(
-                value: 'remove',
-                child: Text('Remove Friend',
-                    style: TextStyle(color: EColors.textPrimary)),
-              ),
-              const PopupMenuItem(
-                value: 'block',
-                child: Text('Block User',
-                    style: TextStyle(color: EColors.error)),
-              ),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildCompactArchetypeBadge(UserProfile friend) {
-    final archetype =
-        ArchetypeController.to.archetypeById(friend.primaryArchetype!);
+    final archetype = ArchetypeController.to.archetypeById(friend.primaryArchetype!);
     if (archetype == null) return const SizedBox.shrink();
     return ArchetypeBadge(
-      primary: UserArchetype.displayOnly(
-        userId: friend.id,
-        archetype: archetype,
-      ),
+      primary: UserArchetype.displayOnly(userId: friend.id, archetype: archetype),
     );
   }
 
   void _confirmRemove() {
     EConfirmDialog.show(
       title: 'Remove Friend',
-      message:
-          'Remove ${friendship.friend?.displayName ?? "this user"} from your friends?',
+      message: 'Remove ${friendship.friend?.displayLabel ?? "this user"} from your friends?',
       confirmLabel: 'Remove',
       isDestructive: true,
       onConfirm: () => ctrl.removeFriend(friendship),

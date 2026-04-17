@@ -25,9 +25,7 @@ class AuthController extends GetxController {
   static const _webClientId =
       '58540891155-pcj46caefias3og8349fkouv6on173os.apps.googleusercontent.com';
 
-  GoogleSignIn get _googleSignIn => GoogleSignIn(
-        serverClientId: _webClientId,
-      );
+  GoogleSignIn get _googleSignIn => GoogleSignIn(serverClientId: _webClientId);
 
   final _isLoading = false.obs;
   final _user = Rxn<User>();
@@ -127,10 +125,7 @@ class AuthController extends GetxController {
       final hashedNonce = sha256.convert(utf8.encode(rawNonce)).toString();
 
       final credential = await SignInWithApple.getAppleIDCredential(
-        scopes: [
-          AppleIDAuthorizationScopes.email,
-          AppleIDAuthorizationScopes.fullName,
-        ],
+        scopes: [AppleIDAuthorizationScopes.email, AppleIDAuthorizationScopes.fullName],
         nonce: hashedNonce,
       );
 
@@ -245,10 +240,10 @@ class AuthController extends GetxController {
           'display_name':
               user.userMetadata?['full_name'] ??
               user.userMetadata?['name'] ??
-              user.email?.split('@').first ??
-              'User',
-          'avatar_url':
-              user.userMetadata?['avatar_url'] ?? user.userMetadata?['picture'],
+              (user.email?.contains('@privaterelay.appleid.com') == true
+                  ? null
+                  : user.email?.split('@').first),
+          'avatar_url': user.userMetadata?['avatar_url'] ?? user.userMetadata?['picture'],
           'is_premium': false,
         });
         // Default watchlist is created by ensureDefaultWatchlist() in WatchlistController
@@ -268,13 +263,9 @@ class AuthController extends GetxController {
 
   /// Generate a random nonce for Apple Sign-In
   String _generateNonce([int length = 32]) {
-    const charset =
-        '0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._';
+    const charset = '0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._';
     final random = Random.secure();
-    return List.generate(
-      length,
-      (_) => charset[random.nextInt(charset.length)],
-    ).join();
+    return List.generate(length, (_) => charset[random.nextInt(charset.length)]).join();
   }
 
   void clearError() {

@@ -12,6 +12,7 @@ import '../controllers/watch_party_controller.dart';
 import '../widgets/party_member_avatars.dart';
 import '../widgets/party_screen_helpers.dart';
 import '../../../shared/widgets/watch_party_guide_sheet.dart';
+import 'friend_list_screen.dart';
 
 /// Full-screen view for a single Watch Party.
 /// Shows member progress (TV: season tabs via PartyTvBody,
@@ -69,16 +70,14 @@ class _WatchPartyScreenState extends State<WatchPartyScreen> {
   bool get _isCreator {
     try {
       final all = [..._ctrl.activeParties, ..._ctrl.pendingParties];
-      return all.firstWhereOrNull((p) => p.id == widget.partyId)?.createdBy ==
-          _currentUserId;
+      return all.firstWhereOrNull((p) => p.id == widget.partyId)?.createdBy == _currentUserId;
     } catch (_) {
       return false;
     }
   }
 
   Future<void> _openWatchlistItem() async {
-    final mediaType =
-        widget.mediaType == 'tv' ? MediaType.tv : MediaType.movie;
+    final mediaType = widget.mediaType == 'tv' ? MediaType.tv : MediaType.movie;
 
     final item = await WatchlistRepository.getItemByTmdbId(
       tmdbId: widget.tmdbId,
@@ -158,23 +157,17 @@ class _WatchPartyScreenState extends State<WatchPartyScreen> {
       appBar: _buildAppBar(),
       body: Column(
         children: [
-          Obx(() => PartyMemberAvatars(
-                members: _ctrl.membersByParty[widget.partyId] ?? [],
-                progress: _ctrl.progressByParty[widget.partyId] ?? [],
-                mediaType: widget.mediaType,
-              )),
+          Obx(
+            () => PartyMemberAvatars(
+              members: _ctrl.membersByParty[widget.partyId] ?? [],
+              progress: _ctrl.progressByParty[widget.partyId] ?? [],
+              mediaType: widget.mediaType,
+            ),
+          ),
           Expanded(
             child: widget.mediaType == 'tv'
-                ? PartyTvBody(
-                    ctrl: _ctrl,
-                    partyId: widget.partyId,
-                    partyName: widget.partyName,
-                  )
-                : PartyMovieBody(
-                    ctrl: _ctrl,
-                    partyId: widget.partyId,
-                    partyName: widget.partyName,
-                  ),
+                ? PartyTvBody(ctrl: _ctrl, partyId: widget.partyId, partyName: widget.partyName)
+                : PartyMovieBody(ctrl: _ctrl, partyId: widget.partyId, partyName: widget.partyName),
           ),
         ],
       ),
@@ -185,12 +178,15 @@ class _WatchPartyScreenState extends State<WatchPartyScreen> {
   AppBar _buildAppBar() {
     return AppBar(
       backgroundColor: EColors.backgroundSecondary,
-      title: Text(
-        widget.partyName,
-        style: const TextStyle(color: EColors.textPrimary),
-      ),
+      title: Text(widget.partyName, style: const TextStyle(color: EColors.textPrimary)),
       iconTheme: const IconThemeData(color: EColors.textPrimary),
       actions: [
+        IconButton(
+          icon: const Icon(Icons.group_outlined, color: EColors.textSecondary),
+          iconSize: 20,
+          tooltip: 'All Parties',
+          onPressed: () => Get.to(() => const FriendListScreen()),
+        ),
         IconButton(
           icon: const Icon(Icons.info_outline, color: EColors.textSecondary),
           iconSize: 20,
@@ -204,14 +200,12 @@ class _WatchPartyScreenState extends State<WatchPartyScreen> {
             if (!_isCreator)
               const PopupMenuItem(
                 value: 'leave',
-                child: Text('Leave Party',
-                    style: TextStyle(color: EColors.textPrimary)),
+                child: Text('Leave Party', style: TextStyle(color: EColors.textPrimary)),
               ),
             if (_isCreator)
               const PopupMenuItem(
                 value: 'delete',
-                child: Text('Delete Party',
-                    style: TextStyle(color: EColors.error)),
+                child: Text('Delete Party', style: TextStyle(color: EColors.error)),
               ),
           ],
         ),
@@ -229,8 +223,7 @@ class _WatchPartyScreenState extends State<WatchPartyScreen> {
           child: ElevatedButton.icon(
             onPressed: _openWatchlistItem,
             icon: Icon(_isInWatchlist ? Icons.visibility : Icons.add),
-            label: Text(
-                _isInWatchlist ? 'View in Watchlist' : 'Add to Watchlist'),
+            label: Text(_isInWatchlist ? 'View in Watchlist' : 'Add to Watchlist'),
           ),
         ),
       ),
@@ -243,48 +236,54 @@ class _WatchPartyScreenState extends State<WatchPartyScreen> {
   }
 
   void _confirmLeave() {
-    Get.dialog(AlertDialog(
-      backgroundColor: EColors.surface,
-      title: const Text('Leave Party',
-          style: TextStyle(color: EColors.textPrimary)),
-      content: const Text('Are you sure you want to leave?',
-          style: TextStyle(color: EColors.textSecondary)),
-      actions: [
-        TextButton(
+    Get.dialog(
+      AlertDialog(
+        backgroundColor: EColors.surface,
+        title: const Text('Leave Party', style: TextStyle(color: EColors.textPrimary)),
+        content: const Text(
+          'Are you sure you want to leave?',
+          style: TextStyle(color: EColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
             onPressed: Get.back,
-            child: const Text('Cancel',
-                style: TextStyle(color: EColors.textSecondary))),
-        TextButton(
+            child: const Text('Cancel', style: TextStyle(color: EColors.textSecondary)),
+          ),
+          TextButton(
             onPressed: () {
               Get.back();
               _ctrl.leaveParty(widget.partyId);
             },
-            child:
-                const Text('Leave', style: TextStyle(color: EColors.error))),
-      ],
-    ));
+            child: const Text('Leave', style: TextStyle(color: EColors.error)),
+          ),
+        ],
+      ),
+    );
   }
 
   void _confirmDelete() {
-    Get.dialog(AlertDialog(
-      backgroundColor: EColors.surface,
-      title: const Text('Delete Party',
-          style: TextStyle(color: EColors.textPrimary)),
-      content: const Text('This will delete the party for all members.',
-          style: TextStyle(color: EColors.textSecondary)),
-      actions: [
-        TextButton(
+    Get.dialog(
+      AlertDialog(
+        backgroundColor: EColors.surface,
+        title: const Text('Delete Party', style: TextStyle(color: EColors.textPrimary)),
+        content: const Text(
+          'This will delete the party for all members.',
+          style: TextStyle(color: EColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
             onPressed: Get.back,
-            child: const Text('Cancel',
-                style: TextStyle(color: EColors.textSecondary))),
-        TextButton(
+            child: const Text('Cancel', style: TextStyle(color: EColors.textSecondary)),
+          ),
+          TextButton(
             onPressed: () {
               Get.back();
               _ctrl.deleteParty(widget.partyId);
             },
-            child:
-                const Text('Delete', style: TextStyle(color: EColors.error))),
-      ],
-    ));
+            child: const Text('Delete', style: TextStyle(color: EColors.error)),
+          ),
+        ],
+      ),
+    );
   }
 }

@@ -9,6 +9,7 @@ class ReviewCard extends StatelessWidget {
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
   final bool isCurrentUser;
+  final bool isFriend;
 
   const ReviewCard({
     super.key,
@@ -16,6 +17,7 @@ class ReviewCard extends StatelessWidget {
     this.onEdit,
     this.onDelete,
     this.isCurrentUser = false,
+    this.isFriend = false,
   });
 
   @override
@@ -31,19 +33,38 @@ class ReviewCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  review.reviewerName,
-                  style: const TextStyle(
-                    color: EColors.textPrimary,
-                    fontWeight: FontWeight.bold,
-                  ),
+                Row(
+                  children: [
+                    Text(
+                      review.reviewerName,
+                      style: const TextStyle(
+                        color: EColors.textPrimary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    if (isFriend) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: EColors.primary.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Text(
+                          'Friend',
+                          style: TextStyle(
+                            color: EColors.primary,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
                 Text(
                   DateFormat.yMMMd().format(review.createdAt),
-                  style: const TextStyle(
-                    color: EColors.textSecondary,
-                    fontSize: 12,
-                  ),
+                  style: const TextStyle(color: EColors.textSecondary, fontSize: 12),
                 ),
               ],
             ),
@@ -53,18 +74,13 @@ class ReviewCard extends StatelessWidget {
                 return Icon(
                   Icons.live_tv,
                   size: 16,
-                  color: index < review.rating
-                      ? EColors.primary
-                      : EColors.textTertiary,
+                  color: index < review.rating ? EColors.primary : EColors.textTertiary,
                 );
               }),
             ),
             if (review.hasText) ...[
               const SizedBox(height: 8),
-              Text(
-                review.reviewText!,
-                style: const TextStyle(color: EColors.textPrimary),
-              ),
+              Text(review.reviewText!, style: const TextStyle(color: EColors.textPrimary)),
             ],
             if (isCurrentUser) ...[
               const Divider(color: EColors.divider),
@@ -73,10 +89,7 @@ class ReviewCard extends StatelessWidget {
                 children: [
                   TextButton(
                     onPressed: onEdit,
-                    child: const Text(
-                      'Edit',
-                      style: TextStyle(color: EColors.accent),
-                    ),
+                    child: const Text('Edit', style: TextStyle(color: EColors.accent)),
                   ),
                   TextButton(
                     onPressed: onDelete,

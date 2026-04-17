@@ -92,23 +92,11 @@ class QueueHealthCard extends StatelessWidget {
                   Expanded(
                     child: Column(
                       children: [
-                        _buildStatRow(
-                          Icons.timer,
-                          EText.hoursRemaining,
-                          hoursRemaining.toString(),
-                        ),
+                        _buildStatRow(Icons.timer, EText.hoursRemaining, hoursRemaining.toString()),
                         const SizedBox(height: ESizes.sm),
-                        _buildStatRow(
-                          Icons.check_circle,
-                          EText.almostDone,
-                          almostDone.toString(),
-                        ),
+                        _buildStatRow(Icons.check_circle, EText.almostDone, almostDone.toString()),
                         const SizedBox(height: ESizes.sm),
-                        _buildStatRow(
-                          Icons.list,
-                          EText.totalItems,
-                          totalItems.toString(),
-                        ),
+                        _buildStatRow(Icons.list, EText.totalItems, totalItems.toString()),
                       ],
                     ),
                   ),
@@ -117,23 +105,6 @@ class QueueHealthCard extends StatelessWidget {
               // Status breakdown bar
               const SizedBox(height: ESizes.sm),
               _buildStatusBar(healthCtrl),
-              const SizedBox(height: ESizes.sm),
-              // Time Block Button
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: TimeBlockSheet.show,
-                  icon: const Icon(Icons.timer, size: 16),
-                  label: const Text('I Have Time For...'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: EColors.textOnPrimary,
-                    side: BorderSide(
-                      color: EColors.textOnPrimary.withValues(alpha: 0.5),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: ESizes.xs),
-                  ),
-                ),
-              ),
             ],
           ),
         ),
@@ -143,10 +114,7 @@ class QueueHealthCard extends StatelessWidget {
 
   Widget _buildEfficiencyBadge(int score, EfficiencyRating rating) {
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: ESizes.sm,
-        vertical: ESizes.xs,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: ESizes.sm, vertical: ESizes.xs),
       decoration: BoxDecoration(
         color: EColors.textOnPrimary.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(ESizes.radiusRound),
@@ -273,8 +241,7 @@ class QueueHealthCard extends StatelessWidget {
           spacing: ESizes.sm,
           runSpacing: ESizes.xs,
           children: [
-            if (completed > 0)
-              _buildLegendItem('Done', EColors.primary, completed),
+            if (completed > 0) _buildLegendItem('Done', EColors.primary, completed),
             _buildLegendItem('Active', EColors.success, active),
             _buildLegendItem('Idle', EColors.warning, idle),
             _buildLegendItem('Stale', EColors.error, stale),
@@ -319,11 +286,7 @@ class QueueHealthCard extends StatelessWidget {
   Widget _buildStatRow(IconData icon, String label, String value) {
     return Row(
       children: [
-        Icon(
-          icon,
-          color: EColors.textOnPrimary.withValues(alpha: 0.8),
-          size: 18,
-        ),
+        Icon(icon, color: EColors.textOnPrimary.withValues(alpha: 0.8), size: 18),
         const SizedBox(width: ESizes.sm),
         Text(
           label,

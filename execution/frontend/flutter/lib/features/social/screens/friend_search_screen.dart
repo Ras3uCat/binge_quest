@@ -63,8 +63,10 @@ class _FriendSearchScreenState extends State<FriendSearchScreen> {
         autofocus: true,
         style: const TextStyle(color: EColors.textPrimary),
         decoration: InputDecoration(
-          hintText: 'Search by email or name...',
+          hintText: 'Enter exact email or @username',
           hintStyle: const TextStyle(color: EColors.textTertiary),
+          helperText: 'Exact match only — partial names won\'t return results',
+          helperStyle: const TextStyle(color: EColors.textTertiary, fontSize: ESizes.fontSm),
           prefixIcon: const Icon(Icons.search, color: EColors.textSecondary),
           filled: true,
           fillColor: EColors.surface,
@@ -90,9 +92,7 @@ class _FriendSearchScreenState extends State<FriendSearchScreen> {
   Widget _buildResults() {
     return Obx(() {
       if (_friendCtrl.isSearching.value) {
-        return const Center(
-          child: CircularProgressIndicator(color: EColors.primary),
-        );
+        return const Center(child: CircularProgressIndicator(color: EColors.primary));
       }
 
       final results = _friendCtrl.searchResults;
@@ -101,10 +101,7 @@ class _FriendSearchScreenState extends State<FriendSearchScreen> {
         return const Center(
           child: Text(
             'No users found',
-            style: TextStyle(
-              color: EColors.textSecondary,
-              fontSize: ESizes.fontMd,
-            ),
+            style: TextStyle(color: EColors.textSecondary, fontSize: ESizes.fontMd),
           ),
         );
       }
@@ -114,15 +111,11 @@ class _FriendSearchScreenState extends State<FriendSearchScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.person_search,
-                  size: 64, color: Colors.white.withValues(alpha: 0.3)),
+              Icon(Icons.person_search, size: 64, color: Colors.white.withValues(alpha: 0.3)),
               const SizedBox(height: ESizes.md),
               const Text(
                 'Search by email or name',
-                style: TextStyle(
-                  color: EColors.textSecondary,
-                  fontSize: ESizes.fontMd,
-                ),
+                style: TextStyle(color: EColors.textSecondary, fontSize: ESizes.fontMd),
               ),
             ],
           ),
@@ -155,8 +148,7 @@ class _FriendSearchScreenState extends State<FriendSearchScreen> {
             CircleAvatar(
               radius: 22,
               backgroundColor: EColors.surfaceLight,
-              backgroundImage:
-                  user.avatarUrl != null ? NetworkImage(user.avatarUrl!) : null,
+              backgroundImage: user.avatarUrl != null ? NetworkImage(user.avatarUrl!) : null,
               child: user.avatarUrl == null
                   ? const Icon(Icons.person, color: EColors.textSecondary)
                   : null,
@@ -168,21 +160,15 @@ class _FriendSearchScreenState extends State<FriendSearchScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    user.displayName ?? 'User',
-                    style: const TextStyle(
-                      color: EColors.textPrimary,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    user.displayLabel,
+                    style: const TextStyle(color: EColors.textPrimary, fontWeight: FontWeight.w600),
                   ),
-                  if (user.username != null || user.email != null)
+                  if (user.username != null ||
+                      (user.email != null &&
+                          user.email?.contains('@privaterelay.appleid.com') != true))
                     Text(
-                      user.username != null
-                          ? '@${user.username}'
-                          : user.email ?? '',
-                      style: const TextStyle(
-                        color: EColors.textSecondary,
-                        fontSize: ESizes.fontSm,
-                      ),
+                      user.username != null ? '@${user.username}' : user.email ?? '',
+                      style: const TextStyle(color: EColors.textSecondary, fontSize: ESizes.fontSm),
                     ),
                 ],
               ),
@@ -234,8 +220,7 @@ class _FriendSearchScreenState extends State<FriendSearchScreen> {
                   final sent = await _friendCtrl.sendFriendRequest(user);
                   if (sent && mounted) {
                     Get.back();
-                    Get.snackbar(
-                        'Sent', 'Friend request sent to ${user.displayLabel}');
+                    Get.snackbar('Sent', 'Friend request sent to ${user.displayLabel}');
                   } else if (mounted) {
                     setState(() => _isSending = false);
                   }
@@ -246,10 +231,7 @@ class _FriendSearchScreenState extends State<FriendSearchScreen> {
             disabledBackgroundColor: EColors.surfaceLight,
             minimumSize: Size.zero,
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            padding: const EdgeInsets.symmetric(
-              horizontal: ESizes.md,
-              vertical: ESizes.xs,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: ESizes.md, vertical: ESizes.xs),
           ),
           child: _isSending
               ? const SizedBox(

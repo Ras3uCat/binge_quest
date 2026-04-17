@@ -36,8 +36,7 @@ class ArchetypeController extends GetxController {
   // ── Derived ──────────────────────────────────────────────────────────────
 
   /// Rank-1 archetype, or null if the user has no data yet.
-  UserArchetype? get primary =>
-      allScores.firstWhereOrNull((s) => s.rank == 1);
+  UserArchetype? get primary => allScores.firstWhereOrNull((s) => s.rank == 1);
 
   /// Rank-2 archetype if its score is within 0.05 of the primary (dual mode).
   UserArchetype? get secondary {
@@ -49,8 +48,7 @@ class ArchetypeController extends GetxController {
   }
 
   /// Look up a reference archetype by its ID. Returns null if not yet loaded.
-  Archetype? archetypeById(String id) =>
-      allArchetypes.firstWhereOrNull((a) => a.id == id);
+  Archetype? archetypeById(String id) => allArchetypes.firstWhereOrNull((a) => a.id == id);
 
   // ── Loading ───────────────────────────────────────────────────────────────
 
@@ -69,6 +67,25 @@ class ArchetypeController extends GetxController {
       allArchetypes.assignAll(results[0] as List<Archetype>);
       allScores.assignAll(results[1] as List<UserArchetype>);
       history.assignAll(results[2] as List<UserArchetype>);
+
+      // On-demand refresh for own profile: trigger compute if no data or last
+      // run was more than 7 days ago. The SQL function enforces the same cooldown
+      // server-side, so double-opens within a week are safe no-ops.
+      final isOwnProfile = userId == SupabaseService.currentUserId;
+      final isStale =
+          allScores.isEmpty ||
+          history.isEmpty ||
+          history.first.computedAt.isBefore(DateTime.now().subtract(const Duration(days: 7)));
+
+      if (isOwnProfile && isStale) {
+        await ArchetypeRepository.requestCompute(userId);
+        final refreshed = await Future.wait([
+          ArchetypeRepository.fetchUserCurrentScores(userId),
+          ArchetypeRepository.fetchArchetypeHistory(userId),
+        ]);
+        allScores.assignAll(refreshed[0] as List<UserArchetype>);
+        history.assignAll(refreshed[1] as List<UserArchetype>);
+      }
     } catch (e) {
       debugPrint('ArchetypeController.loadForUser error: $e');
     } finally {

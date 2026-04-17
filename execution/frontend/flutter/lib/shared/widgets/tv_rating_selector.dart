@@ -24,24 +24,37 @@ class TvRatingSelector extends StatelessWidget {
     final unselectedColor = iconColor ?? EColors.textTertiary;
     final activeColor = selectedColor ?? EColors.primary;
 
+    final labelStyle = TextStyle(
+      fontSize: 10,
+      color: (iconColor ?? EColors.textTertiary).withValues(alpha: 0.7),
+      fontStyle: FontStyle.italic,
+    );
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(5, (index) {
-        final value = index + 1;
-        final isSelected = rating != null && value <= rating!;
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Text('unbingable', style: labelStyle),
+        const SizedBox(width: 6),
+        ...List.generate(5, (index) {
+          final value = index + 1;
+          final isSelected = rating != null && value <= rating!;
 
-        return GestureDetector(
-          onTap: enabled ? () => onRatingChanged(value) : null,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Icon(
-              Icons.live_tv,
-              size: iconSize,
-              color: isSelected ? activeColor : unselectedColor,
+          return GestureDetector(
+            onTap: enabled ? () => onRatingChanged(value) : null,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Icon(
+                Icons.live_tv,
+                size: iconSize,
+                color: isSelected ? activeColor : unselectedColor,
+              ),
             ),
-          ),
-        );
-      }),
+          );
+        }),
+        const SizedBox(width: 6),
+        Text('bingable', style: labelStyle),
+      ],
     );
   }
 }

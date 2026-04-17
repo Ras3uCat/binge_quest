@@ -1,0 +1,140 @@
+{
+  "permissions": {
+    "defaultMode": "plan",
+    "allow": [
+      "Bash(dart format *)",
+      "Bash(dart analyze *)",
+      "Bash(flutter analyze *)",
+      "Bash(dart test *)",
+      "Bash(flutter test *)",
+      "Bash(flutter pub get)",
+      "Bash(flutter pub upgrade *)",
+      "Bash(flutter pub add *)",
+      "Bash(flutter build *)",
+      "Bash(flutter run *)",
+      "Bash(flutter clean)",
+      "Bash(dart run *)",
+      "Bash(supabase db reset)",
+      "Bash(supabase start)",
+      "Bash(supabase stop)",
+      "Bash(supabase status)",
+      "Bash(supabase functions serve *)",
+      "Bash(supabase migration new *)",
+      "Bash(stripe listen *)",
+      "Bash(stripe trigger *)",
+      "Bash(git status)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git branch *)",
+      "Bash(git checkout *)",
+      "Bash(ls *)",
+      "Bash(find * -name *)",
+      "Bash(mkdir -p *)",
+      "Bash(cp *)",
+      "Bash(mv planning/features/* planning/features/*)"
+    ],
+    "deny": [
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(git reset --hard *)",
+      "Bash(rm -rf /*)",
+      "Bash(supabase db push --linked)",
+      "Bash(curl * | bash *)",
+      "Bash(wget * | bash *)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "dir=$PWD; while [ ! -d \"$dir/.claude\" ] && [ \"$dir\" != \"/\" ]; do dir=$(dirname \"$dir\"); done; bash \"$dir/.claude/hooks/skill_loader.sh\"",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "dir=$PWD; while [ ! -d \"$dir/.claude\" ] && [ \"$dir\" != \"/\" ]; do dir=$(dirname \"$dir\"); done; bash \"$dir/.claude/hooks/pre_task.sh\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "dir=$PWD; while [ ! -d \"$dir/.claude\" ] && [ \"$dir\" != \"/\" ]; do dir=$(dirname \"$dir\"); done; bash \"$dir/.claude/hooks/format_dart.sh\"",
+            "async": true,
+            "timeout": 30
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "dir=$PWD; while [ ! -d \"$dir/.claude\" ] && [ \"$dir\" != \"/\" ]; do dir=$(dirname \"$dir\"); done; bash \"$dir/.claude/hooks/check_file_size.sh\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "dir=$PWD; while [ ! -d \"$dir/.claude\" ] && [ \"$dir\" != \"/\" ]; do dir=$(dirname \"$dir\"); done; bash \"$dir/.claude/hooks/pre_bash.sh\"",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "dir=$PWD; while [ ! -d \"$dir/.claude\" ] && [ \"$dir\" != \"/\" ]; do dir=$(dirname \"$dir\"); done; bash \"$dir/.claude/hooks/diagnose_build.sh\"",
+            "async": true,
+            "timeout": 60
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "dir=$PWD; while [ ! -d \"$dir/.claude\" ] && [ \"$dir\" != \"/\" ]; do dir=$(dirname \"$dir\"); done; bash \"$dir/.claude/hooks/post_task.sh\"",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "dir=$PWD; while [ ! -d \"$dir/.claude\" ] && [ \"$dir\" != \"/\" ]; do dir=$(dirname \"$dir\"); done; bash \"$dir/.claude/hooks/post_task.sh\"",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}

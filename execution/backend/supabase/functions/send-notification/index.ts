@@ -1,6 +1,7 @@
+// @ts-nocheck - Deno Edge Function: use Deno LSP for type checking, not tsc
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import admin from 'npm:firebase-admin@12.0.0';
+import * as admin from 'npm:firebase-admin@12.0.0';
 
 interface NotificationPayload {
     user_id: string;

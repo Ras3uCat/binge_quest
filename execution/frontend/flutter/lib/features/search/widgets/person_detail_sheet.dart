@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:get/get.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../../core/constants/e_colors.dart';
 import '../../../core/constants/e_sizes.dart';
 import '../../../core/constants/e_text.dart';
@@ -63,14 +64,10 @@ class _PersonDetailSheetState extends State<PersonDetailSheet> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.85,
-      ),
+      constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.85),
       decoration: const BoxDecoration(
         color: EColors.surface,
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(ESizes.radiusLg),
-        ),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(ESizes.radiusLg)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -90,10 +87,10 @@ class _PersonDetailSheetState extends State<PersonDetailSheet> {
             child: _isLoading
                 ? _buildLoading()
                 : _error != null
-                    ? _buildError()
-                    : _person != null
-                        ? _buildContent(_person!)
-                        : _buildError(),
+                ? _buildError()
+                : _person != null
+                ? _buildContent(_person!)
+                : _buildError(),
           ),
         ],
       ),
@@ -103,9 +100,7 @@ class _PersonDetailSheetState extends State<PersonDetailSheet> {
   Widget _buildLoading() {
     return const Padding(
       padding: EdgeInsets.all(ESizes.xxl),
-      child: Center(
-        child: CircularProgressIndicator(color: EColors.primary),
-      ),
+      child: Center(child: CircularProgressIndicator(color: EColors.primary)),
     );
   }
 
@@ -118,10 +113,7 @@ class _PersonDetailSheetState extends State<PersonDetailSheet> {
           children: [
             Icon(Icons.error_outline, size: 48, color: EColors.textTertiary),
             SizedBox(height: ESizes.md),
-            Text(
-              'Failed to load person details',
-              style: TextStyle(color: EColors.textSecondary),
-            ),
+            Text('Failed to load person details', style: TextStyle(color: EColors.textSecondary)),
           ],
         ),
       ),
@@ -143,17 +135,11 @@ class _PersonDetailSheetState extends State<PersonDetailSheet> {
           ],
           if (person.movieCredits.isNotEmpty) ...[
             const SizedBox(height: ESizes.xl),
-            _buildCreditsSection(
-              title: EText.movieCredits,
-              credits: person.movieCredits,
-            ),
+            _buildCreditsSection(title: EText.movieCredits, credits: person.movieCredits),
           ],
           if (person.tvCredits.isNotEmpty) ...[
             const SizedBox(height: ESizes.xl),
-            _buildCreditsSection(
-              title: EText.tvCredits,
-              credits: person.tvCredits,
-            ),
+            _buildCreditsSection(title: EText.tvCredits, credits: person.tvCredits),
           ],
           const SizedBox(height: ESizes.xl),
         ],
@@ -173,10 +159,7 @@ class _PersonDetailSheetState extends State<PersonDetailSheet> {
             height: 140,
             child: person.profilePath != null
                 ? CachedNetworkImage(
-                    imageUrl: EImages.tmdbProfile(
-                      person.profilePath,
-                      size: 'w185',
-                    ),
+                    imageUrl: EImages.tmdbProfile(person.profilePath, size: 'w185'),
                     fit: BoxFit.cover,
                     placeholder: (_, __) => _buildProfilePlaceholder(),
                     errorWidget: (_, __, ___) => _buildProfilePlaceholder(),
@@ -201,10 +184,7 @@ class _PersonDetailSheetState extends State<PersonDetailSheet> {
               if (person.knownForDepartment != null) ...[
                 const SizedBox(height: ESizes.xs),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: ESizes.sm,
-                    vertical: 2,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: ESizes.sm, vertical: 2),
                   decoration: BoxDecoration(
                     color: EColors.primary.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(ESizes.radiusSm),
@@ -220,12 +200,27 @@ class _PersonDetailSheetState extends State<PersonDetailSheet> {
                 ),
               ],
               const SizedBox(height: ESizes.md),
-              FollowTalentButton(
-                tmdbPersonId: person.id,
-                personName: person.name,
-                personType: _resolvePersonType(person),
-                profilePath: person.profilePath,
-                showLabel: true,
+              Row(
+                children: [
+                  Expanded(
+                    child: FollowTalentButton(
+                      tmdbPersonId: person.id,
+                      personName: person.name,
+                      personType: _resolvePersonType(person),
+                      profilePath: person.profilePath,
+                      showLabel: true,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.share, color: EColors.textSecondary),
+                    iconSize: 20,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    onPressed: () => Share.share(
+                      'Check out ${person.name} on BingeQuest!\nhttps://www.themoviedb.org/person/${person.id}',
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -237,9 +232,7 @@ class _PersonDetailSheetState extends State<PersonDetailSheet> {
   Widget _buildProfilePlaceholder() {
     return Container(
       color: EColors.surfaceLight,
-      child: const Center(
-        child: Icon(Icons.person, size: 40, color: EColors.textTertiary),
-      ),
+      child: const Center(child: Icon(Icons.person, size: 40, color: EColors.textTertiary)),
     );
   }
 
@@ -247,33 +240,23 @@ class _PersonDetailSheetState extends State<PersonDetailSheet> {
     final items = <Widget>[];
 
     if (person.formattedBirthday != null) {
-      items.add(_buildInfoRow(
-        Icons.cake,
-        EText.born,
-        person.formattedBirthday! +
-            (person.age != null ? ' (${person.age} years old)' : ''),
-      ));
+      items.add(
+        _buildInfoRow(
+          Icons.cake,
+          EText.born,
+          person.formattedBirthday! + (person.age != null ? ' (${person.age} years old)' : ''),
+        ),
+      );
     }
     if (person.isDeceased && person.formattedDeathday != null) {
-      items.add(_buildInfoRow(
-        Icons.favorite_border,
-        EText.died,
-        person.formattedDeathday!,
-      ));
+      items.add(_buildInfoRow(Icons.favorite_border, EText.died, person.formattedDeathday!));
     }
     if (person.placeOfBirth != null) {
-      items.add(_buildInfoRow(
-        Icons.location_on,
-        EText.placeOfBirth,
-        person.placeOfBirth!,
-      ));
+      items.add(_buildInfoRow(Icons.location_on, EText.placeOfBirth, person.placeOfBirth!));
     }
 
     if (items.isEmpty) return const SizedBox.shrink();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: items,
-    );
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: items);
   }
 
   Widget _buildInfoRow(IconData icon, String label, String value) {
@@ -285,18 +268,12 @@ class _PersonDetailSheetState extends State<PersonDetailSheet> {
           const SizedBox(width: ESizes.sm),
           Text(
             '$label: ',
-            style: const TextStyle(
-              fontSize: ESizes.fontSm,
-              color: EColors.textSecondary,
-            ),
+            style: const TextStyle(fontSize: ESizes.fontSm, color: EColors.textSecondary),
           ),
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(
-                fontSize: ESizes.fontSm,
-                color: EColors.textPrimary,
-              ),
+              style: const TextStyle(fontSize: ESizes.fontSm, color: EColors.textPrimary),
             ),
           ),
         ],
@@ -349,10 +326,7 @@ class _PersonDetailSheetState extends State<PersonDetailSheet> {
     );
   }
 
-  Widget _buildCreditsSection({
-    required String title,
-    required List<TmdbPersonCredit> credits,
-  }) {
+  Widget _buildCreditsSection({required String title, required List<TmdbPersonCredit> credits}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -369,10 +343,7 @@ class _PersonDetailSheetState extends State<PersonDetailSheet> {
             ),
             Text(
               '${credits.length} titles',
-              style: const TextStyle(
-                fontSize: ESizes.fontSm,
-                color: EColors.textTertiary,
-              ),
+              style: const TextStyle(fontSize: ESizes.fontSm, color: EColors.textTertiary),
             ),
           ],
         ),
@@ -419,14 +390,10 @@ class _PersonDetailSheetState extends State<PersonDetailSheet> {
                       top: ESizes.xs,
                       right: ESizes.xs,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: ESizes.xs,
-                          vertical: 2,
-                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: ESizes.xs, vertical: 2),
                         decoration: BoxDecoration(
                           color: EColors.background.withValues(alpha: 0.8),
-                          borderRadius:
-                              BorderRadius.circular(ESizes.radiusSm),
+                          borderRadius: BorderRadius.circular(ESizes.radiusSm),
                         ),
                         child: Text(
                           credit.year!,
@@ -444,13 +411,10 @@ class _PersonDetailSheetState extends State<PersonDetailSheet> {
                       padding: const EdgeInsets.all(2),
                       decoration: BoxDecoration(
                         color: EColors.background.withValues(alpha: 0.8),
-                        borderRadius:
-                            BorderRadius.circular(ESizes.radiusSm),
+                        borderRadius: BorderRadius.circular(ESizes.radiusSm),
                       ),
                       child: Icon(
-                        credit.mediaType == MediaType.movie
-                            ? Icons.movie
-                            : Icons.tv,
+                        credit.mediaType == MediaType.movie ? Icons.movie : Icons.tv,
                         size: 12,
                         color: EColors.textSecondary,
                       ),
@@ -475,10 +439,7 @@ class _PersonDetailSheetState extends State<PersonDetailSheet> {
                 credit.character!,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: ESizes.fontXs,
-                  color: EColors.textTertiary,
-                ),
+                style: const TextStyle(fontSize: ESizes.fontXs, color: EColors.textTertiary),
               ),
           ],
         ),
@@ -508,10 +469,8 @@ class _PersonDetailSheetState extends State<PersonDetailSheet> {
       posterPath: credit.posterPath,
       mediaTypeString: credit.mediaType == MediaType.movie ? 'movie' : 'tv',
       voteAverage: credit.voteAverage,
-      releaseDate:
-          credit.mediaType == MediaType.movie ? credit.releaseDate : null,
-      firstAirDate:
-          credit.mediaType == MediaType.tv ? credit.releaseDate : null,
+      releaseDate: credit.mediaType == MediaType.movie ? credit.releaseDate : null,
+      firstAirDate: credit.mediaType == MediaType.tv ? credit.releaseDate : null,
     );
 
     // Open content sheet; if user taps a cast member, it returns the personId

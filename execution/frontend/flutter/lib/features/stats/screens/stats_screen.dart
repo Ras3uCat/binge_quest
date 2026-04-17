@@ -16,7 +16,8 @@ import '../../../shared/widgets/streak_guide_sheet.dart';
 
 /// Full stats dashboard screen.
 class StatsScreen extends StatelessWidget {
-  const StatsScreen({super.key});
+  final bool showHeader;
+  const StatsScreen({super.key, this.showHeader = true});
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +38,7 @@ class StatsScreen extends StatelessWidget {
         child: SafeArea(
           child: Column(
             children: [
-              _buildHeader(),
+              if (showHeader) _buildHeader(),
               Expanded(
                 child: Obx(() {
                   final ctrl = StatsController.to;
@@ -48,14 +49,14 @@ class StatsScreen extends StatelessWidget {
                     child: SingleChildScrollView(
                       physics: const AlwaysScrollableScrollPhysics(),
                       padding: const EdgeInsets.symmetric(
-                          horizontal: ESizes.lg, vertical: ESizes.md),
+                        horizontal: ESizes.lg,
+                        vertical: ESizes.md,
+                      ),
                       child: Column(
                         children: [
                           const TimeWindowPicker(),
                           const SizedBox(height: ESizes.md),
-                          ctrl.isLoading
-                              ? _buildSkeletons()
-                              : _buildContent(),
+                          ctrl.isLoading ? _buildSkeletons() : _buildContent(),
                           const SizedBox(height: ESizes.xxl),
                         ],
                       ),
@@ -111,7 +112,11 @@ class StatsScreen extends StatelessWidget {
         const SizedBox(height: ESizes.md),
         _SectionCard(title: 'Peak Hours', child: const PeakHoursChart()),
         const SizedBox(height: ESizes.md),
-        _SectionCard(title: 'Streaks', child: const StreakIndicator(), onInfo: StreakGuideSheet.show),
+        _SectionCard(
+          title: 'Streaks',
+          onInfo: StreakGuideSheet.show,
+          child: const StreakIndicator(),
+        ),
         const SizedBox(height: ESizes.md),
         _SectionCard(title: 'Completion', child: const CompletionRing()),
       ],
@@ -206,11 +211,7 @@ class _SectionCard extends StatelessWidget {
                   onTap: onInfo,
                   child: const Padding(
                     padding: EdgeInsets.all(4.0),
-                    child: Icon(
-                      Icons.info_outline,
-                      size: 16,
-                      color: EColors.textSecondary,
-                    ),
+                    child: Icon(Icons.info_outline, size: 16, color: EColors.textSecondary),
                   ),
                 ),
               ],

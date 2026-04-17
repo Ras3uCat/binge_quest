@@ -100,17 +100,11 @@ class _ManageMembersScreenState extends State<ManageMembersScreen> {
               children: [
                 Text(
                   _isOwner ? 'You (Curator)' : 'Curator',
-                  style: const TextStyle(
-                    color: EColors.textPrimary,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: const TextStyle(color: EColors.textPrimary, fontWeight: FontWeight.bold),
                 ),
                 Text(
                   widget.watchlistName,
-                  style: const TextStyle(
-                    color: EColors.textSecondary,
-                    fontSize: ESizes.fontSm,
-                  ),
+                  style: const TextStyle(color: EColors.textSecondary, fontSize: ESizes.fontSm),
                 ),
               ],
             ),
@@ -135,9 +129,7 @@ class _ManageMembersScreenState extends State<ManageMembersScreen> {
           CircleAvatar(
             radius: 22,
             backgroundColor: EColors.surfaceLight,
-            backgroundImage: user?.avatarUrl != null
-                ? NetworkImage(user!.avatarUrl!)
-                : null,
+            backgroundImage: user?.avatarUrl != null ? NetworkImage(user!.avatarUrl!) : null,
             child: user?.avatarUrl == null
                 ? const Icon(Icons.person, color: EColors.textSecondary)
                 : null,
@@ -148,18 +140,13 @@ class _ManageMembersScreenState extends State<ManageMembersScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  isMe ? 'You' : user?.displayName ?? 'User',
-                  style: const TextStyle(
-                    color: EColors.textPrimary,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  isMe ? 'You' : user?.displayLabel ?? 'User',
+                  style: const TextStyle(color: EColors.textPrimary, fontWeight: FontWeight.w600),
                 ),
                 Text(
                   member.isPending ? 'Pending...' : 'Co-Curator',
                   style: TextStyle(
-                    color: member.isPending
-                        ? EColors.accent
-                        : EColors.textSecondary,
+                    color: member.isPending ? EColors.accent : EColors.textSecondary,
                     fontSize: ESizes.fontSm,
                   ),
                 ),
@@ -168,20 +155,14 @@ class _ManageMembersScreenState extends State<ManageMembersScreen> {
           ),
           if (_isOwner && !isMe)
             IconButton(
-              icon: const Icon(
-                Icons.remove_circle_outline,
-                color: EColors.error,
-              ),
+              icon: const Icon(Icons.remove_circle_outline, color: EColors.error),
               tooltip: 'Remove',
               onPressed: () => _confirmRemove(member),
             )
           else if (isMe && !_isOwner)
             TextButton(
               onPressed: () => _confirmLeave(member),
-              child: const Text(
-                'Leave',
-                style: TextStyle(color: EColors.error),
-              ),
+              child: const Text('Leave', style: TextStyle(color: EColors.error)),
             ),
         ],
       ),
@@ -193,16 +174,9 @@ class _ManageMembersScreenState extends State<ManageMembersScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.group_add,
-            size: 64,
-            color: Colors.white.withValues(alpha: 0.3),
-          ),
+          Icon(Icons.group_add, size: 64, color: Colors.white.withValues(alpha: 0.3)),
           const SizedBox(height: ESizes.md),
-          const Text(
-            'No co-curators yet',
-            style: TextStyle(color: EColors.textSecondary),
-          ),
+          const Text('No co-curators yet', style: TextStyle(color: EColors.textSecondary)),
           if (_isOwner) ...[
             const SizedBox(height: ESizes.md),
             ElevatedButton.icon(
@@ -221,9 +195,7 @@ class _ManageMembersScreenState extends State<ManageMembersScreen> {
   }
 
   void _showInviteSheet() {
-    final existingIds = WatchlistMemberController.to.members
-        .map((m) => m.userId)
-        .toSet();
+    final existingIds = WatchlistMemberController.to.members.map((m) => m.userId).toSet();
     InviteFriendSheet.show(
       watchlistId: widget.watchlistId,
       watchlistName: widget.watchlistName,
@@ -234,8 +206,7 @@ class _ManageMembersScreenState extends State<ManageMembersScreen> {
   void _confirmRemove(WatchlistMember member) {
     EConfirmDialog.show(
       title: 'Remove Co-Curator',
-      message:
-          'Remove ${member.user?.displayLabel ?? "this user"} from the watchlist?',
+      message: 'Remove ${member.user?.displayLabel ?? "this user"} from the watchlist?',
       confirmLabel: 'Remove',
       isDestructive: true,
       onConfirm: () => WatchlistMemberController.to.removeMember(member),

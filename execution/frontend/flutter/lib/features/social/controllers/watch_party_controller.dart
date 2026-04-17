@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../shared/models/watch_party.dart';
 import '../../../shared/repositories/watch_party_repository.dart';
@@ -58,9 +59,29 @@ class WatchPartyController extends GetxController
   // ---------------------------------------------------------------------------
 
   @override
+  Future<void> onInit() async {
+    super.onInit();
+    await _loadPersistedNudgeTimes();
+  }
+
+  @override
   void onClose() {
     closeParty();
     super.onClose();
+  }
+
+  Future<void> _loadPersistedNudgeTimes() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      for (final key in prefs.getKeys().where((k) => k.startsWith('nudge_'))) {
+        final ms = prefs.getInt(key);
+        if (ms != null) {
+          _lastNudgeSent[key.replaceFirst('nudge_', '')] = DateTime.fromMillisecondsSinceEpoch(ms);
+        }
+      }
+    } catch (e) {
+      debugPrint('WatchPartyController._loadPersistedNudgeTimes error: $e');
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -132,10 +153,7 @@ class WatchPartyController extends GetxController
       isLoading.value = false;
     }
 
-    _activeChannel = _repository.subscribeToProgress(
-      partyId,
-      handleRealtimeUpdate,
-    );
+    _activeChannel = _repository.subscribeToProgress(partyId, handleRealtimeUpdate);
   }
 
   void closeParty() {
@@ -237,17 +255,25 @@ class WatchPartyController extends GetxController
   /// Returns true when [userId] has not been nudged within the last 24 hours.
   bool canNudge(String userId) {
     final last = _lastNudgeSent[userId];
-    return last == null ||
-        DateTime.now().difference(last) > const Duration(hours: 24);
+    return last == null || DateTime.now().difference(last) > const Duration(hours: 24);
+  }
+
+  /// Returns time remaining in the cooldown, or null if the nudge is ready.
+  Duration? nudgeTimeRemaining(String userId) {
+    final last = _lastNudgeSent[userId];
+    if (last == null) return null;
+    final elapsed = DateTime.now().difference(last);
+    if (elapsed >= const Duration(hours: 24)) return null;
+    return const Duration(hours: 24) - elapsed;
   }
 
   Future<void> nudgeMember({
     required String partyId,
     required String partyName,
     required String nudgedUserId,
+    required String nudgedDisplayName,
   }) async {
     if (!canNudge(nudgedUserId)) return;
-    _lastNudgeSent[nudgedUserId] = DateTime.now();
     final saying = kNudgeSayings[Random().nextInt(kNudgeSayings.length)];
     try {
       await _repository.sendNotification(
@@ -256,6 +282,16 @@ class WatchPartyController extends GetxController
         title: partyName,
         body: saying,
         data: {'party_id': partyId},
+      );
+      // Write cooldown only after a successful send.
+      final now = DateTime.now();
+      _lastNudgeSent[nudgedUserId] = now;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('nudge_$nudgedUserId', now.millisecondsSinceEpoch);
+      Get.snackbar(
+        'Nudge Sent',
+        'Notified $nudgedDisplayName!',
+        duration: const Duration(seconds: 2),
       );
     } catch (e) {
       debugPrint('WatchPartyController.nudgeMember error: $e');

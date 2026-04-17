@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../../core/constants/e_colors.dart';
 import '../../../core/constants/e_sizes.dart';
 import '../../../core/constants/e_text.dart';
@@ -49,10 +50,7 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              EColors.backgroundSecondary,
-              EColors.background,
-            ],
+            colors: [EColors.backgroundSecondary, EColors.background],
           ),
         ),
         child: CustomScrollView(
@@ -93,10 +91,7 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
           children: [
             Icon(Icons.error_outline, size: 64, color: EColors.textTertiary),
             SizedBox(height: ESizes.md),
-            Text(
-              'Failed to load person details',
-              style: TextStyle(color: EColors.textSecondary),
-            ),
+            Text('Failed to load person details', style: TextStyle(color: EColors.textSecondary)),
           ],
         ),
       ),
@@ -114,7 +109,18 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
         icon: const Icon(Icons.arrow_back),
         color: EColors.textPrimary,
       ),
-      actions: const [],
+      actions: [
+        Obx(() {
+          final person = ContentSearchController.to.selectedPerson;
+          if (person == null) return const SizedBox.shrink();
+          return IconButton(
+            icon: const Icon(Icons.share),
+            onPressed: () => Share.share(
+              'Check out ${person.name} on BingeQuest!\nhttps://www.themoviedb.org/person/${person.id}',
+            ),
+          );
+        }),
+      ],
       flexibleSpace: FlexibleSpaceBar(
         background: Obx(() {
           final person = ContentSearchController.to.selectedPerson;
@@ -124,12 +130,10 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
               // Profile image
               if (person?.profilePath != null)
                 CachedNetworkImage(
-                  imageUrl:
-                      EImages.tmdbProfile(person!.profilePath, size: 'h632'),
+                  imageUrl: EImages.tmdbProfile(person!.profilePath, size: 'h632'),
                   fit: BoxFit.cover,
                   placeholder: (context, url) => _buildProfilePlaceholder(),
-                  errorWidget: (context, url, error) =>
-                      _buildProfilePlaceholder(),
+                  errorWidget: (context, url, error) => _buildProfilePlaceholder(),
                 )
               else
                 _buildProfilePlaceholder(),
@@ -139,10 +143,7 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.center,
-                    colors: [
-                      Colors.black54,
-                      Colors.transparent,
-                    ],
+                    colors: [Colors.black54, Colors.transparent],
                   ),
                 ),
               ),
@@ -195,14 +196,10 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
                       if (person.knownForDepartment != null) ...[
                         const SizedBox(height: ESizes.xs),
                         Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: ESizes.sm,
-                            vertical: 2,
-                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: ESizes.sm, vertical: 2),
                           decoration: BoxDecoration(
                             color: EColors.primary.withValues(alpha: 0.2),
-                            borderRadius:
-                                BorderRadius.circular(ESizes.radiusSm),
+                            borderRadius: BorderRadius.circular(ESizes.radiusSm),
                           ),
                           child: Text(
                             person.knownForDepartment!,
@@ -227,13 +224,7 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
   Widget _buildProfilePlaceholder() {
     return Container(
       color: EColors.surfaceLight,
-      child: const Center(
-        child: Icon(
-          Icons.person,
-          size: 80,
-          color: EColors.textTertiary,
-        ),
-      ),
+      child: const Center(child: Icon(Icons.person, size: 80, color: EColors.textTertiary)),
     );
   }
 
@@ -253,19 +244,13 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
 
           // Movie credits
           if (person.movieCredits.isNotEmpty) ...[
-            _buildCreditsSection(
-              title: EText.movieCredits,
-              credits: person.movieCredits,
-            ),
+            _buildCreditsSection(title: EText.movieCredits, credits: person.movieCredits),
             const SizedBox(height: ESizes.xl),
           ],
 
           // TV credits
           if (person.tvCredits.isNotEmpty)
-            _buildCreditsSection(
-              title: EText.tvCredits,
-              credits: person.tvCredits,
-            ),
+            _buildCreditsSection(title: EText.tvCredits, credits: person.tvCredits),
 
           const SizedBox(height: ESizes.xl),
         ],
@@ -277,36 +262,39 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
     final infoItems = <Widget>[];
 
     if (person.formattedBirthday != null) {
-      infoItems.add(_buildInfoRow(
-        icon: Icons.cake,
-        label: EText.born,
-        value: person.formattedBirthday!,
-        suffix: person.age != null ? ' (${person.age} years old)' : null,
-      ));
+      infoItems.add(
+        _buildInfoRow(
+          icon: Icons.cake,
+          label: EText.born,
+          value: person.formattedBirthday!,
+          suffix: person.age != null ? ' (${person.age} years old)' : null,
+        ),
+      );
     }
 
     if (person.isDeceased && person.formattedDeathday != null) {
-      infoItems.add(_buildInfoRow(
-        icon: Icons.favorite_border,
-        label: EText.died,
-        value: person.formattedDeathday!,
-      ));
+      infoItems.add(
+        _buildInfoRow(
+          icon: Icons.favorite_border,
+          label: EText.died,
+          value: person.formattedDeathday!,
+        ),
+      );
     }
 
     if (person.placeOfBirth != null) {
-      infoItems.add(_buildInfoRow(
-        icon: Icons.location_on,
-        label: EText.placeOfBirth,
-        value: person.placeOfBirth!,
-      ));
+      infoItems.add(
+        _buildInfoRow(
+          icon: Icons.location_on,
+          label: EText.placeOfBirth,
+          value: person.placeOfBirth!,
+        ),
+      );
     }
 
     if (infoItems.isEmpty) return const SizedBox.shrink();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: infoItems,
-    );
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: infoItems);
   }
 
   Widget _buildInfoRow({
@@ -323,18 +311,12 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
           const SizedBox(width: ESizes.sm),
           Text(
             '$label: ',
-            style: const TextStyle(
-              fontSize: ESizes.fontSm,
-              color: EColors.textSecondary,
-            ),
+            style: const TextStyle(fontSize: ESizes.fontSm, color: EColors.textSecondary),
           ),
           Expanded(
             child: Text(
               value + (suffix ?? ''),
-              style: const TextStyle(
-                fontSize: ESizes.fontSm,
-                color: EColors.textPrimary,
-              ),
+              style: const TextStyle(fontSize: ESizes.fontSm, color: EColors.textPrimary),
             ),
           ),
         ],
@@ -401,10 +383,7 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
     );
   }
 
-  Widget _buildCreditsSection({
-    required String title,
-    required List<TmdbPersonCredit> credits,
-  }) {
+  Widget _buildCreditsSection({required String title, required List<TmdbPersonCredit> credits}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -421,10 +400,7 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
             ),
             Text(
               '${credits.length} titles',
-              style: const TextStyle(
-                fontSize: ESizes.fontSm,
-                color: EColors.textTertiary,
-              ),
+              style: const TextStyle(fontSize: ESizes.fontSm, color: EColors.textTertiary),
             ),
           ],
         ),
@@ -471,8 +447,7 @@ class _CreditCard extends StatelessWidget {
                             fit: BoxFit.cover,
                             width: double.infinity,
                             placeholder: (context, url) => _buildPlaceholder(),
-                            errorWidget: (context, url, error) =>
-                                _buildPlaceholder(),
+                            errorWidget: (context, url, error) => _buildPlaceholder(),
                           )
                         : _buildPlaceholder(),
                   ),
@@ -482,10 +457,7 @@ class _CreditCard extends StatelessWidget {
                       top: ESizes.xs,
                       right: ESizes.xs,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: ESizes.xs,
-                          vertical: 2,
-                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: ESizes.xs, vertical: 2),
                         decoration: BoxDecoration(
                           color: EColors.background.withValues(alpha: 0.8),
                           borderRadius: BorderRadius.circular(ESizes.radiusSm),
@@ -510,9 +482,7 @@ class _CreditCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(ESizes.radiusSm),
                       ),
                       child: Icon(
-                        credit.mediaType == MediaType.movie
-                            ? Icons.movie
-                            : Icons.tv,
+                        credit.mediaType == MediaType.movie ? Icons.movie : Icons.tv,
                         size: 12,
                         color: EColors.textSecondary,
                       ),
@@ -539,10 +509,7 @@ class _CreditCard extends StatelessWidget {
                 credit.character!,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: ESizes.fontXs,
-                  color: EColors.textTertiary,
-                ),
+                style: const TextStyle(fontSize: ESizes.fontXs, color: EColors.textTertiary),
               ),
           ],
         ),

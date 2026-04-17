@@ -9,7 +9,7 @@ import '../../../shared/models/watchlist_item.dart';
 import '../../../shared/widgets/streaming_badge.dart';
 import '../../watchlist/controllers/watchlist_controller.dart';
 import '../../watchlist/screens/item_detail_screen.dart';
-import '../../watchlist/screens/watchlist_screen.dart';
+import '../controllers/dashboard_controller.dart';
 
 class FinishFastSection extends StatelessWidget {
   const FinishFastSection({super.key});
@@ -31,7 +31,7 @@ class FinishFastSection extends StatelessWidget {
               ),
             ),
             TextButton(
-              onPressed: () => Get.to(() => const WatchlistScreen()),
+              onPressed: () => DashboardController.to.navigateToTab(1),
               child: const Text('See All'),
             ),
           ],
@@ -41,10 +41,7 @@ class FinishFastSection extends StatelessWidget {
           final controller = WatchlistController.to;
 
           if (controller.isLoadingItems) {
-            return const SizedBox(
-              height: 200,
-              child: Center(child: CircularProgressIndicator()),
-            );
+            return const SizedBox(height: 200, child: Center(child: CircularProgressIndicator()));
           }
 
           final items = controller.finishFastItems;
@@ -84,18 +81,12 @@ class FinishFastSection extends StatelessWidget {
             SizedBox(height: ESizes.md),
             Text(
               EText.emptyWatchlist,
-              style: TextStyle(
-                fontSize: ESizes.fontLg,
-                color: EColors.textSecondary,
-              ),
+              style: TextStyle(fontSize: ESizes.fontLg, color: EColors.textSecondary),
             ),
             SizedBox(height: ESizes.xs),
             Text(
               EText.addSomething,
-              style: TextStyle(
-                fontSize: ESizes.fontSm,
-                color: EColors.textTertiary,
-              ),
+              style: TextStyle(fontSize: ESizes.fontSm, color: EColors.textTertiary),
             ),
           ],
         ),
@@ -125,14 +116,9 @@ class FinishFastSection extends StatelessWidget {
                             width: double.infinity,
                             placeholder: (context, url) => Container(
                               color: EColors.surfaceLight,
-                              child: const Center(
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              ),
+                              child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
                             ),
-                            errorWidget: (context, url, error) =>
-                                _buildPlaceholderPoster(),
+                            errorWidget: (context, url, error) => _buildPlaceholderPoster(),
                           )
                         : _buildPlaceholderPoster(),
                   ),
@@ -147,9 +133,7 @@ class FinishFastSection extends StatelessWidget {
                         borderRadius: BorderRadius.circular(ESizes.radiusSm),
                       ),
                       child: Icon(
-                        item.mediaType == MediaType.movie
-                            ? Icons.movie
-                            : Icons.tv,
+                        item.mediaType == MediaType.movie ? Icons.movie : Icons.tv,
                         size: 14,
                         color: EColors.textSecondary,
                       ),
@@ -166,10 +150,7 @@ class FinishFastSection extends StatelessWidget {
                     bottom: ESizes.xs,
                     right: ESizes.xs,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: ESizes.sm,
-                        vertical: 2,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: ESizes.sm, vertical: 2),
                       decoration: BoxDecoration(
                         color: EColors.accent,
                         borderRadius: BorderRadius.circular(ESizes.radiusSm),
@@ -209,9 +190,7 @@ class FinishFastSection extends StatelessWidget {
     return Container(
       width: double.infinity,
       color: EColors.surfaceLight,
-      child: const Center(
-        child: Icon(Icons.movie, size: 40, color: EColors.textTertiary),
-      ),
+      child: const Center(child: Icon(Icons.movie, size: 40, color: EColors.textTertiary)),
     );
   }
 }

@@ -7,16 +7,13 @@ import '../controllers/watch_party_controller.dart';
 import '../screens/watch_party_screen.dart';
 import '../../../shared/models/watch_party.dart';
 import 'friend_request_card.dart';
+import '../../../features/profile/screens/user_profile_screen.dart';
 
 // ---------------------------------------------------------------------------
 // Shared empty state helper
 // ---------------------------------------------------------------------------
 
-Widget friendEmptyState({
-  required IconData icon,
-  required String message,
-  String? sub,
-}) {
+Widget friendEmptyState({required IconData icon, required String message, String? sub}) {
   return Center(
     child: Column(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -25,19 +22,13 @@ Widget friendEmptyState({
         const SizedBox(height: ESizes.md),
         Text(
           message,
-          style: const TextStyle(
-            color: EColors.textSecondary,
-            fontSize: ESizes.fontMd,
-          ),
+          style: const TextStyle(color: EColors.textSecondary, fontSize: ESizes.fontMd),
         ),
         if (sub != null) ...[
           const SizedBox(height: ESizes.xs),
           Text(
             sub,
-            style: const TextStyle(
-              color: EColors.textTertiary,
-              fontSize: ESizes.fontSm,
-            ),
+            style: const TextStyle(color: EColors.textTertiary, fontSize: ESizes.fontSm),
           ),
         ],
       ],
@@ -73,10 +64,7 @@ class _FriendRequestsTabState extends State<FriendRequestsTab> {
       final partyInvites = WatchPartyController.to.pendingParties;
 
       if (received.isEmpty && sent.isEmpty && partyInvites.isEmpty) {
-        return friendEmptyState(
-          icon: Icons.mail_outline,
-          message: 'No pending requests',
-        );
+        return friendEmptyState(icon: Icons.mail_outline, message: 'No pending requests');
       }
 
       return ListView(
@@ -84,34 +72,39 @@ class _FriendRequestsTabState extends State<FriendRequestsTab> {
         children: [
           if (partyInvites.isNotEmpty) ...[
             _sectionHeader('Watch Party Invites (${partyInvites.length})'),
-            ...partyInvites.map((p) => Padding(
-                  padding: const EdgeInsets.only(bottom: ESizes.xs),
-                  child: _WatchPartyInviteCard(party: p),
-                )),
-            if (received.isNotEmpty || sent.isNotEmpty)
-              const SizedBox(height: ESizes.md),
+            ...partyInvites.map(
+              (p) => Padding(
+                padding: const EdgeInsets.only(bottom: ESizes.xs),
+                child: _WatchPartyInviteCard(party: p),
+              ),
+            ),
+            if (received.isNotEmpty || sent.isNotEmpty) const SizedBox(height: ESizes.md),
           ],
           if (received.isNotEmpty) ...[
             _sectionHeader('Received (${received.length})'),
-            ...received.map((f) => Padding(
-                  padding: const EdgeInsets.only(bottom: ESizes.xs),
-                  child: FriendRequestCard(
-                    friendship: f,
-                    onAccept: () => friendCtrl.acceptRequest(f),
-                    onDecline: () => friendCtrl.declineRequest(f),
-                  ),
-                )),
+            ...received.map(
+              (f) => Padding(
+                padding: const EdgeInsets.only(bottom: ESizes.xs),
+                child: FriendRequestCard(
+                  friendship: f,
+                  onAccept: () => friendCtrl.acceptRequest(f),
+                  onDecline: () => friendCtrl.declineRequest(f),
+                ),
+              ),
+            ),
           ],
           if (sent.isNotEmpty) ...[
             if (received.isNotEmpty) const SizedBox(height: ESizes.md),
             _sectionHeader('Sent (${sent.length})'),
-            ...sent.map((f) => Padding(
-                  padding: const EdgeInsets.only(bottom: ESizes.xs),
-                  child: FriendRequestCard(
-                    friendship: f,
-                    onCancel: () => friendCtrl.cancelRequest(f),
-                  ),
-                )),
+            ...sent.map(
+              (f) => Padding(
+                padding: const EdgeInsets.only(bottom: ESizes.xs),
+                child: FriendRequestCard(
+                  friendship: f,
+                  onCancel: () => friendCtrl.cancelRequest(f),
+                ),
+              ),
+            ),
           ],
         ],
       );
@@ -155,11 +148,7 @@ class _WatchPartyInviteCard extends StatelessWidget {
               color: EColors.surfaceLight,
               borderRadius: BorderRadius.circular(ESizes.radiusSm),
             ),
-            child: const Icon(
-              Icons.groups,
-              color: EColors.primary,
-              size: ESizes.iconMd,
-            ),
+            child: const Icon(Icons.groups, color: EColors.primary, size: ESizes.iconMd),
           ),
           const SizedBox(width: ESizes.md),
           Expanded(
@@ -179,10 +168,7 @@ class _WatchPartyInviteCard extends StatelessWidget {
                   party.creatorUsername != null
                       ? '${party.creatorUsername} invited you'
                       : 'Invited you to watch together',
-                  style: const TextStyle(
-                    color: EColors.textSecondary,
-                    fontSize: ESizes.fontSm,
-                  ),
+                  style: const TextStyle(color: EColors.textSecondary, fontSize: ESizes.fontSm),
                 ),
               ],
             ),
@@ -218,8 +204,7 @@ class _WatchPartyInviteCard extends StatelessWidget {
             onPressed: () => ctrl.declineInvite(party.id),
             child: const Text(
               'Decline',
-              style: TextStyle(
-                  color: EColors.textSecondary, fontSize: ESizes.fontSm),
+              style: TextStyle(color: EColors.textSecondary, fontSize: ESizes.fontSm),
             ),
           ),
         ],
@@ -251,10 +236,7 @@ class _FriendBlockedTabState extends State<FriendBlockedTab> {
     return Obx(() {
       final blocked = FriendController.to.blockedUsers;
       if (blocked.isEmpty) {
-        return friendEmptyState(
-          icon: Icons.block,
-          message: 'No blocked users',
-        );
+        return friendEmptyState(icon: Icons.block, message: 'No blocked users');
       }
       return ListView.separated(
         padding: const EdgeInsets.all(ESizes.md),
@@ -263,35 +245,35 @@ class _FriendBlockedTabState extends State<FriendBlockedTab> {
         itemBuilder: (_, i) {
           final block = blocked[i];
           final user = block.blockedUser;
-          return Container(
-            padding: const EdgeInsets.all(ESizes.md),
-            decoration: BoxDecoration(
-              color: EColors.surface,
-              borderRadius: BorderRadius.circular(ESizes.md),
-            ),
-            child: Row(
-              children: [
-                const CircleAvatar(
-                  radius: 22,
-                  backgroundColor: EColors.surfaceLight,
-                  child: Icon(Icons.person, color: EColors.textSecondary),
-                ),
-                const SizedBox(width: ESizes.md),
-                Expanded(
-                  child: Text(
-                    user?.displayName ?? 'Blocked User',
-                    style: const TextStyle(color: EColors.textPrimary),
+          return InkWell(
+            borderRadius: BorderRadius.circular(ESizes.md),
+            onTap: () => Get.to(() => UserProfileScreen(userId: block.blockedId)),
+            child: Container(
+              padding: const EdgeInsets.all(ESizes.md),
+              decoration: BoxDecoration(
+                color: EColors.surface,
+                borderRadius: BorderRadius.circular(ESizes.md),
+              ),
+              child: Row(
+                children: [
+                  const CircleAvatar(
+                    radius: 22,
+                    backgroundColor: EColors.surfaceLight,
+                    child: Icon(Icons.person, color: EColors.textSecondary),
                   ),
-                ),
-                TextButton(
-                  onPressed: () =>
-                      FriendController.to.unblockUser(block.blockedId),
-                  child: const Text(
-                    'Unblock',
-                    style: TextStyle(color: EColors.primary),
+                  const SizedBox(width: ESizes.md),
+                  Expanded(
+                    child: Text(
+                      user?.displayName ?? 'Blocked User',
+                      style: const TextStyle(color: EColors.textPrimary),
+                    ),
                   ),
-                ),
-              ],
+                  TextButton(
+                    onPressed: () => FriendController.to.unblockUser(block.blockedId),
+                    child: const Text('Unblock', style: TextStyle(color: EColors.primary)),
+                  ),
+                ],
+              ),
             ),
           );
         },

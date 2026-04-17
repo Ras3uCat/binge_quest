@@ -58,6 +58,7 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>io.supabase.bingequest</string>
+				<string>bingequest</string>
 			</array>
 		</dict>
 	</array>

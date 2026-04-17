@@ -35,6 +35,23 @@
                     android:scheme="io.supabase.bingequest"
                     android:host="login-callback" />
             </intent-filter>
+            <!-- Deep link for profile sharing (custom scheme) -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="bingequest" />
+            </intent-filter>
+            <!-- App Links for universal share links -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="https"
+                    android:host="raspucat.com"
+                    android:pathPrefix="/bingequest/" />
+            </intent-filter>
         </activity>
         <!-- FCM default notification channel for Android 8+.
              Must match the channel created in NotificationService. -->

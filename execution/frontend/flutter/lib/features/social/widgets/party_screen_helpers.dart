@@ -30,14 +30,10 @@ class PartyTvBody extends StatelessWidget {
   /// doesn't score the same as someone who finished a later episode.
   int _score(WatchPartyMemberProgress m) {
     if (m.episodes.isEmpty) return -1;
-    final active =
-        m.episodes.where((e) => e.watched || e.progressPercent > 0).toList();
+    final active = m.episodes.where((e) => e.watched || e.progressPercent > 0).toList();
     if (active.isEmpty) return -1;
     return active
-        .map((e) =>
-            e.seasonNumber * 10000 +
-            e.episodeNumber * 100 +
-            e.displayPercent ~/ 10)
+        .map((e) => e.seasonNumber * 10000 + e.episodeNumber * 100 + e.displayPercent ~/ 10)
         .reduce((a, b) => a > b ? a : b);
   }
 
@@ -48,15 +44,12 @@ class PartyTvBody extends StatelessWidget {
       final raw = ctrl.progressByParty[partyId] ?? [];
 
       if (loading && raw.isEmpty) {
-        return const Center(
-            child: CircularProgressIndicator(color: EColors.primary));
+        return const Center(child: CircularProgressIndicator(color: EColors.primary));
       }
 
       final members = [...raw]..sort((a, b) => _score(b).compareTo(_score(a)));
       final scores = members.map(_score).toList();
       final uid = Supabase.instance.client.auth.currentUser?.id ?? '';
-      final myIdx = members.indexWhere((m) => m.userId == uid);
-      final myScore = myIdx >= 0 ? scores[myIdx] : -1;
 
       return RefreshIndicator(
         onRefresh: () => ctrl.openParty(partyId),
@@ -74,13 +67,16 @@ class PartyTvBody extends StatelessWidget {
                 saying: _saying(i, members, ctrl, self, tied, scores),
                 sayingColor: _color(i, members.length, m, tied),
                 isSelf: self,
-                canNudge: !self && myScore > scores[i] && ctrl.canNudge(m.userId),
+                canNudge: ctrl.canNudge(m.userId),
+                nudgeTimeRemaining: ctrl.nudgeTimeRemaining(m.userId),
                 onNudge: self
                     ? null
                     : () => ctrl.nudgeMember(
                         partyId: partyId,
                         partyName: partyName,
-                        nudgedUserId: m.userId),
+                        nudgedUserId: m.userId,
+                        nudgedDisplayName: m.displayName,
+                      ),
               );
             }),
             PartyCatchUpIndicator(members: members),
@@ -116,23 +112,21 @@ class PartyMovieBody extends StatelessWidget {
       final raw = ctrl.progressByParty[partyId] ?? [];
 
       if (loading && raw.isEmpty) {
-        return const Center(
-            child: CircularProgressIndicator(color: EColors.primary));
+        return const Center(child: CircularProgressIndicator(color: EColors.primary));
       }
 
       if (!loading && raw.isEmpty) {
         return const Center(
-          child: Text('No members yet',
-              style: TextStyle(
-                  color: EColors.textSecondary, fontSize: ESizes.fontMd)),
+          child: Text(
+            'No members yet',
+            style: TextStyle(color: EColors.textSecondary, fontSize: ESizes.fontMd),
+          ),
         );
       }
 
       final members = [...raw]..sort((a, b) => _score(b).compareTo(_score(a)));
       final scores = members.map(_score).toList();
       final uid = Supabase.instance.client.auth.currentUser?.id ?? '';
-      final myIdx = members.indexWhere((m) => m.userId == uid);
-      final myScore = myIdx >= 0 ? scores[myIdx] : -1;
 
       return RefreshIndicator(
         onRefresh: () => ctrl.openParty(partyId),
@@ -150,13 +144,16 @@ class PartyMovieBody extends StatelessWidget {
                 saying: _saying(i, members, ctrl, self, tied, scores),
                 sayingColor: _color(i, members.length, m, tied),
                 isSelf: self,
-                canNudge: !self && myScore > scores[i] && ctrl.canNudge(m.userId),
+                canNudge: ctrl.canNudge(m.userId),
+                nudgeTimeRemaining: ctrl.nudgeTimeRemaining(m.userId),
                 onNudge: self
                     ? null
                     : () => ctrl.nudgeMember(
                         partyId: partyId,
                         partyName: partyName,
-                        nudgedUserId: m.userId),
+                        nudgedUserId: m.userId,
+                        nudgedDisplayName: m.displayName,
+                      ),
               );
             }),
             _furthestBehind(members),
@@ -182,8 +179,7 @@ class PartyMovieBody extends StatelessWidget {
       padding: const EdgeInsets.only(top: ESizes.sm),
       child: Text(
         '${behind.displayName} is furthest behind',
-        style: const TextStyle(
-            color: EColors.textSecondary, fontSize: ESizes.fontSm),
+        style: const TextStyle(color: EColors.textSecondary, fontSize: ESizes.fontSm),
       ),
     );
   }
@@ -219,12 +215,7 @@ String? _saying(
   );
 }
 
-Color? _color(
-  int index,
-  int total,
-  WatchPartyMemberProgress m,
-  bool isTied,
-) {
+Color? _color(int index, int total, WatchPartyMemberProgress m, bool isTied) {
   if (total < 2) return null;
   if (m.episodes.isEmpty) return EColors.textSecondary;
   if (m.isAllWatched) return EColors.success;

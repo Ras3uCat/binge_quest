@@ -11,9 +11,7 @@ class TopContentRepository {
   static Future<List<TopContent>> getTop10ByUsers() async {
     try {
       final response = await _client.rpc('get_top_10_by_users');
-      return (response as List)
-          .map((json) => TopContent.fromUserCountJson(json))
-          .toList();
+      return (response as List).map((json) => TopContent.fromUserCountJson(json)).toList();
     } catch (e) {
       debugPrint('Error getting top 10 by users: $e');
       return [];
@@ -24,11 +22,31 @@ class TopContentRepository {
   static Future<List<TopContent>> getTop10ByRating() async {
     try {
       final response = await _client.rpc('get_top_10_by_rating');
-      return (response as List)
-          .map((json) => TopContent.fromRatingJson(json))
-          .toList();
+      return (response as List).map((json) => TopContent.fromRatingJson(json)).toList();
     } catch (e) {
       debugPrint('Error getting top 10 by rating: $e');
+      return [];
+    }
+  }
+
+  /// Get top 10 by friends' watchlist presence (most watched among friends)
+  static Future<List<TopContent>> getFriendsTop10ByUsers() async {
+    try {
+      final response = await _client.rpc('get_friends_top10_by_users');
+      return (response as List).map((json) => TopContent.fromUserCountJson(json)).toList();
+    } catch (e) {
+      debugPrint('Error getting friends top 10 by users: $e');
+      return [];
+    }
+  }
+
+  /// Get top 10 by friends' average rating (top rated among friends)
+  static Future<List<TopContent>> getFriendsTop10ByRating() async {
+    try {
+      final response = await _client.rpc('get_friends_top10_by_rating');
+      return (response as List).map((json) => TopContent.fromRatingJson(json)).toList();
+    } catch (e) {
+      debugPrint('Error getting friends top 10 by rating: $e');
       return [];
     }
   }

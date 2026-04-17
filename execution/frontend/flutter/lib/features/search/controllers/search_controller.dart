@@ -100,12 +100,10 @@ class ContentSearchController extends GetxController {
   List<TmdbSearchResult> get suggestions => _filteredSuggestions;
   bool get isLoadingSuggestions => _isLoadingSuggestions.value;
   bool get suggestionsLoaded => _suggestionsLoaded.value;
-  bool get showSuggestions =>
-      _searchQuery.value.isEmpty && !hasSelectedProviders;
+  bool get showSuggestions => _searchQuery.value.isEmpty && !hasSelectedProviders;
 
   // Cached streaming providers getter
-  Map<int, List<StreamingProviderInfo>> get cachedStreamingProviders =>
-      _cachedStreamingProviders;
+  Map<int, List<StreamingProviderInfo>> get cachedStreamingProviders => _cachedStreamingProviders;
 
   /// Get streaming providers for a specific TMDB ID from cache.
   List<StreamingProviderInfo>? getStreamingProviders(int tmdbId) {
@@ -116,9 +114,7 @@ class ContentSearchController extends GetxController {
   List<TmdbSearchResult> get _filteredSuggestions {
     switch (_filter.value) {
       case SearchFilter.movies:
-        return _suggestions
-            .where((r) => r.mediaType == MediaType.movie)
-            .toList();
+        return _suggestions.where((r) => r.mediaType == MediaType.movie).toList();
       case SearchFilter.tvShows:
         return _suggestions.where((r) => r.mediaType == MediaType.tv).toList();
       case SearchFilter.all:
@@ -185,23 +181,24 @@ class ContentSearchController extends GetxController {
     if (resetResults) {
       _searchResults.clear();
       _currentPage.value = 1;
+      if (_filter.value == SearchFilter.all) _personResults.clear();
     }
 
     _searchQuery.value = query;
     _isLoading.value = true;
     _error.value = null;
 
+    // Fire background people search in parallel for 'all' mode
+    if (_filter.value == SearchFilter.all) {
+      _searchPeopleBackground(query);
+    }
+
     try {
-      final response = await TmdbService.multiSearch(
-        query,
-        page: _currentPage.value,
-      );
+      final response = await TmdbService.multiSearch(query, page: _currentPage.value);
 
       final results = (response['results'] as List)
           .map((json) => TmdbSearchResult.fromJson(json))
-          .where(
-            (r) => r.mediaTypeString == 'movie' || r.mediaTypeString == 'tv',
-          )
+          .where((r) => r.mediaTypeString == 'movie' || r.mediaTypeString == 'tv')
           .toList();
 
       if (resetResults) {
@@ -223,14 +220,11 @@ class ContentSearchController extends GetxController {
   }
 
   /// Fetch streaming providers from cache for search results.
-  Future<void> _fetchStreamingProvidersForResults(
-    List<TmdbSearchResult> results,
-  ) async {
+  Future<void> _fetchStreamingProvidersForResults(List<TmdbSearchResult> results) async {
     if (results.isEmpty) return;
 
     final tmdbIds = results.map((r) => r.id).toList();
-    final providers =
-        await ContentCacheRepository.getStreamingProvidersForIds(tmdbIds);
+    final providers = await ContentCacheRepository.getStreamingProvidersForIds(tmdbIds);
 
     // Merge with existing cached providers
     _cachedStreamingProviders.addAll(providers);
@@ -248,10 +242,7 @@ class ContentSearchController extends GetxController {
     _error.value = null;
 
     try {
-      final response = await TmdbService.searchPerson(
-        query,
-        page: _currentPage.value,
-      );
+      final response = await TmdbService.searchPerson(query, page: _currentPage.value);
 
       final results = (response['results'] as List)
           .map((json) => TmdbPersonSearchResult.fromJson(json))
@@ -269,6 +260,20 @@ class ContentSearchController extends GetxController {
       debugPrint('Person search error: $e');
     } finally {
       _isLoading.value = false;
+    }
+  }
+
+  /// Search people without affecting the main loading state.
+  /// Used for the people strip shown in 'all' filter mode.
+  Future<void> _searchPeopleBackground(String query) async {
+    try {
+      final response = await TmdbService.searchPerson(query, page: 1);
+      final results = (response['results'] as List)
+          .map((json) => TmdbPersonSearchResult.fromJson(json))
+          .toList();
+      _personResults.assignAll(results);
+    } catch (e) {
+      debugPrint('Background person search error: $e');
     }
   }
 
@@ -290,13 +295,20 @@ class ContentSearchController extends GetxController {
     if (_filter.value == newFilter) return;
 
     final wasPeopleSearch = _filter.value == SearchFilter.people;
+    final wasAll = _filter.value == SearchFilter.all;
     final isPeopleSearch = newFilter == SearchFilter.people;
 
     _filter.value = newFilter;
 
-    // Re-search if we have a query and switching between content/people
     if (_searchQuery.value.isNotEmpty && (wasPeopleSearch != isPeopleSearch)) {
+      // Re-search when switching between content and people modes
       search(_searchQuery.value);
+    } else if (newFilter == SearchFilter.all && _searchQuery.value.isNotEmpty && !wasAll) {
+      // Switching to 'all' from movies/tvShows — fetch people in background
+      _searchPeopleBackground(_searchQuery.value);
+    } else if (newFilter != SearchFilter.all && !isPeopleSearch) {
+      // Switching away from 'all' to a content-only filter — clear people strip
+      _personResults.clear();
     }
   }
 
@@ -375,8 +387,7 @@ class ContentSearchController extends GetxController {
       final results = <TmdbSearchResult>[];
 
       // Based on filter, discover movies, TV shows, or both
-      if (_filter.value == SearchFilter.all ||
-          _filter.value == SearchFilter.movies) {
+      if (_filter.value == SearchFilter.all || _filter.value == SearchFilter.movies) {
         final movieResponse = await TmdbService.discoverMovies(
           page: _currentPage.value,
           watchRegion: 'US',
@@ -385,16 +396,12 @@ class ContentSearchController extends GetxController {
         );
 
         final movieResults = (movieResponse['results'] as List)
-            .map(
-              (json) =>
-                  TmdbSearchResult.fromJson({...json, 'media_type': 'movie'}),
-            )
+            .map((json) => TmdbSearchResult.fromJson({...json, 'media_type': 'movie'}))
             .toList();
         results.addAll(movieResults);
       }
 
-      if (_filter.value == SearchFilter.all ||
-          _filter.value == SearchFilter.tvShows) {
+      if (_filter.value == SearchFilter.all || _filter.value == SearchFilter.tvShows) {
         final tvResponse = await TmdbService.discoverTvShows(
           page: _currentPage.value,
           watchRegion: 'US',
@@ -403,10 +410,7 @@ class ContentSearchController extends GetxController {
         );
 
         final tvResults = (tvResponse['results'] as List)
-            .map(
-              (json) =>
-                  TmdbSearchResult.fromJson({...json, 'media_type': 'tv'}),
-            )
+            .map((json) => TmdbSearchResult.fromJson({...json, 'media_type': 'tv'}))
             .toList();
         results.addAll(tvResults);
       }
@@ -442,13 +446,7 @@ class ContentSearchController extends GetxController {
 
     // Convert selected StreamingProvider to StreamingProviderInfo
     final providerInfoList = _selectedProviders
-        .map(
-          (p) => StreamingProviderInfo(
-            id: p.id,
-            name: p.name,
-            logoPath: p.logoPath,
-          ),
-        )
+        .map((p) => StreamingProviderInfo(id: p.id, name: p.name, logoPath: p.logoPath))
         .toList();
 
     // Assign to all results
@@ -661,10 +659,7 @@ class ContentSearchController extends GetxController {
     // Fetch detailed season info for each season
     for (final season in tvShow.seasons) {
       try {
-        final seasonData = await TmdbService.getSeasonDetails(
-          tvShow.id,
-          season.seasonNumber,
-        );
+        final seasonData = await TmdbService.getSeasonDetails(tvShow.id, season.seasonNumber);
 
         final episodes = (seasonData['episodes'] as List?) ?? [];
 
@@ -672,13 +667,9 @@ class ContentSearchController extends GetxController {
           final episode = TmdbEpisode.fromJson(episodeJson);
 
           // 1. Cache episode metadata first (includes runtime, season, episode)
-          final cachedEpisode =
-              await ContentCacheEpisodesRepository.ensureExists(
-                ContentCacheEpisodesRepository.fromTmdbEpisode(
-                  tvShow.id,
-                  episode,
-                ),
-              );
+          final cachedEpisode = await ContentCacheEpisodesRepository.ensureExists(
+            ContentCacheEpisodesRepository.fromTmdbEpisode(tvShow.id, episode),
+          );
 
           // 2. Create progress entry with FK reference only
           await WatchlistRepository.createWatchProgress(
@@ -719,10 +710,7 @@ class ContentSearchController extends GetxController {
   }
 
   /// Add movie to multiple watchlists.
-  Future<bool> addMovieToWatchlists(
-    TmdbMovie movie,
-    List<String> watchlistIds,
-  ) async {
+  Future<bool> addMovieToWatchlists(TmdbMovie movie, List<String> watchlistIds) async {
     if (watchlistIds.isEmpty) return false;
 
     _isAddingToWatchlist.value = true;
@@ -758,10 +746,7 @@ class ContentSearchController extends GetxController {
   }
 
   /// Add TV show to multiple watchlists.
-  Future<bool> addTvShowToWatchlists(
-    TmdbTvShow tvShow,
-    List<String> watchlistIds,
-  ) async {
+  Future<bool> addTvShowToWatchlists(TmdbTvShow tvShow, List<String> watchlistIds) async {
     if (watchlistIds.isEmpty) return false;
 
     _isAddingToWatchlist.value = true;
@@ -824,11 +809,13 @@ class ContentSearchController extends GetxController {
         // Get flatrate (subscription) providers
         final flatrate = usData['flatrate'] as List<dynamic>? ?? [];
         for (final p in flatrate) {
-          streamingProviders.add(StreamingProviderInfo(
-            id: p['provider_id'] as int,
-            name: p['provider_name'] as String,
-            logoPath: p['logo_path'] as String?,
-          ));
+          streamingProviders.add(
+            StreamingProviderInfo(
+              id: p['provider_id'] as int,
+              name: p['provider_name'] as String,
+              logoPath: p['logo_path'] as String?,
+            ),
+          );
         }
       }
     } catch (e) {
@@ -870,8 +857,7 @@ class ContentSearchController extends GetxController {
         .toList();
 
     // Parse lastAirDate
-    final lastAirDate =
-        tvShow.lastAirDate != null && tvShow.lastAirDate!.isNotEmpty
+    final lastAirDate = tvShow.lastAirDate != null && tvShow.lastAirDate!.isNotEmpty
         ? DateTime.tryParse(tvShow.lastAirDate!)
         : null;
 
@@ -885,11 +871,13 @@ class ContentSearchController extends GetxController {
         // Get flatrate (subscription) providers
         final flatrate = usData['flatrate'] as List<dynamic>? ?? [];
         for (final p in flatrate) {
-          streamingProviders.add(StreamingProviderInfo(
-            id: p['provider_id'] as int,
-            name: p['provider_name'] as String,
-            logoPath: p['logo_path'] as String?,
-          ));
+          streamingProviders.add(
+            StreamingProviderInfo(
+              id: p['provider_id'] as int,
+              name: p['provider_name'] as String,
+              logoPath: p['logo_path'] as String?,
+            ),
+          );
         }
       }
     } catch (e) {
@@ -1009,10 +997,7 @@ class ContentSearchController extends GetxController {
   // ============================================
 
   /// Get watch providers for a movie.
-  Future<void> loadMovieWatchProviders(
-    int movieId, {
-    String country = 'US',
-  }) async {
+  Future<void> loadMovieWatchProviders(int movieId, {String country = 'US'}) async {
     _isLoadingProviders.value = true;
     _watchProviders.value = null;
 
@@ -1028,10 +1013,7 @@ class ContentSearchController extends GetxController {
   }
 
   /// Get watch providers for a TV show.
-  Future<void> loadTvShowWatchProviders(
-    int tvId, {
-    String country = 'US',
-  }) async {
+  Future<void> loadTvShowWatchProviders(int tvId, {String country = 'US'}) async {
     _isLoadingProviders.value = true;
     _watchProviders.value = null;
 
@@ -1047,11 +1029,7 @@ class ContentSearchController extends GetxController {
   }
 
   /// Load watch providers based on content type.
-  Future<void> loadWatchProviders(
-    int id,
-    MediaType mediaType, {
-    String country = 'US',
-  }) async {
+  Future<void> loadWatchProviders(int id, MediaType mediaType, {String country = 'US'}) async {
     if (mediaType == MediaType.movie) {
       await loadMovieWatchProviders(id, country: country);
     } else {
@@ -1094,8 +1072,7 @@ class ContentSearchController extends GetxController {
       }
 
       // Sort genres by frequency, take top 3
-      final sortedGenres = genreCount.entries.toList()
-        ..sort((a, b) => b.value.compareTo(a.value));
+      final sortedGenres = genreCount.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
       final topGenreIds = sortedGenres.take(3).map((e) => e.key).toList();
 
       if (topGenreIds.isEmpty) {
@@ -1115,10 +1092,7 @@ class ContentSearchController extends GetxController {
         withOriginalLanguage: 'en',
       );
       final movieResults = (movieResponse['results'] as List)
-          .map(
-            (json) =>
-                TmdbSearchResult.fromJson({...json, 'media_type': 'movie'}),
-          )
+          .map((json) => TmdbSearchResult.fromJson({...json, 'media_type': 'movie'}))
           .where((r) => !watchlistTmdbIds.contains(r.id))
           .toList();
 
@@ -1131,9 +1105,7 @@ class ContentSearchController extends GetxController {
         withOriginalLanguage: 'en',
       );
       final tvResults = (tvResponse['results'] as List)
-          .map(
-            (json) => TmdbSearchResult.fromJson({...json, 'media_type': 'tv'}),
-          )
+          .map((json) => TmdbSearchResult.fromJson({...json, 'media_type': 'tv'}))
           .where((r) => !watchlistTmdbIds.contains(r.id))
           .toList();
 
@@ -1158,10 +1130,7 @@ class ContentSearchController extends GetxController {
         withOriginalLanguage: 'en',
       );
       final movieResults = (movieResponse['results'] as List)
-          .map(
-            (json) =>
-                TmdbSearchResult.fromJson({...json, 'media_type': 'movie'}),
-          )
+          .map((json) => TmdbSearchResult.fromJson({...json, 'media_type': 'movie'}))
           .toList();
 
       final tvResponse = await TmdbService.discoverTvShows(
@@ -1171,9 +1140,7 @@ class ContentSearchController extends GetxController {
         withOriginalLanguage: 'en',
       );
       final tvResults = (tvResponse['results'] as List)
-          .map(
-            (json) => TmdbSearchResult.fromJson({...json, 'media_type': 'tv'}),
-          )
+          .map((json) => TmdbSearchResult.fromJson({...json, 'media_type': 'tv'}))
           .toList();
 
       // Interleave for balanced mix
@@ -1191,9 +1158,7 @@ class ContentSearchController extends GetxController {
     List<TmdbSearchResult> tvShows,
   ) {
     final result = <TmdbSearchResult>[];
-    final maxLen = movies.length > tvShows.length
-        ? movies.length
-        : tvShows.length;
+    final maxLen = movies.length > tvShows.length ? movies.length : tvShows.length;
 
     for (var i = 0; i < maxLen; i++) {
       if (i < movies.length) result.add(movies[i]);

@@ -1,8 +1,15 @@
 workflows:
   ios-testflight:
-    name: iOS TestFlight Build
+    name: iOS Release Build
     max_build_duration: 60
     working_directory: execution/frontend/flutter
+
+    triggering:
+      events:
+        - tag
+      tag_patterns:
+        - pattern: 'v*'
+          include: true
 
     integrations:
       app_store_connect: Codemagic API
@@ -59,11 +66,19 @@ workflows:
       app_store_connect:
         auth: integration
         submit_to_testflight: true
+        submit_to_app_store: true
 
   android-play-store:
     name: Android Play Store Build
     max_build_duration: 60
     working_directory: execution/frontend/flutter
+
+    triggering:
+      events:
+        - tag
+      tag_patterns:
+        - pattern: 'v*'
+          include: true
 
     environment:
       flutter: stable
@@ -107,4 +122,5 @@ workflows:
     publishing:
       google_play:
         credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
-        track: alpha
+        track: production
+        rollout_fraction: 0.1

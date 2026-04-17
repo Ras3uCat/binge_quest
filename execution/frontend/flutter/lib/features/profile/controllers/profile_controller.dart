@@ -57,7 +57,9 @@ class ProfileController extends GetxController {
     final user = AuthController.to.user;
     return user?.userMetadata?['full_name'] ??
         user?.userMetadata?['name'] ??
-        user?.email?.split('@').first ??
+        (user?.email?.contains('@privaterelay.appleid.com') == true
+            ? 'Apple User'
+            : user?.email?.split('@').first) ??
         'User';
   }
 
@@ -65,8 +67,7 @@ class ProfileController extends GetxController {
 
   String? get avatarUrl {
     final user = AuthController.to.user;
-    return user?.userMetadata?['avatar_url'] ??
-        user?.userMetadata?['picture'];
+    return user?.userMetadata?['avatar_url'] ?? user?.userMetadata?['picture'];
   }
 
   @override

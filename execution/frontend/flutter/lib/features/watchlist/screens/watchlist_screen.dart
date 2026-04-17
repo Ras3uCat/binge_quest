@@ -8,7 +8,7 @@ import '../../../shared/widgets/empty_state_widget.dart';
 import '../../../shared/widgets/animated_list_item.dart';
 import '../controllers/watchlist_controller.dart';
 import '../controllers/watchlist_member_controller.dart';
-import '../widgets/watchlist_selector_widget.dart';
+import '../widgets/watchlist_pill_selector.dart';
 import '../widgets/watchlist_filter_panel.dart';
 import '../widgets/watchlist_filter_button.dart';
 import '../widgets/watchlist_item_card.dart';
@@ -16,7 +16,8 @@ import '../screens/manage_members_screen.dart';
 import '../../search/screens/search_screen.dart';
 
 class WatchlistScreen extends StatelessWidget {
-  const WatchlistScreen({super.key});
+  final bool showBackButton;
+  const WatchlistScreen({super.key, this.showBackButton = true});
 
   @override
   Widget build(BuildContext context) {
@@ -26,26 +27,29 @@ class WatchlistScreen extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              EColors.backgroundSecondary,
-              EColors.background,
-            ],
+            colors: [EColors.backgroundSecondary, EColors.background],
           ),
         ),
         child: SafeArea(
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildHeader(),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: ESizes.lg),
-                child: const WatchlistSelectorWidget(),
-              ),
+              if (showBackButton) ...[
+                _buildHeader(),
+                const WatchlistPillSelector(),
+              ] else ...[
+                const SizedBox(height: ESizes.sm),
+                _buildPillRow(),
+                _buildPillHint(),
+              ],
               const SizedBox(height: ESizes.md),
               _buildFilterBar(),
               const WatchlistFilterPanel(),
-              Obx(() => WatchlistController.to.isFilterPanelActive
-                  ? const SizedBox(height: ESizes.sm)
-                  : const SizedBox.shrink()),
+              Obx(
+                () => WatchlistController.to.isFilterPanelActive
+                    ? const SizedBox(height: ESizes.sm)
+                    : const SizedBox.shrink(),
+              ),
               Expanded(child: _buildItemsList()),
             ],
           ),
@@ -59,12 +63,14 @@ class WatchlistScreen extends StatelessWidget {
       padding: const EdgeInsets.all(ESizes.lg),
       child: Row(
         children: [
-          IconButton(
-            onPressed: () => Get.back(),
-            icon: const Icon(Icons.arrow_back),
-            color: EColors.textPrimary,
-          ),
-          const SizedBox(width: ESizes.sm),
+          if (showBackButton) ...[
+            IconButton(
+              onPressed: () => Get.back(),
+              icon: const Icon(Icons.arrow_back),
+              color: EColors.textPrimary,
+            ),
+            const SizedBox(width: ESizes.sm),
+          ],
           const Expanded(
             child: Text(
               EText.watchlist,
@@ -79,25 +85,66 @@ class WatchlistScreen extends StatelessWidget {
             final watchlist = WatchlistController.to.currentWatchlist;
             if (watchlist == null) return const SizedBox.shrink();
             return IconButton(
-              onPressed: () => Get.to(() => ManageMembersScreen(
-                    watchlistId: watchlist.id,
-                    watchlistName: watchlist.name,
-                    ownerId: watchlist.userId,
-                  )),
+              onPressed: () => Get.to(
+                () => ManageMembersScreen(
+                  watchlistId: watchlist.id,
+                  watchlistName: watchlist.name,
+                  ownerId: watchlist.userId,
+                ),
+              ),
               icon: Obx(() {
-                final isShared = WatchlistMemberController.to
-                    .isShared(watchlist.id);
+                final isShared = WatchlistMemberController.to.isShared(watchlist.id);
                 return Icon(
                   isShared ? Icons.group : Icons.group_add_outlined,
-                  color: isShared
-                      ? EColors.primary
-                      : EColors.textSecondary,
+                  color: isShared ? EColors.primary : EColors.textSecondary,
                 );
               }),
               tooltip: 'Members',
             );
           }),
         ],
+      ),
+    );
+  }
+
+  Widget _buildPillRow() {
+    return Row(
+      children: [
+        const Expanded(child: WatchlistPillSelector()),
+        Obx(() {
+          final watchlist = WatchlistController.to.currentWatchlist;
+          if (watchlist == null) return const SizedBox.shrink();
+          return Padding(
+            padding: const EdgeInsets.only(right: ESizes.sm),
+            child: IconButton(
+              onPressed: () => Get.to(
+                () => ManageMembersScreen(
+                  watchlistId: watchlist.id,
+                  watchlistName: watchlist.name,
+                  ownerId: watchlist.userId,
+                ),
+              ),
+              icon: Obx(() {
+                final isShared = WatchlistMemberController.to.isShared(watchlist.id);
+                return Icon(
+                  isShared ? Icons.group : Icons.group_add_outlined,
+                  color: isShared ? EColors.primary : EColors.textSecondary,
+                );
+              }),
+              tooltip: 'Members',
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
+  Widget _buildPillHint() {
+    return const Padding(
+      padding: EdgeInsets.only(left: ESizes.lg, top: ESizes.xs),
+      child: Text(
+        'Hold a watchlist to manage it',
+        style: TextStyle(fontSize: ESizes.fontXs, color: EColors.textTertiary),
       ),
     );
   }
@@ -114,13 +161,8 @@ class WatchlistScreen extends StatelessWidget {
         return Row(
           children: [
             Text(
-              hasFilters
-                  ? '${filteredItems.length} of $totalItems items'
-                  : '$totalItems items',
-              style: const TextStyle(
-                fontSize: ESizes.fontMd,
-                color: EColors.textSecondary,
-              ),
+              hasFilters ? '${filteredItems.length} of $totalItems items' : '$totalItems items',
+              style: const TextStyle(fontSize: ESizes.fontMd, color: EColors.textSecondary),
             ),
             const Spacer(),
             // Sort indicator (compact display only)
@@ -130,16 +172,11 @@ class WatchlistScreen extends StatelessWidget {
               return GestureDetector(
                 onTap: controller.toggleFilterPanel,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: ESizes.sm,
-                    vertical: ESizes.xs,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: ESizes.sm, vertical: ESizes.xs),
                   decoration: BoxDecoration(
                     color: isActive ? EColors.primary.withValues(alpha: 0.1) : EColors.surfaceLight,
                     borderRadius: BorderRadius.circular(ESizes.radiusSm),
-                    border: Border.all(
-                      color: isActive ? EColors.primary : Colors.transparent,
-                    ),
+                    border: Border.all(color: isActive ? EColors.primary : Colors.transparent),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -233,10 +270,7 @@ class WatchlistScreen extends StatelessWidget {
             const SizedBox(height: ESizes.sm),
             const Text(
               'Try adjusting your filter settings',
-              style: TextStyle(
-                fontSize: ESizes.fontMd,
-                color: EColors.textTertiary,
-              ),
+              style: TextStyle(fontSize: ESizes.fontMd, color: EColors.textTertiary),
             ),
             const SizedBox(height: ESizes.lg),
             TextButton.icon(
@@ -251,8 +285,6 @@ class WatchlistScreen extends StatelessWidget {
   }
 
   Widget _buildEmptyState() {
-    return EmptyStateWidget.watchlist(
-      onAction: () => Get.to(() => const SearchScreen()),
-    );
+    return EmptyStateWidget.watchlist(onAction: () => Get.to(() => const SearchScreen()));
   }
 }
