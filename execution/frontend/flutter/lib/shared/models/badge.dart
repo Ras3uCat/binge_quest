@@ -4,7 +4,8 @@ enum BadgeCategory {
   milestone,
   genre,
   streak,
-  activity;
+  activity,
+  social;
 
   static BadgeCategory fromString(String value) {
     return BadgeCategory.values.firstWhere(
@@ -24,12 +25,19 @@ enum BadgeCriteriaType {
   weekendCompletions,
   lateNightWatches,
   earlyWatches,
-  // Efficiency badge types
   efficiencyScore,
   staleItems,
   staleCleared,
   allActiveDays,
-  sameDayStarts;
+  sameDayStarts,
+  reviewsLeft,
+  playlistsCreated,
+  cocuratorsAdded,
+  friendsAdded,
+  itemsShared,
+  watchPartiesHosted,
+  watchPartiesJoined,
+  watchPartiesTotal;
 
   static BadgeCriteriaType fromString(String value) {
     switch (value) {
@@ -59,6 +67,22 @@ enum BadgeCriteriaType {
         return BadgeCriteriaType.allActiveDays;
       case 'same_day_starts':
         return BadgeCriteriaType.sameDayStarts;
+      case 'reviews_left':
+        return BadgeCriteriaType.reviewsLeft;
+      case 'playlists_created':
+        return BadgeCriteriaType.playlistsCreated;
+      case 'cocurators_added':
+        return BadgeCriteriaType.cocuratorsAdded;
+      case 'friends_added':
+        return BadgeCriteriaType.friendsAdded;
+      case 'items_shared':
+        return BadgeCriteriaType.itemsShared;
+      case 'watch_parties_hosted':
+        return BadgeCriteriaType.watchPartiesHosted;
+      case 'watch_parties_joined':
+        return BadgeCriteriaType.watchPartiesJoined;
+      case 'watch_parties_total':
+        return BadgeCriteriaType.watchPartiesTotal;
       default:
         return BadgeCriteriaType.itemsCompleted;
     }
@@ -71,11 +95,7 @@ class BadgeCriteria {
   final int value;
   final int? genreId;
 
-  const BadgeCriteria({
-    required this.type,
-    required this.value,
-    this.genreId,
-  });
+  const BadgeCriteria({required this.type, required this.value, this.genreId});
 
   factory BadgeCriteria.fromJson(Map<String, dynamic> json) {
     return BadgeCriteria(
@@ -86,11 +106,7 @@ class BadgeCriteria {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'type': type.name,
-      'value': value,
-      if (genreId != null) 'genre_id': genreId,
-    };
+    return {'type': type.name, 'value': value, if (genreId != null) 'genre_id': genreId};
   }
 }
 
@@ -114,8 +130,8 @@ class Badge {
 
   factory Badge.fromJson(Map<String, dynamic> json) {
     final criteriaJson = json['criteria_json'];
-    final criteria = criteriaJson is Map<String, dynamic>
-        ? BadgeCriteria.fromJson(criteriaJson)
+    final criteria = criteriaJson is Map
+        ? BadgeCriteria.fromJson(Map<String, dynamic>.from(criteriaJson as Map))
         : BadgeCriteria.fromJson({});
 
     return Badge(
@@ -149,6 +165,8 @@ class Badge {
 
   /// Check if this badge is earned based on user stats.
   bool isEarned(Map<String, dynamic> stats) {
+    // value=0 means criteria wasn't parsed — treat as impossible to earn
+    if (criteria.value == 0 && criteria.type != BadgeCriteriaType.staleItems) return false;
     switch (criteria.type) {
       case BadgeCriteriaType.itemsCompleted:
         return (stats['items_completed'] as int? ?? 0) >= criteria.value;
@@ -177,8 +195,25 @@ class Badge {
       case BadgeCriteriaType.staleCleared:
       case BadgeCriteriaType.allActiveDays:
       case BadgeCriteriaType.sameDayStarts:
-        // These require special tracking over time
         return false;
+      case BadgeCriteriaType.reviewsLeft:
+        return (stats['reviews_left'] as int? ?? 0) >= criteria.value;
+      case BadgeCriteriaType.playlistsCreated:
+        return (stats['playlists_created'] as int? ?? 0) >= criteria.value;
+      case BadgeCriteriaType.cocuratorsAdded:
+        return (stats['cocurators_added'] as int? ?? 0) >= criteria.value;
+      case BadgeCriteriaType.friendsAdded:
+        return (stats['friends_added'] as int? ?? 0) >= criteria.value;
+      case BadgeCriteriaType.itemsShared:
+        return (stats['items_shared'] as int? ?? 0) >= criteria.value;
+      case BadgeCriteriaType.watchPartiesHosted:
+        return (stats['watch_parties_hosted'] as int? ?? 0) >= criteria.value;
+      case BadgeCriteriaType.watchPartiesJoined:
+        return (stats['watch_parties_joined'] as int? ?? 0) >= criteria.value;
+      case BadgeCriteriaType.watchPartiesTotal:
+        final hosted = stats['watch_parties_hosted'] as int? ?? 0;
+        final joined = stats['watch_parties_joined'] as int? ?? 0;
+        return (hosted + joined) >= criteria.value;
     }
   }
 

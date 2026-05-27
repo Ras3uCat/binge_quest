@@ -7,6 +7,7 @@ import '../../../shared/models/user_block.dart';
 import '../../../shared/models/user_profile.dart';
 import '../../../shared/repositories/friend_repository.dart';
 import '../../auth/controllers/auth_controller.dart';
+import '../../badges/controllers/badge_controller.dart';
 
 /// Controller for friend system state and actions.
 class FriendController extends GetxController {
@@ -37,8 +38,7 @@ class FriendController extends GetxController {
   String? get _userId => AuthController.to.user?.id;
 
   /// Set of friend user IDs for quick lookups.
-  Set<String> get friendIds =>
-      friends.map((f) => f.friendId(_userId ?? '')).toSet();
+  Set<String> get friendIds => friends.map((f) => f.friendId(_userId ?? '')).toSet();
 
   RealtimeChannel? _friendshipsChannel;
 
@@ -126,8 +126,7 @@ class FriendController extends GetxController {
   // ---------------------------------------------------------------------------
 
   /// Check if a username is available.
-  Future<bool> isUsernameAvailable(String value) =>
-      _repository.isUsernameAvailable(value);
+  Future<bool> isUsernameAvailable(String value) => _repository.isUsernameAvailable(value);
 
   /// Claim a username for the current user.
   Future<bool> setUsername(String value) async {
@@ -243,6 +242,9 @@ class FriendController extends GetxController {
     try {
       await _repository.acceptFriendRequest(request.id);
       AnalyticsService.logAcceptFriendRequest();
+      try {
+        BadgeController.to.checkForNewBadges();
+      } catch (_) {}
     } catch (e) {
       // Revert
       friends.removeWhere((f) => f.id == request.id);

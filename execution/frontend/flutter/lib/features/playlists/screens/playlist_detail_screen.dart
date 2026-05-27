@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:share_plus/share_plus.dart';
+import '../../../core/services/share_service.dart';
 import '../../../core/constants/e_colors.dart';
 import '../../../core/constants/e_sizes.dart';
 import '../../notifications/helpers/quick_add_helper.dart';
@@ -76,7 +76,7 @@ class _PlaylistOwnerView extends StatelessWidget {
 
   void _share() {
     final link = 'https://raspucat.com/bingequest/playlist?id=${playlist.id}';
-    Share.share('Check out my playlist "${playlist.name}" on BingeQuest!\n$link');
+    ShareService.to.shareText('Check out my playlist "${playlist.name}" on BingeQuest!\n$link');
   }
 
   @override

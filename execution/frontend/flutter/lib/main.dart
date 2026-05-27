@@ -27,6 +27,7 @@ import 'features/watchlist/controllers/watchlist_controller.dart';
 import 'features/watchlist/controllers/watchlist_member_controller.dart';
 import 'features/notifications/controllers/notification_controller.dart';
 import 'features/profile/controllers/archetype_controller.dart';
+import 'features/calendar/controllers/calendar_controller.dart';
 import 'core/services/deep_link_service.dart';
 import 'features/auth/screens/splash_screen.dart';
 
@@ -114,6 +115,7 @@ Future<void> main() async {
   Get.lazyPut(() => WatchlistMemberController(), fenix: true);
   Get.lazyPut(() => NotificationController(), fenix: true);
   Get.lazyPut(() => ArchetypeController(), fenix: true);
+  Get.lazyPut(() => CalendarController(), fenix: true);
 
   runApp(const BingeQuestApp());
 }

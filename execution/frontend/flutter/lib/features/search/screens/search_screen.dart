@@ -22,52 +22,56 @@ class SearchScreen extends StatelessWidget {
       Get.put(ContentSearchController());
     }
 
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [EColors.backgroundSecondary, EColors.background],
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      behavior: HitTestBehavior.translucent,
+      child: Scaffold(
+        body: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [EColors.backgroundSecondary, EColors.background],
+            ),
           ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              _buildHeader(),
-              _buildSearchBar(),
-              _buildFilterChips(),
-              const ProviderFilterPanel(),
-              Obx(
-                () => ContentSearchController.to.isProviderFilterActive
-                    ? const SizedBox(height: ESizes.sm)
-                    : const SizedBox.shrink(),
-              ),
-              Expanded(
-                child: Obx(() {
-                  final controller = ContentSearchController.to;
+          child: SafeArea(
+            child: Column(
+              children: [
+                _buildHeader(),
+                _buildSearchBar(),
+                _buildFilterChips(),
+                const ProviderFilterPanel(),
+                Obx(
+                  () => ContentSearchController.to.isProviderFilterActive
+                      ? const SizedBox(height: ESizes.sm)
+                      : const SizedBox.shrink(),
+                ),
+                Expanded(
+                  child: Obx(() {
+                    final controller = ContentSearchController.to;
 
-                  if (controller.showSuggestions && !controller.isPeopleSearch) {
-                    return const SearchSuggestions();
-                  }
+                    if (controller.showSuggestions && !controller.isPeopleSearch) {
+                      return const SearchSuggestions();
+                    }
 
-                  if (controller.isPeopleSearch) {
-                    return const PersonResultsGrid();
-                  }
+                    if (controller.isPeopleSearch) {
+                      return const PersonResultsGrid();
+                    }
 
-                  if (controller.filter == SearchFilter.all) {
-                    return const Column(
-                      children: [
-                        AllModePeopleStrip(),
-                        Expanded(child: SearchResultsGrid()),
-                      ],
-                    );
-                  }
+                    if (controller.filter == SearchFilter.all) {
+                      return const Column(
+                        children: [
+                          AllModePeopleStrip(),
+                          Expanded(child: SearchResultsGrid()),
+                        ],
+                      );
+                    }
 
-                  return const SearchResultsGrid();
-                }),
-              ),
-            ],
+                    return const SearchResultsGrid();
+                  }),
+                ),
+              ],
+            ),
           ),
         ),
       ),

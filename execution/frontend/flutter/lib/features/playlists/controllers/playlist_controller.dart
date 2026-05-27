@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import '../../../core/constants/e_colors.dart';
+import '../../../features/badges/controllers/badge_controller.dart';
 import '../models/playlist.dart';
 import '../repositories/playlist_repository.dart';
 import 'playlist_detail_controller.dart';
@@ -53,6 +54,9 @@ class PlaylistController extends GetxController {
         isRanked: isRanked,
       );
       _playlists.insert(0, created);
+      try {
+        BadgeController.to.checkForNewBadges();
+      } catch (_) {}
       return created;
     } catch (e) {
       Get.snackbar(

@@ -3,7 +3,7 @@ import 'package:get/get.dart';
 import '../../../core/constants/e_colors.dart';
 import '../../../core/constants/e_sizes.dart';
 import '../../../core/constants/e_text.dart';
-import 'package:share_plus/share_plus.dart';
+import '../../../core/services/share_service.dart';
 import '../../settings/screens/settings_screen.dart';
 import '../../social/controllers/friend_controller.dart';
 import '../../social/widgets/username_claim_sheet.dart';
@@ -15,6 +15,7 @@ import '../widgets/archetype_section.dart';
 import '../widgets/badges_section.dart';
 import '../widgets/profile_actions_section.dart';
 import '../widgets/profile_stats_section.dart';
+import '../widgets/rated_items_section.dart';
 import '../screens/archetype_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -50,6 +51,18 @@ class ProfileScreen extends StatelessWidget {
                       const ArchetypeSection(),
                       const SizedBox(height: ESizes.lg),
                       const BadgesSection(),
+                      const SizedBox(height: ESizes.lg),
+                      Obx(() {
+                        final ctrl = ProfileController.to;
+                        return RatedItemsSection(
+                          items: ctrl.ratedItems,
+                          isLoading: ctrl.isLoadingRatings,
+                          error: ctrl.ratingsError,
+                          sort: ctrl.ratedItemsSort,
+                          onSortDate: ctrl.onSortRatingsDate,
+                          onSortRating: ctrl.onSortRatingsRating,
+                        );
+                      }),
                       const SizedBox(height: ESizes.lg),
                       const ProfileActionsSection(),
                     ],
@@ -199,6 +212,6 @@ class ProfileScreen extends StatelessWidget {
     final link = username != null
         ? 'https://raspucat.com/bingequest/profile?u=$username'
         : 'https://raspucat.com/bingequest/profile?id=$userId';
-    Share.share('Find me on BingeQuest! $link');
+    ShareService.to.shareText('Find me on BingeQuest! $link');
   }
 }

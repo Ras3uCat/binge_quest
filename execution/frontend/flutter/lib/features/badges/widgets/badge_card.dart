@@ -52,21 +52,13 @@ class BadgeCard extends StatelessWidget {
       height: 56,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: isEarned
-            ? _getCategoryColor().withValues(alpha: 0.2)
-            : EColors.backgroundSecondary,
-        border: Border.all(
-          color: isEarned ? _getCategoryColor() : EColors.border,
-          width: 2,
-        ),
+        color: isEarned ? _getCategoryColor().withValues(alpha: 0.2) : EColors.backgroundSecondary,
+        border: Border.all(color: isEarned ? _getCategoryColor() : EColors.border, width: 2),
       ),
       child: Center(
         child: Text(
           isEarned ? badge.emoji : '🔒',
-          style: TextStyle(
-            fontSize: 28,
-            color: isEarned ? null : EColors.textTertiary,
-          ),
+          style: TextStyle(fontSize: 28, color: isEarned ? null : EColors.textTertiary),
         ),
       ),
     );
@@ -100,12 +92,13 @@ class BadgeCard extends StatelessWidget {
   }
 
   Color _getCategoryColor() => switch (badge.category) {
-        BadgeCategory.completion => EColors.success,
-        BadgeCategory.milestone => EColors.accent,
-        BadgeCategory.genre => EColors.primary,
-        BadgeCategory.streak => EColors.secondary,
-        BadgeCategory.activity => EColors.warning,
-      };
+    BadgeCategory.completion => EColors.success,
+    BadgeCategory.milestone => EColors.accent,
+    BadgeCategory.genre => EColors.primary,
+    BadgeCategory.streak => EColors.secondary,
+    BadgeCategory.activity => EColors.warning,
+    BadgeCategory.social => EColors.secondary,
+  };
 }
 
 /// Compact badge chip for display in lists.
@@ -113,33 +106,21 @@ class BadgeChip extends StatelessWidget {
   final Badge badge;
   final bool isEarned;
 
-  const BadgeChip({
-    super.key,
-    required this.badge,
-    this.isEarned = true,
-  });
+  const BadgeChip({super.key, required this.badge, this.isEarned = true});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: ESizes.sm,
-        vertical: ESizes.xs,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: ESizes.sm, vertical: ESizes.xs),
       decoration: BoxDecoration(
         color: isEarned ? EColors.surface : EColors.backgroundSecondary,
         borderRadius: BorderRadius.circular(ESizes.radiusRound),
-        border: Border.all(
-          color: isEarned ? EColors.accent : EColors.border,
-        ),
+        border: Border.all(color: isEarned ? EColors.accent : EColors.border),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            badge.emoji,
-            style: const TextStyle(fontSize: 16),
-          ),
+          Text(badge.emoji, style: const TextStyle(fontSize: 16)),
           const SizedBox(width: ESizes.xs),
           Text(
             badge.name,

@@ -583,30 +583,43 @@ class WatchlistRepository {
   /// Get all progress entries for a watchlist item.
   /// Joins with content_cache_episodes for episode data.
   static Future<List<Map<String, dynamic>>> getProgressEntries(String watchlistItemId) async {
-    final response = await _client
-        .from('watch_progress')
-        .select('''
-          id,
-          watchlist_item_id,
-          episode_cache_id,
-          minutes_watched,
-          watched,
-          watched_at,
-          content_cache_episodes (
-            season_number,
-            episode_number,
-            episode_name,
-            episode_overview,
-            runtime_minutes,
-            still_path,
-            air_date
-          )
-        ''')
-        .eq('watchlist_item_id', watchlistItemId)
-        .limit(9999); // PostgREST default cap is 1000; SNL has 1000+ episodes
+    // Supabase's server max_rows hard-caps each request at 1000.
+    // Shows like SNL have 1000+ episodes, so we paginate until the page is short.
+    const pageSize = 1000;
+    final allEntries = <Map<String, dynamic>>[];
+    var from = 0;
+
+    while (true) {
+      final page = await _client
+          .from('watch_progress')
+          .select('''
+            id,
+            watchlist_item_id,
+            episode_cache_id,
+            minutes_watched,
+            watched,
+            watched_at,
+            content_cache_episodes (
+              season_number,
+              episode_number,
+              episode_name,
+              episode_overview,
+              runtime_minutes,
+              still_path,
+              air_date
+            )
+          ''')
+          .eq('watchlist_item_id', watchlistItemId)
+          .range(from, from + pageSize - 1);
+
+      final rows = (page as List).cast<Map<String, dynamic>>();
+      allEntries.addAll(rows);
+      if (rows.length < pageSize) break;
+      from += pageSize;
+    }
 
     // Sort by season/episode from the joined data
-    final entries = (response as List).cast<Map<String, dynamic>>();
+    final entries = allEntries;
     entries.sort((a, b) {
       final aEp = a['content_cache_episodes'] as Map<String, dynamic>?;
       final bEp = b['content_cache_episodes'] as Map<String, dynamic>?;

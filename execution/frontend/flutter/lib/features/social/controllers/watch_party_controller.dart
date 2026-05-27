@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../shared/models/watch_party.dart';
 import '../../../shared/repositories/watch_party_repository.dart';
 import '../utils/watch_party_sayings.dart';
+import '../../badges/controllers/badge_controller.dart';
 import 'watch_party_notifications_mixin.dart';
 import 'watch_party_realtime_mixin.dart';
 
@@ -172,6 +173,9 @@ class WatchPartyController extends GetxController
     try {
       await _repository.acceptInvite(partyId);
       await loadParties();
+      try {
+        BadgeController.to.checkForNewBadges();
+      } catch (_) {}
       // C4b: notify party creator that current user joined.
       final party = activeParties.firstWhereOrNull((p) => p.id == partyId);
       if (party != null) sendJoinNotification(party);
@@ -232,6 +236,9 @@ class WatchPartyController extends GetxController
     try {
       final party = await _repository.createParty(name, tmdbId, mediaType);
       await loadParties();
+      try {
+        BadgeController.to.checkForNewBadges();
+      } catch (_) {}
       return party;
     } catch (e) {
       debugPrint('WatchPartyController.createParty error: $e');

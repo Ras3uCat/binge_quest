@@ -14,6 +14,7 @@ import '../../social/controllers/friend_controller.dart';
 import '../../profile/screens/profile_screen.dart';
 import '../../stats/screens/stats_nav_screen.dart';
 import '../../../core/services/deep_link_service.dart';
+import '../../../core/services/notification_service.dart';
 import '../controllers/dashboard_controller.dart';
 import '../widgets/queue_health_card.dart';
 import '../widgets/time_block_sheet.dart';
@@ -43,7 +44,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void initState() {
     super.initState();
     _ctrl = Get.put(DashboardController());
-    WidgetsBinding.instance.addPostFrameCallback((_) => DeepLinkService.to.consumeAndDispatch());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      DeepLinkService.to.consumeAndDispatch();
+      NotificationService.to.consumeAndDispatch();
+    });
   }
 
   @override

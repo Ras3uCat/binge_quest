@@ -62,6 +62,7 @@ class SearchResultsGrid extends StatelessWidget {
         },
         child: GridView.builder(
           padding: const EdgeInsets.symmetric(horizontal: ESizes.lg),
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 3,
             childAspectRatio: 0.55,
@@ -79,9 +80,7 @@ class SearchResultsGrid extends StatelessWidget {
               );
             }
             return AnimatedListItem(
-              index:
-                  index %
-                  9, // Reset animation index every 9 items for smoother scroll
+              index: index % 9, // Reset animation index every 9 items for smoother scroll
               child: _buildResultCard(results[index]),
             );
           },
@@ -137,12 +136,9 @@ class SearchResultsGrid extends StatelessWidget {
                           height: double.infinity,
                           placeholder: (context, url) => Container(
                             color: EColors.surfaceLight,
-                            child: const Center(
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            ),
+                            child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
                           ),
-                          errorWidget: (context, url, error) =>
-                              _buildPlaceholderPoster(),
+                          errorWidget: (context, url, error) => _buildPlaceholderPoster(),
                         )
                       : _buildPlaceholderPoster(),
                 ),
@@ -157,9 +153,7 @@ class SearchResultsGrid extends StatelessWidget {
                       borderRadius: BorderRadius.circular(ESizes.radiusSm),
                     ),
                     child: Icon(
-                      result.mediaType == MediaType.movie
-                          ? Icons.movie
-                          : Icons.tv,
+                      result.mediaType == MediaType.movie ? Icons.movie : Icons.tv,
                       size: 14,
                       color: EColors.textSecondary,
                     ),
@@ -178,10 +172,7 @@ class SearchResultsGrid extends StatelessWidget {
                     bottom: ESizes.xs,
                     right: ESizes.xs,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: ESizes.xs,
-                        vertical: 2,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: ESizes.xs, vertical: 2),
                       decoration: BoxDecoration(
                         color: _getRatingColor(result.voteAverage),
                         borderRadius: BorderRadius.circular(ESizes.radiusSm),
@@ -222,10 +213,7 @@ class SearchResultsGrid extends StatelessWidget {
           if (result.year != null)
             Text(
               result.year!,
-              style: const TextStyle(
-                fontSize: ESizes.fontXs,
-                color: EColors.textTertiary,
-              ),
+              style: const TextStyle(fontSize: ESizes.fontXs, color: EColors.textTertiary),
             ),
         ],
       ),
@@ -237,9 +225,7 @@ class SearchResultsGrid extends StatelessWidget {
       width: double.infinity,
       height: double.infinity,
       color: EColors.surfaceLight,
-      child: const Center(
-        child: Icon(Icons.movie, size: 40, color: EColors.textTertiary),
-      ),
+      child: const Center(child: Icon(Icons.movie, size: 40, color: EColors.textTertiary)),
     );
   }
 

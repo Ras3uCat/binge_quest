@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:share_plus/share_plus.dart';
+import '../../../core/services/share_service.dart';
 import '../../../core/constants/e_colors.dart';
 import '../../../core/constants/e_sizes.dart';
 import '../../../core/constants/e_text.dart';
@@ -115,7 +115,7 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
           if (person == null) return const SizedBox.shrink();
           return IconButton(
             icon: const Icon(Icons.share),
-            onPressed: () => Share.share(
+            onPressed: () => ShareService.to.shareText(
               'Check out ${person.name} on BingeQuest!\nhttps://www.themoviedb.org/person/${person.id}',
             ),
           );

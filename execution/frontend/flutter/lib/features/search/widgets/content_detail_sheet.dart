@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:share_plus/share_plus.dart';
+import '../../../core/services/share_service.dart';
 import '../../../core/constants/e_colors.dart';
 import '../../../core/constants/e_sizes.dart';
 import '../../../core/constants/e_text.dart';
@@ -132,7 +132,7 @@ class _ContentDetailSheetState extends State<ContentDetailSheet> {
   void _shareContent(TmdbContent content) {
     final type = content is TmdbMovie ? 'movie' : 'tv';
     final link = 'https://raspucat.com/bingequest/content?type=$type&id=${widget.result.id}';
-    Share.share('Check out ${content.title} on BingeQuest!\n$link');
+    ShareService.to.shareText('Check out ${content.title} on BingeQuest!\n$link');
   }
 
   @override

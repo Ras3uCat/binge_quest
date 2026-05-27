@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart' hide Badge;
 import 'package:get/get.dart';
+import '../../../core/services/share_service.dart';
 import '../../../shared/models/badge.dart';
 import '../../../shared/models/user_badge.dart';
 import '../../../shared/repositories/badge_repository.dart';
@@ -26,8 +27,7 @@ class BadgeController extends GetxController {
   int get totalCount => _allBadges.length;
 
   /// Get set of earned badge IDs for quick lookup.
-  Set<String> get earnedBadgeIds =>
-      _earnedBadges.map((ub) => ub.badgeId).toSet();
+  Set<String> get earnedBadgeIds => _earnedBadges.map((ub) => ub.badgeId).toSet();
 
   /// Get badges organized by category.
   Map<BadgeCategory, List<Badge>> get badgesByCategory {
@@ -42,6 +42,7 @@ class BadgeController extends GetxController {
   void onInit() {
     super.onInit();
     loadBadges();
+    checkForNewBadges();
   }
 
   /// Load all badges and user's earned badges.
@@ -82,6 +83,13 @@ class BadgeController extends GetxController {
       stats['stale_items'] = efficiency.staleItems;
       stats['active_items'] = efficiency.activeItems;
       stats['idle_items'] = efficiency.idleItems;
+
+      final socialStats = await BadgeRepository.getSocialStats();
+      stats.addAll(socialStats);
+
+      try {
+        stats['items_shared'] = ShareService.to.shareCount.value;
+      } catch (_) {}
 
       // Check and award eligible badges
       final newBadges = await BadgeRepository.checkAndAwardBadges(stats);
@@ -127,10 +135,7 @@ class BadgeController extends GetxController {
 
   /// Show a celebration dialog when a badge is unlocked.
   Future<void> _showBadgeUnlockedNotification(Badge badge) async {
-    await Get.dialog(
-      BadgeUnlockDialog(badge: badge),
-      barrierDismissible: true,
-    );
+    await Get.dialog(BadgeUnlockDialog(badge: badge), barrierDismissible: true);
   }
 
   /// Check if a specific badge is earned.
@@ -138,9 +143,7 @@ class BadgeController extends GetxController {
 
   /// Get earned date for a badge, or null if not earned.
   DateTime? getEarnedDate(String badgeId) {
-    final userBadge = _earnedBadges.firstWhereOrNull(
-      (ub) => ub.badgeId == badgeId,
-    );
+    final userBadge = _earnedBadges.firstWhereOrNull((ub) => ub.badgeId == badgeId);
     return userBadge?.earnedAt;
   }
 }

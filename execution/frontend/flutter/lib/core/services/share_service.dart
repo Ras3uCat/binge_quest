@@ -1,5 +1,7 @@
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../shared/models/badge.dart';
 import '../../shared/models/watchlist_item.dart';
 
@@ -7,8 +9,23 @@ import '../../shared/models/watchlist_item.dart';
 class ShareService extends GetxService {
   static ShareService get to => Get.find<ShareService>();
 
+  final shareCount = 0.obs;
+
   /// Default app link for sharing.
-  final String appLink = "https://bingequest.app";
+  final String appLink = "https://raspucat.com/bingequest";
+
+  @override
+  void onInit() {
+    super.onInit();
+    _loadShareCount();
+  }
+
+  Future<void> _loadShareCount() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      shareCount.value = prefs.getInt('bq_share_count') ?? 0;
+    } catch (_) {}
+  }
 
   /// Shared text content for badge unlocks.
   String getBadgeShareText(Badge badge) {
@@ -22,12 +39,27 @@ class ShareService extends GetxService {
 
   /// Share plain text using native share sheet.
   Future<void> shareText(String text, {String? subject}) async {
-    await Share.share(text, subject: subject);
+    try {
+      await Share.share(text, subject: subject);
+    } on PlatformException catch (e) {
+      Get.snackbar(
+        'Share unavailable',
+        e.message ?? 'Could not open share sheet.',
+        snackPosition: SnackPosition.BOTTOM,
+        duration: const Duration(seconds: 3),
+      );
+      return;
+    }
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      shareCount.value++;
+      await prefs.setInt('bq_share_count', shareCount.value);
+    } catch (_) {}
   }
 
   /// Share message with a link.
   Future<void> shareWithLink(String message, String link) async {
-    await Share.share('$message\n\n$link');
+    await shareText('$message\n\n$link');
   }
 
   /// Share a badge unlock achievement.

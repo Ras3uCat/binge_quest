@@ -7,6 +7,7 @@ import '../../../shared/models/user_profile.dart';
 import '../controllers/user_profile_controller.dart';
 import '../widgets/friend_badges_section.dart';
 import '../widgets/friend_stats_section.dart';
+import '../widgets/rated_items_section.dart';
 import '../../playlists/widgets/playlists_section.dart';
 
 class UserProfileScreen extends StatelessWidget {
@@ -118,6 +119,18 @@ class UserProfileScreen extends StatelessWidget {
             FriendStatsSection(ctrl: ctrl),
             const SizedBox(height: ESizes.md),
             FriendBadgesSection(ctrl: ctrl),
+            const SizedBox(height: ESizes.md),
+            Obx(
+              () => RatedItemsSection(
+                items: ctrl.ratedItems,
+                isLoading: ctrl.isLoadingRatings.value,
+                error: ctrl.ratingsError.value,
+                sort: ctrl.ratedItemsSort.value,
+                onSortDate: ctrl.onSortRatingsDate,
+                onSortRating: ctrl.onSortRatingsRating,
+                isOwnProfile: false,
+              ),
+            ),
             const SizedBox(height: ESizes.md),
             PlaylistsSection(userId: p.id, isOwnProfile: false),
           ],

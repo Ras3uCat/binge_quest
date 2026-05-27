@@ -3,8 +3,10 @@ import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/constants/e_colors.dart';
 import '../../../core/services/supabase_service.dart';
+import '../../../shared/models/review.dart';
 import '../../../shared/models/user_badge.dart';
 import '../../../shared/models/user_profile.dart';
+import '../../../shared/repositories/review_repository.dart';
 import '../../social/controllers/friend_controller.dart';
 
 class UserProfileController extends GetxController {
@@ -24,7 +26,12 @@ class UserProfileController extends GetxController {
   final isSendingRequest = false.obs;
   final stats = Rxn<Map<String, dynamic>>();
   final earnedBadges = <UserBadge>[].obs;
+  final ratedItems = <Review>[].obs;
+  final ratedItemsSort = ReviewSort.dateDesc.obs;
+  final isLoadingRatings = false.obs;
+  final ratingsError = Rxn<String>();
 
+  final _allRatedItems = <Review>[];
   String? resolvedUserId;
 
   bool get isCurrentUser =>
@@ -54,6 +61,7 @@ class UserProfileController extends GetxController {
         return;
       }
       resolvedUserId = uid;
+      loadRatedItems();
 
       final row = await _client.from('users').select().eq('id', uid).maybeSingle();
       if (row != null) profile.value = UserProfile.fromJson(row);
@@ -109,6 +117,63 @@ class UserProfileController extends GetxController {
     } catch (e) {
       debugPrint('UserProfileController badges error: $e');
     }
+  }
+
+  Future<void> loadRatedItems() async {
+    final uid = resolvedUserId;
+    if (uid == null) return;
+    isLoadingRatings.value = true;
+    ratingsError.value = null;
+    try {
+      final items = await ReviewRepository.getReviewsByUser(uid);
+      _allRatedItems
+        ..clear()
+        ..addAll(items);
+      _applySortAndUpdate();
+    } catch (e) {
+      ratingsError.value = 'Failed to load ratings';
+    } finally {
+      isLoadingRatings.value = false;
+    }
+  }
+
+  void onSortRatingsDate() {
+    final current = ratedItemsSort.value;
+    if (current == ReviewSort.dateDesc) {
+      ratedItemsSort.value = ReviewSort.dateAsc;
+    } else if (current == ReviewSort.dateAsc) {
+      ratedItemsSort.value = ReviewSort.dateDesc;
+    } else {
+      ratedItemsSort.value = ReviewSort.dateDesc;
+    }
+    _applySortAndUpdate();
+  }
+
+  void onSortRatingsRating() {
+    final current = ratedItemsSort.value;
+    if (current == ReviewSort.ratingDesc) {
+      ratedItemsSort.value = ReviewSort.ratingAsc;
+    } else if (current == ReviewSort.ratingAsc) {
+      ratedItemsSort.value = ReviewSort.ratingDesc;
+    } else {
+      ratedItemsSort.value = ReviewSort.ratingDesc;
+    }
+    _applySortAndUpdate();
+  }
+
+  void _applySortAndUpdate() {
+    final sorted = List<Review>.from(_allRatedItems);
+    switch (ratedItemsSort.value) {
+      case ReviewSort.dateDesc:
+        sorted.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      case ReviewSort.dateAsc:
+        sorted.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      case ReviewSort.ratingDesc:
+        sorted.sort((a, b) => b.rating.compareTo(a.rating));
+      case ReviewSort.ratingAsc:
+        sorted.sort((a, b) => a.rating.compareTo(b.rating));
+    }
+    ratedItems.assignAll(sorted);
   }
 
   Future<void> sendFriendRequest() async {

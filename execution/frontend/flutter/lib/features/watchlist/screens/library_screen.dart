@@ -7,6 +7,7 @@ import '../../playlists/widgets/playlists_section.dart';
 import '../../auth/controllers/auth_controller.dart';
 import '../../profile/widgets/following_section.dart';
 import 'watchlist_screen.dart';
+import '../../calendar/screens/calendar_screen.dart';
 
 /// Top-level Library destination combining Watchlists and Playlists tabs.
 class LibraryScreen extends StatefulWidget {
@@ -53,13 +54,13 @@ class _LibraryScreenState extends State<LibraryScreen> with SingleTickerProvider
         child: SafeArea(
           child: Column(
             children: [
-              const Padding(
-                padding: EdgeInsets.all(ESizes.lg),
+              Padding(
+                padding: const EdgeInsets.all(ESizes.lg),
                 child: SizedBox(
                   height: 48,
                   child: Row(
                     children: [
-                      Expanded(
+                      const Expanded(
                         child: Text(
                           'Library',
                           style: TextStyle(
@@ -68,6 +69,10 @@ class _LibraryScreenState extends State<LibraryScreen> with SingleTickerProvider
                             color: EColors.textPrimary,
                           ),
                         ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.calendar_month, color: EColors.textPrimary),
+                        onPressed: () => Get.to(() => const CalendarScreen()),
                       ),
                     ],
                   ),

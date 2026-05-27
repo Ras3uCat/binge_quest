@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:share_plus/share_plus.dart';
+import '../../../core/services/share_service.dart';
 import '../../../core/constants/e_colors.dart';
 import '../../../core/constants/e_sizes.dart';
 import '../../../core/constants/e_text.dart';
@@ -20,15 +20,31 @@ import '../widgets/movie_progress_section.dart';
 import '../widgets/tv_progress_section.dart';
 import '../widgets/watch_party_badge.dart';
 
-class ItemDetailScreen extends StatelessWidget {
+class ItemDetailScreen extends StatefulWidget {
   final WatchlistItem item;
 
   const ItemDetailScreen({super.key, required this.item});
 
   @override
-  Widget build(BuildContext context) {
-    final controller = Get.put(ProgressController(item: item), tag: item.id);
+  State<ItemDetailScreen> createState() => _ItemDetailScreenState();
+}
 
+class _ItemDetailScreenState extends State<ItemDetailScreen> {
+  late final ProgressController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = Get.put(ProgressController(item: widget.item), tag: widget.item.id);
+    // Re-fetch every time this screen is entered so server-side cron changes
+    // (e.g. new watch_progress rows added by the backend) are always visible.
+    controller.loadProgress();
+  }
+
+  WatchlistItem get item => widget.item;
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -158,7 +174,7 @@ class ItemDetailScreen extends StatelessWidget {
                 _showMoveSheet(context);
               } else if (value == 'share') {
                 final type = item.mediaType.name;
-                Share.share(
+                ShareService.to.shareText(
                   'Check out ${item.title} on BingeQuest!\nhttps://www.themoviedb.org/$type/${item.tmdbId}',
                 );
               } else if (value == 'remove') {

@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import '../../../shared/models/watchlist_item.dart';
 import '../../../shared/repositories/review_repository.dart';
+import '../../badges/controllers/badge_controller.dart';
 
 /// Mixin for review/rating functionality in ProgressController.
 mixin ProgressReviewMixin on GetxController {
@@ -13,8 +14,7 @@ mixin ProgressReviewMixin on GetxController {
   int? get userRating => _userRating.value;
   String? get userReviewText => _userReviewText.value;
   bool get isLoadingReview => _isLoadingReview.value;
-  bool get hasReviewText =>
-      _userReviewText.value != null && _userReviewText.value!.isNotEmpty;
+  bool get hasReviewText => _userReviewText.value != null && _userReviewText.value!.isNotEmpty;
 
   Future<void> loadUserReview() async {
     _isLoadingReview.value = true;
@@ -41,6 +41,9 @@ mixin ProgressReviewMixin on GetxController {
         rating: rating,
         reviewText: _userReviewText.value,
       );
+      try {
+        BadgeController.to.checkForNewBadges();
+      } catch (_) {}
     } catch (e) {
       Get.snackbar('Error', 'Failed to save rating');
     }

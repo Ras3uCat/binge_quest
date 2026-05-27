@@ -1,10 +1,11 @@
 import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/services/supabase_service.dart';
+import '../../../shared/models/review.dart';
 import '../../../shared/models/streaming_breakdown.dart';
+import '../../../shared/repositories/review_repository.dart';
 import '../../../shared/repositories/watchlist_repository.dart';
 import '../../auth/controllers/auth_controller.dart';
-import '../../badges/controllers/badge_controller.dart';
 
 /// Controller for user profile and stats.
 class ProfileController extends GetxController {
@@ -25,6 +26,13 @@ class ProfileController extends GetxController {
   final _streamingBreakdown = <StreamingBreakdownItem>[].obs;
   final _isLoadingBreakdown = false.obs;
 
+  // Rated items state
+  final _allRatedItems = <Review>[];
+  final _ratedItems = <Review>[].obs;
+  final _ratedItemsSort = ReviewSort.dateDesc.obs;
+  final _isLoadingRatings = false.obs;
+  final _ratingsError = Rxn<String>();
+
   // Realtime
   RealtimeChannel? _statsChannel;
 
@@ -42,6 +50,12 @@ class ProfileController extends GetxController {
   // Streaming breakdown getters
   List<StreamingBreakdownItem> get streamingBreakdown => _streamingBreakdown;
   bool get isLoadingBreakdown => _isLoadingBreakdown.value;
+
+  // Rated items getters
+  List<Review> get ratedItems => _ratedItems;
+  ReviewSort get ratedItemsSort => _ratedItemsSort.value;
+  bool get isLoadingRatings => _isLoadingRatings.value;
+  String? get ratingsError => _ratingsError.value;
 
   String get formattedWatchTime {
     final hours = totalMinutesWatched ~/ 60;
@@ -75,6 +89,7 @@ class ProfileController extends GetxController {
     super.onInit();
     loadStats();
     loadStreamingBreakdown();
+    loadRatedItems();
     _subscribeToStats();
   }
 
@@ -125,11 +140,6 @@ class ProfileController extends GetxController {
       _totalEpisodes.value = stats['total_episodes'] ?? 0;
       _totalMovies.value = stats['total_movies'] ?? 0;
       _totalShows.value = stats['total_shows'] ?? 0;
-
-      // Check for new badges after stats load
-      if (Get.isRegistered<BadgeController>()) {
-        BadgeController.to.checkForNewBadges();
-      }
     } catch (e) {
       // Stats failed to load, use defaults
     } finally {
@@ -153,5 +163,62 @@ class ProfileController extends GetxController {
     } finally {
       _isLoadingBreakdown.value = false;
     }
+  }
+
+  Future<void> loadRatedItems() async {
+    final userId = SupabaseService.currentUserId;
+    if (userId == null) return;
+    _isLoadingRatings.value = true;
+    _ratingsError.value = null;
+    try {
+      final items = await ReviewRepository.getReviewsByUser(userId);
+      _allRatedItems
+        ..clear()
+        ..addAll(items);
+      _applySortAndUpdate();
+    } catch (e) {
+      _ratingsError.value = 'Failed to load ratings';
+    } finally {
+      _isLoadingRatings.value = false;
+    }
+  }
+
+  void onSortRatingsDate() {
+    final current = _ratedItemsSort.value;
+    if (current == ReviewSort.dateDesc) {
+      _ratedItemsSort.value = ReviewSort.dateAsc;
+    } else if (current == ReviewSort.dateAsc) {
+      _ratedItemsSort.value = ReviewSort.dateDesc;
+    } else {
+      _ratedItemsSort.value = ReviewSort.dateDesc;
+    }
+    _applySortAndUpdate();
+  }
+
+  void onSortRatingsRating() {
+    final current = _ratedItemsSort.value;
+    if (current == ReviewSort.ratingDesc) {
+      _ratedItemsSort.value = ReviewSort.ratingAsc;
+    } else if (current == ReviewSort.ratingAsc) {
+      _ratedItemsSort.value = ReviewSort.ratingDesc;
+    } else {
+      _ratedItemsSort.value = ReviewSort.ratingDesc;
+    }
+    _applySortAndUpdate();
+  }
+
+  void _applySortAndUpdate() {
+    final sorted = List<Review>.from(_allRatedItems);
+    switch (_ratedItemsSort.value) {
+      case ReviewSort.dateDesc:
+        sorted.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      case ReviewSort.dateAsc:
+        sorted.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      case ReviewSort.ratingDesc:
+        sorted.sort((a, b) => b.rating.compareTo(a.rating));
+      case ReviewSort.ratingAsc:
+        sorted.sort((a, b) => a.rating.compareTo(b.rating));
+    }
+    _ratedItems.assignAll(sorted);
   }
 }

@@ -43,11 +43,7 @@ class _SearchSuggestionsState extends State<SearchSuggestions> {
             padding: const EdgeInsets.symmetric(horizontal: ESizes.lg),
             child: Row(
               children: [
-                const Icon(
-                  Icons.auto_awesome,
-                  color: EColors.accent,
-                  size: 20,
-                ),
+                const Icon(Icons.auto_awesome, color: EColors.accent, size: 20),
                 const SizedBox(width: ESizes.sm),
                 const Text(
                   'Recommended for You',
@@ -77,23 +73,24 @@ class _SearchSuggestionsState extends State<SearchSuggestions> {
                     child: const PosterGridSkeleton(crossAxisCount: 3, itemCount: 9),
                   )
                 : suggestions.isEmpty
-                    ? _buildEmptyState()
-                    : GridView.builder(
-                        padding: const EdgeInsets.symmetric(horizontal: ESizes.lg),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3,
-                          childAspectRatio: 0.55,
-                          crossAxisSpacing: ESizes.sm,
-                          mainAxisSpacing: ESizes.md,
-                        ),
-                        itemCount: suggestions.length,
-                        itemBuilder: (context, index) {
-                          return AnimatedListItem(
-                            index: index % 9,
-                            child: _buildSuggestionCard(suggestions[index]),
-                          );
-                        },
-                      ),
+                ? _buildEmptyState()
+                : GridView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: ESizes.lg),
+                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      childAspectRatio: 0.55,
+                      crossAxisSpacing: ESizes.sm,
+                      mainAxisSpacing: ESizes.md,
+                    ),
+                    itemCount: suggestions.length,
+                    itemBuilder: (context, index) {
+                      return AnimatedListItem(
+                        index: index % 9,
+                        child: _buildSuggestionCard(suggestions[index]),
+                      );
+                    },
+                  ),
           ),
         ],
       );
@@ -105,18 +102,11 @@ class _SearchSuggestionsState extends State<SearchSuggestions> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.movie_filter,
-            size: 48,
-            color: EColors.textTertiary,
-          ),
+          Icon(Icons.movie_filter, size: 48, color: EColors.textTertiary),
           SizedBox(height: ESizes.md),
           Text(
             'No suggestions available',
-            style: TextStyle(
-              color: EColors.textSecondary,
-              fontSize: ESizes.fontMd,
-            ),
+            style: TextStyle(color: EColors.textSecondary, fontSize: ESizes.fontMd),
           ),
         ],
       ),
@@ -143,12 +133,9 @@ class _SearchSuggestionsState extends State<SearchSuggestions> {
                           height: double.infinity,
                           placeholder: (context, url) => Container(
                             color: EColors.surfaceLight,
-                            child: const Center(
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            ),
+                            child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
                           ),
-                          errorWidget: (context, url, error) =>
-                              _buildPlaceholderPoster(),
+                          errorWidget: (context, url, error) => _buildPlaceholderPoster(),
                         )
                       : _buildPlaceholderPoster(),
                 ),
@@ -157,10 +144,7 @@ class _SearchSuggestionsState extends State<SearchSuggestions> {
                   top: ESizes.xs,
                   right: ESizes.xs,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: ESizes.xs,
-                      vertical: 2,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: ESizes.xs, vertical: 2),
                     decoration: BoxDecoration(
                       color: EColors.background.withValues(alpha: 0.9),
                       borderRadius: BorderRadius.circular(ESizes.radiusSm),
@@ -169,19 +153,14 @@ class _SearchSuggestionsState extends State<SearchSuggestions> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          result.mediaType == MediaType.movie
-                              ? Icons.movie
-                              : Icons.tv,
+                          result.mediaType == MediaType.movie ? Icons.movie : Icons.tv,
                           size: 12,
                           color: EColors.textSecondary,
                         ),
                         const SizedBox(width: 2),
                         Text(
                           result.mediaType == MediaType.movie ? 'Movie' : 'TV',
-                          style: const TextStyle(
-                            fontSize: 10,
-                            color: EColors.textSecondary,
-                          ),
+                          style: const TextStyle(fontSize: 10, color: EColors.textSecondary),
                         ),
                       ],
                     ),
@@ -193,10 +172,7 @@ class _SearchSuggestionsState extends State<SearchSuggestions> {
                     bottom: ESizes.xs,
                     left: ESizes.xs,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: ESizes.xs,
-                        vertical: 2,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: ESizes.xs, vertical: 2),
                       decoration: BoxDecoration(
                         color: _getRatingColor(result.voteAverage),
                         borderRadius: BorderRadius.circular(ESizes.radiusSm),
@@ -204,11 +180,7 @@ class _SearchSuggestionsState extends State<SearchSuggestions> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(
-                            Icons.star,
-                            size: 10,
-                            color: Colors.white,
-                          ),
+                          const Icon(Icons.star, size: 10, color: Colors.white),
                           const SizedBox(width: 2),
                           Text(
                             result.voteAverage.toStringAsFixed(1),
@@ -241,10 +213,7 @@ class _SearchSuggestionsState extends State<SearchSuggestions> {
           if (result.year != null)
             Text(
               result.year!,
-              style: const TextStyle(
-                fontSize: ESizes.fontXs,
-                color: EColors.textTertiary,
-              ),
+              style: const TextStyle(fontSize: ESizes.fontXs, color: EColors.textTertiary),
             ),
         ],
       ),
@@ -256,13 +225,7 @@ class _SearchSuggestionsState extends State<SearchSuggestions> {
       width: double.infinity,
       height: double.infinity,
       color: EColors.surfaceLight,
-      child: const Center(
-        child: Icon(
-          Icons.movie,
-          size: 40,
-          color: EColors.textTertiary,
-        ),
-      ),
+      child: const Center(child: Icon(Icons.movie, size: 40, color: EColors.textTertiary)),
     );
   }
 

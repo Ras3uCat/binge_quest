@@ -36,10 +36,7 @@ class PersonResultsGrid extends StatelessWidget {
 
       // Loading state
       if (isLoading && results.isEmpty) {
-        return const Padding(
-          padding: EdgeInsets.all(ESizes.lg),
-          child: _PersonGridSkeleton(),
-        );
+        return const Padding(padding: EdgeInsets.all(ESizes.lg), child: _PersonGridSkeleton());
       }
 
       // Error state
@@ -61,6 +58,7 @@ class PersonResultsGrid extends StatelessWidget {
       // Results grid
       return GridView.builder(
         padding: const EdgeInsets.all(ESizes.lg),
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
           childAspectRatio: 0.7,
@@ -130,9 +128,7 @@ class _PersonCardSkeleton extends StatelessWidget {
               child: Container(
                 decoration: BoxDecoration(
                   color: EColors.shimmerBase,
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(ESizes.radiusMd),
-                  ),
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(ESizes.radiusMd)),
                 ),
               ),
             ),
@@ -187,9 +183,7 @@ class _PersonCard extends StatelessWidget {
             Expanded(
               flex: 3,
               child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(ESizes.radiusMd),
-                ),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(ESizes.radiusMd)),
                 child: person.profilePath != null
                     ? CachedNetworkImage(
                         imageUrl: EImages.tmdbProfile(person.profilePath),
@@ -254,13 +248,7 @@ class _PersonCard extends StatelessWidget {
   Widget _buildPlaceholder() {
     return Container(
       color: EColors.surfaceLight,
-      child: const Center(
-        child: Icon(
-          Icons.person,
-          size: 48,
-          color: EColors.textTertiary,
-        ),
-      ),
+      child: const Center(child: Icon(Icons.person, size: 48, color: EColors.textTertiary)),
     );
   }
 }

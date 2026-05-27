@@ -9,6 +9,8 @@ class Review {
   final String? reviewText;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final String? title;
+  final String? posterPath;
 
   const Review({
     required this.id,
@@ -21,6 +23,8 @@ class Review {
     this.reviewText,
     required this.createdAt,
     required this.updatedAt,
+    this.title,
+    this.posterPath,
   });
 
   factory Review.fromJson(Map<String, dynamic> json) {
@@ -48,8 +52,24 @@ class Review {
     'review_text': reviewText,
   };
 
+  Review copyWith({String? title, String? posterPath}) {
+    return Review(
+      id: id,
+      userId: userId,
+      displayName: displayName,
+      username: username,
+      tmdbId: tmdbId,
+      mediaType: mediaType,
+      rating: rating,
+      reviewText: reviewText,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+      title: title ?? this.title,
+      posterPath: posterPath ?? this.posterPath,
+    );
+  }
+
   bool get hasText => reviewText != null && reviewText!.isNotEmpty;
 
-  String get reviewerName =>
-      username != null ? '@$username' : displayName ?? 'Anonymous';
+  String get reviewerName => username != null ? '@$username' : displayName ?? 'Anonymous';
 }

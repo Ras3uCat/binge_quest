@@ -10,19 +10,23 @@ import '../../shared/models/watchlist_item.dart';
 import '../../shared/repositories/notification_repository.dart';
 import '../../shared/repositories/watchlist_repository.dart';
 import '../../features/auth/controllers/auth_controller.dart';
+import '../../features/dashboard/controllers/dashboard_controller.dart';
 import '../../features/watchlist/screens/item_detail_screen.dart';
 import '../../features/search/screens/person_detail_screen.dart';
 import '../../features/notifications/screens/notifications_screen.dart';
-import '../../features/social/screens/friend_list_screen.dart';
 
 class NotificationService extends GetxService {
+  static NotificationService get to => Get.find<NotificationService>();
+
   final FirebaseMessaging _fcm = FirebaseMessaging.instance;
   final NotificationRepository _repository = NotificationRepository();
   final AuthController _authController = Get.find<AuthController>();
-  final FlutterLocalNotificationsPlugin _localNotifications =
-      FlutterLocalNotificationsPlugin();
+  final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
   final Rxn<RemoteMessage> foregroundMessage = Rxn<RemoteMessage>();
   RealtimeChannel? _notifChannel;
+
+  /// Payload from a cold-start notification tap; dispatched once DashboardScreen mounts.
+  Map<String, dynamic>? _pendingData;
 
   @override
   void onInit() {
@@ -33,9 +37,7 @@ class NotificationService extends GetxService {
 
     // Trigger token registration if user is already authenticated (cold start)
     if (_authController.user != null) {
-      debugPrint(
-        'FCM: User already authenticated on cold start, requesting token...',
-      );
+      debugPrint('FCM: User already authenticated on cold start, requesting token...');
       _fcm
           .getToken()
           .then((token) {
@@ -73,18 +75,13 @@ class NotificationService extends GetxService {
   }
 
   Future<void> _initLocalNotifications() async {
-    const androidSettings = AndroidInitializationSettings(
-      '@mipmap/launcher_icon',
-    );
+    const androidSettings = AndroidInitializationSettings('@mipmap/launcher_icon');
     const iosSettings = DarwinInitializationSettings(
       requestAlertPermission: false,
       requestBadgePermission: false,
       requestSoundPermission: false,
     );
-    const initSettings = InitializationSettings(
-      android: androidSettings,
-      iOS: iosSettings,
-    );
+    const initSettings = InitializationSettings(android: androidSettings, iOS: iosSettings);
     await _localNotifications.initialize(settings: initSettings);
 
     // Create the high-importance Android channel that FCM uses for background
@@ -97,9 +94,7 @@ class NotificationService extends GetxService {
         importance: Importance.high,
       );
       await _localNotifications
-          .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin
-          >()
+          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
           ?.createNotificationChannel(channel);
     }
   }
@@ -114,9 +109,12 @@ class NotificationService extends GetxService {
 
     FirebaseMessaging.onMessageOpenedApp.listen(_handleMessageTap);
 
+    // Cold-start: store the payload and let DashboardScreen dispatch it once
+    // the navigator is ready. Navigating here directly would push a route with
+    // no DashboardScreen underneath, leaving the user with no navigation.
     RemoteMessage? initialMessage = await _fcm.getInitialMessage();
     if (initialMessage != null) {
-      _handleMessageTap(initialMessage);
+      _pendingData = Map<String, dynamic>.from(initialMessage.data);
     }
 
     // 2. Request Permission
@@ -150,9 +148,7 @@ class NotificationService extends GetxService {
     // 4. Get FCM token (may fail on devices without Google Play Services)
     try {
       String? token = await _fcm.getToken();
-      debugPrint(
-        'FCM token: ${token != null ? "${token.substring(0, 10)}..." : "null"}',
-      );
+      debugPrint('FCM token: ${token != null ? "${token.substring(0, 10)}..." : "null"}');
       if (token != null) {
         _registerToken(token);
       }
@@ -195,9 +191,7 @@ class NotificationService extends GetxService {
         deviceId: deviceId,
         deviceType: deviceType,
       );
-      debugPrint(
-        'FCM Token registered: ${token.substring(0, 10)}... Device: $deviceId',
-      );
+      debugPrint('FCM Token registered: ${token.substring(0, 10)}... Device: $deviceId');
     } catch (e) {
       debugPrint('Error registering FCM token: $e');
     }
@@ -205,6 +199,14 @@ class NotificationService extends GetxService {
 
   void _handleMessageTap(RemoteMessage message) {
     _routeFromData(Map<String, dynamic>.from(message.data));
+  }
+
+  /// Called by DashboardScreen once the navigator is ready.
+  void consumeAndDispatch() {
+    final data = _pendingData;
+    if (data == null) return;
+    _pendingData = null;
+    _routeFromData(data);
   }
 
   void _routeFromData(Map<String, dynamic> data) {
@@ -231,7 +233,11 @@ class NotificationService extends GetxService {
         }
         break;
       case 'watch_party_invite':
-        Get.to(() => const FriendListScreen(initialTab: 1));
+        // FriendListScreen is a tab screen with no AppBar — navigate via the
+        // dashboard tab switcher so the user retains full navigation context.
+        if (Get.isRegistered<DashboardController>()) {
+          Get.find<DashboardController>().navigateToTab(3);
+        }
         break;
       default:
         Get.to(() => const NotificationsScreen());
@@ -265,9 +271,7 @@ class NotificationService extends GetxService {
             final title = row['title'] as String? ?? 'New Notification';
             final body = row['body'] as String? ?? '';
             final rawData = row['data'];
-            final data = rawData is Map<String, dynamic>
-                ? rawData
-                : <String, dynamic>{};
+            final data = rawData is Map<String, dynamic> ? rawData : <String, dynamic>{};
             Get.snackbar(
               title,
               body,
@@ -281,11 +285,7 @@ class NotificationService extends GetxService {
         .subscribe();
   }
 
-  Future<void> _navigateToContent({
-    int? tmdbId,
-    String? mediaType,
-    int? personId,
-  }) async {
+  Future<void> _navigateToContent({int? tmdbId, String? mediaType, int? personId}) async {
     if (tmdbId == null || mediaType == null) {
       Get.to(() => const NotificationsScreen());
       return;

@@ -30,55 +30,63 @@ class BadgesScreen extends StatelessWidget {
           child: Column(
             children: [
               _buildHeader(),
-              Expanded(child: Obx(() {
-        final controller = BadgeController.to;
+              Expanded(
+                child: Obx(() {
+                  final controller = BadgeController.to;
 
-        if (controller.isLoading) {
-          return Padding(
-            padding: const EdgeInsets.all(ESizes.md),
-            child: const BadgeGridSkeleton(count: 9, crossAxisCount: 3),
-          );
-        }
+                  if (controller.isLoading) {
+                    return Padding(
+                      padding: const EdgeInsets.all(ESizes.md),
+                      child: const BadgeGridSkeleton(count: 9, crossAxisCount: 3),
+                    );
+                  }
 
-        if (controller.allBadges.isEmpty) {
-          return _buildEmptyState();
-        }
+                  if (controller.allBadges.isEmpty) {
+                    return _buildEmptyState();
+                  }
 
-        return RefreshIndicator(
-          onRefresh: controller.loadBadges,
-          color: EColors.primary,
-          child: ListView(
-            padding: const EdgeInsets.all(ESizes.md),
-            children: [
-              _buildCategorySection(
-                'Completion',
-                'Complete movies and shows',
-                BadgeCategory.completion,
-                controller,
+                  return RefreshIndicator(
+                    onRefresh: controller.loadBadges,
+                    color: EColors.primary,
+                    child: ListView(
+                      padding: const EdgeInsets.all(ESizes.md),
+                      children: [
+                        _buildCategorySection(
+                          'Completion',
+                          'Complete movies and shows',
+                          BadgeCategory.completion,
+                          controller,
+                        ),
+                        _buildCategorySection(
+                          'Milestones',
+                          'Watch time achievements',
+                          BadgeCategory.milestone,
+                          controller,
+                        ),
+                        _buildCategorySection(
+                          'Genres',
+                          'Explore different genres',
+                          BadgeCategory.genre,
+                          controller,
+                        ),
+                        _buildCategorySection(
+                          'Activity',
+                          'Watching habits',
+                          BadgeCategory.streak,
+                          controller,
+                        ),
+                        _buildCategorySection(
+                          'Social',
+                          'Friends, reviews & watch parties',
+                          BadgeCategory.social,
+                          controller,
+                        ),
+                        const SizedBox(height: ESizes.xl),
+                      ],
+                    ),
+                  );
+                }),
               ),
-              _buildCategorySection(
-                'Milestones',
-                'Watch time achievements',
-                BadgeCategory.milestone,
-                controller,
-              ),
-              _buildCategorySection(
-                'Genres',
-                'Explore different genres',
-                BadgeCategory.genre,
-                controller,
-              ),
-              _buildCategorySection(
-                'Activity',
-                'Watching habits',
-                BadgeCategory.streak,
-                controller,
-              ),
-              const SizedBox(height: ESizes.xl),
-            ],
-          ),
-        );
-      })),
             ],
           ),
         ),
@@ -106,22 +114,17 @@ class BadgesScreen extends StatelessWidget {
             ),
           ),
           const Spacer(),
-          Obx(() => Text(
-                '${BadgeController.to.earnedCount}/${BadgeController.to.totalCount}',
-                style: const TextStyle(
-                  color: EColors.textSecondary,
-                  fontSize: ESizes.fontMd,
-                ),
-              )),
+          Obx(
+            () => Text(
+              '${BadgeController.to.earnedCount}/${BadgeController.to.totalCount}',
+              style: const TextStyle(color: EColors.textSecondary, fontSize: ESizes.fontMd),
+            ),
+          ),
           InkWell(
             onTap: BadgesGuideSheet.show,
             child: const Padding(
               padding: EdgeInsets.all(4.0),
-              child: Icon(
-                Icons.info_outline,
-                size: 20,
-                color: EColors.textSecondary,
-              ),
+              child: Icon(Icons.info_outline, size: 20, color: EColors.textSecondary),
             ),
           ),
         ],
@@ -130,9 +133,7 @@ class BadgesScreen extends StatelessWidget {
   }
 
   Widget _buildEmptyState() {
-    return EmptyStateWidget.noBadges(
-      onAction: () => Get.to(() => const SearchScreen()),
-    );
+    return EmptyStateWidget.noBadges(onAction: () => Get.to(() => const SearchScreen()));
   }
 
   Widget _buildCategorySection(
@@ -144,9 +145,7 @@ class BadgesScreen extends StatelessWidget {
     final badges = controller.badgesByCategory[category] ?? [];
     if (badges.isEmpty) return const SizedBox.shrink();
 
-    final earnedInCategory = badges
-        .where((b) => controller.isBadgeEarned(b.id))
-        .length;
+    final earnedInCategory = badges.where((b) => controller.isBadgeEarned(b.id)).length;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -169,19 +168,13 @@ class BadgesScreen extends StatelessWidget {
                     ),
                     Text(
                       subtitle,
-                      style: TextStyle(
-                        fontSize: ESizes.fontSm,
-                        color: EColors.textSecondary,
-                      ),
+                      style: TextStyle(fontSize: ESizes.fontSm, color: EColors.textSecondary),
                     ),
                   ],
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: ESizes.sm,
-                  vertical: ESizes.xs,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: ESizes.sm, vertical: ESizes.xs),
                 decoration: BoxDecoration(
                   color: _getCategoryColor(category).withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(ESizes.radiusSm),
@@ -228,20 +221,12 @@ class BadgesScreen extends StatelessWidget {
     );
   }
 
-  void _showBadgeDetail(
-    BuildContext context,
-    Badge badge,
-    bool isEarned,
-    DateTime? earnedAt,
-  ) {
+  void _showBadgeDetail(BuildContext context, Badge badge, bool isEarned, DateTime? earnedAt) {
     showDialog(
       context: context,
       barrierDismissible: true,
-      builder: (context) => _BadgeDetailDialog(
-        badge: badge,
-        isEarned: isEarned,
-        earnedAt: earnedAt,
-      ),
+      builder: (context) =>
+          _BadgeDetailDialog(badge: badge, isEarned: isEarned, earnedAt: earnedAt),
     );
   }
 
@@ -257,6 +242,8 @@ class BadgesScreen extends StatelessWidget {
         return EColors.secondary;
       case BadgeCategory.activity:
         return EColors.warning;
+      case BadgeCategory.social:
+        return EColors.tertiary;
     }
   }
 }
@@ -266,11 +253,7 @@ class _BadgeDetailDialog extends StatelessWidget {
   final bool isEarned;
   final DateTime? earnedAt;
 
-  const _BadgeDetailDialog({
-    required this.badge,
-    required this.isEarned,
-    this.earnedAt,
-  });
+  const _BadgeDetailDialog({required this.badge, required this.isEarned, this.earnedAt});
 
   @override
   Widget build(BuildContext context) {
@@ -281,10 +264,7 @@ class _BadgeDetailDialog extends StatelessWidget {
         decoration: BoxDecoration(
           color: EColors.surface,
           borderRadius: BorderRadius.circular(ESizes.radiusLg),
-          border: Border.all(
-            color: isEarned ? _getCategoryColor() : EColors.border,
-            width: 2,
-          ),
+          border: Border.all(color: isEarned ? _getCategoryColor() : EColors.border, width: 2),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -303,10 +283,7 @@ class _BadgeDetailDialog extends StatelessWidget {
                 ),
               ),
               child: Center(
-                child: Text(
-                  isEarned ? badge.emoji : '🔒',
-                  style: const TextStyle(fontSize: 48),
-                ),
+                child: Text(isEarned ? badge.emoji : '🔒', style: const TextStyle(fontSize: 48)),
               ),
             ),
             const SizedBox(height: ESizes.md),
@@ -321,19 +298,13 @@ class _BadgeDetailDialog extends StatelessWidget {
             const SizedBox(height: ESizes.sm),
             Text(
               badge.description,
-              style: TextStyle(
-                fontSize: ESizes.fontMd,
-                color: EColors.textSecondary,
-              ),
+              style: TextStyle(fontSize: ESizes.fontMd, color: EColors.textSecondary),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: ESizes.md),
             if (isEarned && earnedAt != null) ...[
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: ESizes.md,
-                  vertical: ESizes.sm,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: ESizes.md, vertical: ESizes.sm),
                 decoration: BoxDecoration(
                   color: EColors.success.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(ESizes.radiusMd),
@@ -341,11 +312,7 @@ class _BadgeDetailDialog extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(
-                      Icons.check_circle,
-                      color: EColors.success,
-                      size: ESizes.iconSm,
-                    ),
+                    const Icon(Icons.check_circle, color: EColors.success, size: ESizes.iconSm),
                     const SizedBox(width: ESizes.sm),
                     Text(
                       'Earned on ${_formatDate(earnedAt!)}',
@@ -360,10 +327,7 @@ class _BadgeDetailDialog extends StatelessWidget {
               ),
             ] else ...[
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: ESizes.md,
-                  vertical: ESizes.sm,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: ESizes.md, vertical: ESizes.sm),
                 decoration: BoxDecoration(
                   color: EColors.backgroundSecondary,
                   borderRadius: BorderRadius.circular(ESizes.radiusMd),
@@ -371,18 +335,11 @@ class _BadgeDetailDialog extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
-                      Icons.lock_outline,
-                      color: EColors.textTertiary,
-                      size: ESizes.iconSm,
-                    ),
+                    Icon(Icons.lock_outline, color: EColors.textTertiary, size: ESizes.iconSm),
                     const SizedBox(width: ESizes.sm),
                     Text(
                       'Not yet earned',
-                      style: TextStyle(
-                        fontSize: ESizes.fontSm,
-                        color: EColors.textTertiary,
-                      ),
+                      style: TextStyle(fontSize: ESizes.fontSm, color: EColors.textTertiary),
                     ),
                   ],
                 ),
@@ -393,9 +350,7 @@ class _BadgeDetailDialog extends StatelessWidget {
               width: double.infinity,
               child: TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                style: TextButton.styleFrom(
-                  foregroundColor: EColors.textSecondary,
-                ),
+                style: TextButton.styleFrom(foregroundColor: EColors.textSecondary),
                 child: const Text('Close'),
               ),
             ),
@@ -407,17 +362,28 @@ class _BadgeDetailDialog extends StatelessWidget {
 
   String _formatDate(DateTime date) {
     final months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     return '${months[date.month - 1]} ${date.day}, ${date.year}';
   }
 
   Color _getCategoryColor() => switch (badge.category) {
-        BadgeCategory.completion => EColors.success,
-        BadgeCategory.milestone => EColors.accent,
-        BadgeCategory.genre => EColors.primary,
-        BadgeCategory.streak => EColors.secondary,
-        BadgeCategory.activity => EColors.warning,
-      };
+    BadgeCategory.completion => EColors.success,
+    BadgeCategory.milestone => EColors.accent,
+    BadgeCategory.genre => EColors.primary,
+    BadgeCategory.streak => EColors.secondary,
+    BadgeCategory.activity => EColors.warning,
+    BadgeCategory.social => EColors.tertiary,
+  };
 }

@@ -14,8 +14,7 @@ class BadgeUnlockDialog extends StatefulWidget {
   State<BadgeUnlockDialog> createState() => _BadgeUnlockDialogState();
 }
 
-class _BadgeUnlockDialogState extends State<BadgeUnlockDialog>
-    with SingleTickerProviderStateMixin {
+class _BadgeUnlockDialogState extends State<BadgeUnlockDialog> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
   late Animation<double> _fadeAnimation;
@@ -23,10 +22,7 @@ class _BadgeUnlockDialogState extends State<BadgeUnlockDialog>
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 600),
-      vsync: this,
-    );
+    _controller = AnimationController(duration: const Duration(milliseconds: 600), vsync: this);
 
     _scaleAnimation = Tween<double>(
       begin: 0.5,
@@ -127,9 +123,7 @@ class _BadgeUnlockDialogState extends State<BadgeUnlockDialog>
           ),
         ],
       ),
-      child: Center(
-        child: Text(widget.badge.emoji, style: const TextStyle(fontSize: 48)),
-      ),
+      child: Center(child: Text(widget.badge.emoji, style: const TextStyle(fontSize: 48))),
     );
   }
 
@@ -164,9 +158,7 @@ class _BadgeUnlockDialogState extends State<BadgeUnlockDialog>
           foregroundColor: _getCategoryColor(),
           side: BorderSide(color: _getCategoryColor()),
           padding: const EdgeInsets.symmetric(vertical: ESizes.sm),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(ESizes.radiusMd),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ESizes.radiusMd)),
         ),
       ),
     );
@@ -181,14 +173,9 @@ class _BadgeUnlockDialogState extends State<BadgeUnlockDialog>
           backgroundColor: _getCategoryColor(),
           foregroundColor: EColors.textOnPrimary,
           padding: const EdgeInsets.symmetric(vertical: ESizes.sm),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(ESizes.radiusMd),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ESizes.radiusMd)),
         ),
-        child: const Text(
-          'Awesome!',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
+        child: const Text('Awesome!', style: TextStyle(fontWeight: FontWeight.bold)),
       ),
     );
   }
@@ -199,5 +186,6 @@ class _BadgeUnlockDialogState extends State<BadgeUnlockDialog>
     BadgeCategory.genre => EColors.primary,
     BadgeCategory.streak => EColors.secondary,
     BadgeCategory.activity => EColors.warning,
+    BadgeCategory.social => EColors.secondary,
   };
 }

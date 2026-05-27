@@ -25,11 +25,7 @@ class BadgeRepository {
 
   /// Get a single badge by ID.
   static Future<Badge?> getBadge(String id) async {
-    final response = await _client
-        .from('badges')
-        .select()
-        .eq('id', id)
-        .maybeSingle();
+    final response = await _client.from('badges').select().eq('id', id).maybeSingle();
 
     if (response == null) return null;
     return Badge.fromJson(response);
@@ -75,10 +71,7 @@ class BadgeRepository {
 
     final response = await _client
         .from('user_badges')
-        .insert({
-          'user_id': userId,
-          'badge_id': badgeId,
-        })
+        .insert({'user_id': userId, 'badge_id': badgeId})
         .select('*, badges(*)')
         .single();
 
@@ -87,9 +80,7 @@ class BadgeRepository {
 
   /// Check and award all eligible badges based on user stats.
   /// Returns list of newly awarded badges.
-  static Future<List<Badge>> checkAndAwardBadges(
-    Map<String, dynamic> stats,
-  ) async {
+  static Future<List<Badge>> checkAndAwardBadges(Map<String, dynamic> stats) async {
     final userId = SupabaseService.currentUserId;
     if (userId == null) throw Exception('User not authenticated');
 
@@ -135,6 +126,59 @@ class BadgeRepository {
   static Future<int> getEarnedBadgeCount() async {
     final userBadges = await getUserBadges();
     return userBadges.length;
+  }
+
+  /// Get social engagement stats for badge checking.
+  static Future<Map<String, dynamic>> getSocialStats() async {
+    final userId = SupabaseService.currentUserId;
+    if (userId == null) return {};
+
+    try {
+      final results = await Future.wait([
+        _client.from('reviews').select('id').eq('user_id', userId),
+        _client.from('playlists').select('id').eq('user_id', userId),
+        _client
+            .from('watchlist_members')
+            .select('user_id')
+            .eq('invited_by', userId)
+            .eq('status', 'accepted')
+            .neq('user_id', userId),
+        _client
+            .from('friendships')
+            .select('id')
+            .or('requester_id.eq.$userId,addressee_id.eq.$userId')
+            .eq('status', 'accepted'),
+        _client.from('watch_parties').select('id').eq('created_by', userId),
+        _client
+            .from('watch_party_members')
+            .select('party_id')
+            .eq('user_id', userId)
+            .eq('status', 'active'),
+      ]);
+
+      final reviewRows = results[0] as List;
+      final playlistRows = results[1] as List;
+      final cocuratorRows = results[2] as List;
+      final friendRows = results[3] as List;
+      final hostedRows = results[4] as List;
+      final memberRows = results[5] as List;
+
+      final hostedIds = hostedRows.map((r) => r['id'] as String).toSet();
+      final joinedCount = memberRows
+          .where((r) => !hostedIds.contains(r['party_id'] as String))
+          .length;
+
+      return {
+        'reviews_left': reviewRows.length,
+        'playlists_created': playlistRows.length,
+        'cocurators_added': cocuratorRows.length,
+        'friends_added': friendRows.length,
+        'watch_parties_hosted': hostedRows.length,
+        'watch_parties_joined': joinedCount,
+      };
+    } catch (_) {
+      return {};
+    }
   }
 
   /// Get recently earned badges (last 3).

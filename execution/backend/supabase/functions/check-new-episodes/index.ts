@@ -83,6 +83,7 @@ Deno.serve(async (req) => {
   console.log(`Checking ${shows.length} shows for new episodes`);
 
   const today = new Date().toISOString().split('T')[0];
+  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
   let episodesRefreshed = 0;
   let eventsCreated = 0;
   let notificationsSent = 0;
@@ -155,8 +156,10 @@ Deno.serve(async (req) => {
       if (notifiableIds.length === 0) continue;
 
       // --- PATH A: Air-date trigger ---
-      // Fires on the release day itself, even when episode count hasn't changed.
-      const todayEps = episodes.filter(ep => ep.air_date === today);
+      // Fires the day AFTER the episode airs (air_date === yesterday) so the
+      // notification is never sent before the broadcast. The 10:30 UTC cron
+      // ensures Saturday SNL episodes are caught on Sunday morning.
+      const todayEps = episodes.filter(ep => ep.air_date === yesterday);
 
       if (todayEps.length > 0) {
         const todayEpNumbers = todayEps.map(ep => ep.episode_number);
@@ -229,12 +232,10 @@ Deno.serve(async (req) => {
 
       const alreadyNotifiedDeltaSet = new Set((alreadyNotifiedDelta ?? []).map((r: any) => r.user_id));
       const deltaTargets = notifiableIds.filter(uid => !alreadyNotifiedDeltaSet.has(uid));
-      if (deltaTargets.length === 0) continue;
 
-      const { title: notifTitle, body: notifBody } = buildEpisodeCopy(
-        show.title, show.season_number, latestEp.episode_number, newCount, isPremiere,
-      );
-
+      // Always record the event to keep last_detected_count current — even when
+      // everyone was already notified via PATH A. Without this, the count stays
+      // frozen and PATH B fires a burst notification for multiple missed episodes.
       const { data: eventRow, error: eventError } = await supabase
         .from('new_episode_events')
         .insert({ tmdb_id: show.tmdb_id, season_number: show.season_number, episode_count: airedCount })
@@ -246,6 +247,12 @@ Deno.serve(async (req) => {
         continue;
       }
       eventsCreated++;
+
+      const { title: notifTitle, body: notifBody } = buildEpisodeCopy(
+        show.title, show.season_number, latestEp.episode_number, newCount, isPremiere,
+      );
+
+      if (deltaTargets.length === 0) continue;
 
       for (const userId of deltaTargets) {
         try {
