@@ -25,18 +25,12 @@ void main() {
         description: 'Completed 10 items',
         iconPath: 'emoji:🏆',
         category: BadgeCategory.completion,
-        criteria: const BadgeCriteria(
-          type: BadgeCriteriaType.itemsCompleted,
-          value: 10,
-        ),
+        criteria: const BadgeCriteria(type: BadgeCriteriaType.itemsCompleted, value: 10),
       );
 
       final text = shareService.getBadgeShareText(badge);
-      expect(
-        text,
-        contains('I earned the Completionist badge on BingeQuest! 🏆'),
-      );
-      expect(text, contains('https://bingequest.app'));
+      expect(text, contains('I earned the Completionist badge on BingeQuest! 🏆'));
+      expect(text, contains('https://raspucat.com/bingequest'));
     });
 
     test('getCompletionShareText returns correctly formatted string', () {
@@ -56,11 +50,8 @@ void main() {
       );
 
       final text = shareService.getCompletionShareText(item);
-      expect(
-        text,
-        contains('I just finished watching Inception on BingeQuest! 🎬'),
-      );
-      expect(text, contains('https://bingequest.app'));
+      expect(text, contains('I just finished watching Inception on BingeQuest! 🎬'));
+      expect(text, contains('https://raspucat.com/bingequest'));
     });
   });
 }

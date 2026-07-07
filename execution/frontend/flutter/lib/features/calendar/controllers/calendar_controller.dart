@@ -5,8 +5,28 @@ import '../../../shared/models/watchlist_item.dart';
 import '../../../shared/repositories/calendar_repository.dart';
 import '../../watchlist/controllers/watchlist_controller.dart';
 
+/// Thin seam over [CalendarRepository.getCalendarEvents] so tests can inject
+/// a fake without refactoring the (static, like every other repository)
+/// CalendarRepository itself.
+abstract class CalendarEventsFetcher {
+  Future<List<Map<String, dynamic>>> call(DateTime from, DateTime to);
+}
+
+class _RepositoryEventsFetcher implements CalendarEventsFetcher {
+  const _RepositoryEventsFetcher();
+
+  @override
+  Future<List<Map<String, dynamic>>> call(DateTime from, DateTime to) =>
+      CalendarRepository.getCalendarEvents(from, to);
+}
+
 class CalendarController extends GetxController {
+  CalendarController({CalendarEventsFetcher? eventsFetcher})
+    : _eventsFetcher = eventsFetcher ?? const _RepositoryEventsFetcher();
+
   static CalendarController get to => Get.find<CalendarController>();
+
+  final CalendarEventsFetcher _eventsFetcher;
 
   final _allEvents = <CalendarEvent>[].obs;
   final selectedWatchlistId = 'all'.obs;
@@ -39,7 +59,7 @@ class CalendarController extends GetxController {
       final from = DateTime(now.year, now.month, now.day);
       final to = from.add(const Duration(days: 90));
 
-      final rows = await CalendarRepository.getCalendarEvents(from, to);
+      final rows = await _eventsFetcher(from, to);
       _itemByTmdbId.clear();
       final events = <CalendarEvent>[];
 

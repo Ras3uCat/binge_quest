@@ -1,7 +1,14 @@
 # Feature: Release Calendar
 
 **Mode:** STUDIO  
-**Status:** BACKLOG
+**Status:** COMPLETED (2026-07-07)
+
+## Implementation Notes (as-built, differs from original plan below)
+
+- **Data layer**: implemented as a single server-side RPC (`get_calendar_events(from_date, to_date)`, migration `072_calendar_events_rpc.sql`) rather than two client-side `.in_()` queries. One round trip, joins `watchlist_items` + `watchlists` + `content_cache` + `content_cache_episodes` server-side, RLS-scoped via `SECURITY INVOKER`. Supersedes the "Data Layer" plan below.
+- **Controller registration**: `CalendarController` is registered globally in `main.dart:118` via `Get.lazyPut(fenix: true)`, matching every other controller in this app (`AuthController`, `WatchlistController`, etc.). There is no `bindings/` pattern anywhere in the codebase — the planned `CalendarBinding` (per-route) was never a real convention here and was dropped. Supersedes the `CalendarBinding` references below.
+- **Testability seam**: `CalendarController` takes an optional `CalendarEventsFetcher` constructor param (defaults to wrapping `CalendarRepository.getCalendarEvents`) so tests can inject a mock without refactoring the (static, like all repositories in this app) `CalendarRepository` itself.
+- Shipped in `3f6da0d` (2026-05-27); tests added 2026-07-07 in `test/features/calendar/calendar_controller_test.dart` (14 cases: load/error states, date normalization, dedup rules, per-watchlist filtering, month navigation). No `calendar_repository_test.dart` — repository is static and hardwired to `Supabase.instance.client`, not mockable without an app-wide repository DI refactor that's out of scope here; RPC call itself is covered by manual QA only.
 
 ## Context
 
@@ -23,8 +30,8 @@ All required data already lives in the schema (`content_cache_episodes.air_date`
 - `CalendarScreen` — filter chips row + month grid + day detail list
 - `CalendarMonthGrid` widget — custom month grid (no third-party package), dot indicators, day selection
 - `CalendarEventCard` widget — poster + title + episode code or "Theatrical Release" label + watchlist chip
-- Calendar icon (`Icons.calendar_month`) added to Library screen app bar; taps open `CalendarScreen` via `Get.to(() => CalendarScreen(), binding: CalendarBinding())`
-- `CalendarBinding` wires `CalendarController` per-route (not in `main.dart`)
+- Calendar icon (`Icons.calendar_month`) added to Library screen app bar; taps open `CalendarScreen` via `Get.to(() => const CalendarScreen())`
+- `CalendarController` registered in `main.dart` alongside every other controller (see Implementation Notes above — no per-route binding)
 
 ### What's excluded
 - Movie streaming release dates (data gap — see note above)
@@ -53,18 +60,13 @@ class CalendarEvent {
 enum CalendarEventType { episode, movieRelease }
 ```
 
-### New: `lib/shared/repositories/calendar_repository.dart`
-- `getUpcomingEpisodes(List<int> tmdbIds, DateTime from, DateTime to)` — queries `content_cache_episodes` filtered by `air_date`
-- `getUpcomingMovies(List<int> tmdbIds, DateTime from, DateTime to)` — queries `content_cache` filtered by `release_date` and `media_type = 'movie'`
-
-No foreign key constraints needed — queries are simple `.in_()` + date range filters via PostgREST.
+### As-built: `lib/shared/repositories/calendar_repository.dart`
+- `getCalendarEvents(DateTime from, DateTime to)` — calls the `get_calendar_events(from_date, to_date)` RPC (migration `072_calendar_events_rpc.sql`), which does the episode + movie union server-side and returns rows already scoped to the caller's watchlists via RLS.
 
 ### Controller data flow
-1. Reads all watchlists + items from `WatchlistController.to` (already loaded)
-2. Builds `watchlistId → Set<(tmdbId, mediaType)>` map
-3. Fetches upcoming episodes and movies (90-day window from today)
-4. Assembles `Map<DateTime, List<CalendarEvent>>`; all keys normalized to `DateTime(y, m, d)` (date-only, local time) to prevent lookup misses from time-of-day components. Deduplication key: `(tmdbId, seasonNumber, episodeNumber)` for episodes, `(tmdbId)` for movies — applied before inserting into the map.
-5. `filteredEventsByDate` is a computed getter that reads `selectedWatchlistId.value` (an `.obs`) internally — `Obx` in the view tracks this dependency automatically; no re-fetch on filter change
+1. `loadEvents()` calls the injected `CalendarEventsFetcher` (defaults to `CalendarRepository.getCalendarEvents`) with a 90-day window from today
+2. Each row is mapped to a `CalendarEvent`; `event_date` is parsed and normalized to `DateTime(y, m, d)` (date-only, local time) to prevent lookup misses from time-of-day components
+3. `filteredEventsByDate` is a computed getter that reads `selectedWatchlistId.value` (an `.obs`) internally — `Obx` in the view tracks this dependency automatically; no re-fetch on filter change. Deduplication (only applied for the "all" filter) key: `(tmdbId, seasonNumber, episodeNumber)` for episodes, `(tmdbId)` for movies
 
 ---
 
@@ -72,16 +74,15 @@ No foreign key constraints needed — queries are simple `.in_()` + date range f
 
 | File | Action |
 |------|--------|
-| `lib/shared/models/calendar_event.dart` | **New** — `CalendarEvent` model + `CalendarEventType` enum |
-| `lib/shared/repositories/calendar_repository.dart` | **New** — `getUpcomingEpisodes()` + `getUpcomingMovies()` |
-| `lib/features/calendar/bindings/calendar_binding.dart` | **New** — `CalendarBinding` registers `CalendarController` |
-| `lib/features/calendar/controllers/calendar_controller.dart` | **New** — state + data loading + filter logic |
-| `lib/features/calendar/screens/calendar_screen.dart` | **New** — filter chips + month grid + day detail list |
-| `lib/features/calendar/widgets/calendar_month_grid.dart` | **New** — custom month grid with dot indicators |
-| `lib/features/calendar/widgets/calendar_event_card.dart` | **New** — event card (poster + title + chips) |
-| `lib/features/watchlist/screens/library_screen.dart` | Add calendar icon to app bar `actions`; tap → `Get.to(() => CalendarScreen(), binding: CalendarBinding())` |
-| `test/shared/repositories/calendar_repository_test.dart` | **New** — unit tests for `getUpcomingEpisodes` + `getUpcomingMovies` |
-| `test/features/calendar/calendar_controller_test.dart` | **New** — unit tests for filter logic, deduplication, date normalization |
+| `lib/shared/models/calendar_event.dart` | `CalendarEvent` model + `CalendarEventType` enum |
+| `lib/shared/repositories/calendar_repository.dart` | `getCalendarEvents()` — wraps the `get_calendar_events` RPC |
+| `supabase/migrations/072_calendar_events_rpc.sql` | `get_calendar_events(from_date, to_date)` SQL function + supporting indexes |
+| `lib/features/calendar/controllers/calendar_controller.dart` | State + data loading + filter/dedup logic; `CalendarEventsFetcher` seam for testability |
+| `lib/features/calendar/screens/calendar_screen.dart` | Filter chips + month grid + day detail list |
+| `lib/features/calendar/widgets/calendar_month_grid.dart` | Custom month grid with dot indicators |
+| `lib/features/calendar/widgets/calendar_event_card.dart` | Event card (poster + title + chips) |
+| `lib/features/watchlist/screens/library_screen.dart` | Calendar icon in app bar `actions` (`library_screen.dart:74-75`); tap → `Get.to(() => const CalendarScreen())` |
+| `test/features/calendar/calendar_controller_test.dart` | Unit tests for filter logic, deduplication, date normalization, month navigation |
 
 ---
 
