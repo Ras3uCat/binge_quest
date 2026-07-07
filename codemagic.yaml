@@ -123,4 +123,4 @@ workflows:
       google_play:
         credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
         track: production
-        rollout_fraction: 0.1
+        rollout_fraction: 1.0
