@@ -8,6 +8,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:get/get.dart';
 import 'firebase_options.dart';
 import 'core/config/env.dart';
+import 'core/config/upgrader_config.dart';
 import 'core/theme/app_theme.dart';
 import 'core/constants/e_colors.dart';
 import 'core/constants/e_animations.dart';
@@ -154,6 +155,7 @@ class _BingeQuestAppState extends State<BingeQuestApp> {
   @override
   Widget build(BuildContext context) {
     return UpgradeAlert(
+      upgrader: buildAppUpgrader(),
       child: GetMaterialApp(
         title: 'BingeQuest',
         debugShowCheckedModeBanner: false,
